@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX } from 'react-icons/fi';
-import { NAV_GROUPS } from '../constants/navigation';
+import { navForRole } from '../constants/navigation';
 import { APP } from '../constants/app';
+import { useAuth } from '../context/AuthContext';
 import { cn } from '../utils/cn';
 
 /**
@@ -41,6 +42,9 @@ function NavItem({ item, onNavigate }) {
 }
 
 function SidebarContent({ onNavigate }) {
+  const { user } = useAuth();
+  const navGroups = navForRole(user?.roleKey);
+
   return (
     <div className="flex h-full flex-col">
       {/* Brand */}
@@ -59,7 +63,7 @@ function SidebarContent({ onNavigate }) {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-4">
-        {NAV_GROUPS.map((group) => (
+        {navGroups.map((group) => (
           <div key={group.heading}>
             <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
               {group.heading}

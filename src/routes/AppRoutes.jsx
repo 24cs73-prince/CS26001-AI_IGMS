@@ -13,16 +13,24 @@ import Students from "../pages/Students";
 import Teachers from "../pages/Teachers";
 import NotFound from "../pages/NotFound";
 
+// Teacher portal
+import MarkAttendance from "../pages/teacher/MarkAttendance";
+import UploadMarks from "../pages/teacher/UploadMarks";
+import ApplyLeave from "../pages/teacher/ApplyLeave";
+
+// Student portal (placeholder)
+import StudentHome from "../pages/student/StudentHome";
+
 /**
  * Central route configuration.
- * - /login          → AuthLayout (public)
- * - all app routes  → DashboardLayout (protected)
- * AnimatePresence enables page transitions between routes.
+ * - /login             → AuthLayout (public)
+ * - principal routes   → DashboardLayout, role "principal"
+ * - teacher routes     → DashboardLayout, role "teacher"
+ * - student route      → DashboardLayout, role "student" (placeholder)
  */
 export default function AppRoutes() {
   const location = useLocation();
 
-  // Helper to wrap each protected page with a transition
   const page = (Component) => (
     <PageTransition>
       <Component />
@@ -37,10 +45,10 @@ export default function AppRoutes() {
           <Route path="/login" element={<Login />} />
         </Route>
 
-        {/* Protected app routes */}
+        {/* Principal (admin) routes */}
         <Route
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["principal"]}>
               <DashboardLayout />
             </ProtectedRoute>
           }
@@ -50,8 +58,32 @@ export default function AppRoutes() {
           <Route path="/teachers" element={page(Teachers)} />
         </Route>
 
+        {/* Teacher routes */}
+        <Route
+          element={
+            <ProtectedRoute allowedRoles={["teacher"]}>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/teacher/attendance" element={page(MarkAttendance)} />
+          <Route path="/teacher/marks" element={page(UploadMarks)} />
+          <Route path="/teacher/leave" element={page(ApplyLeave)} />
+        </Route>
+
+        {/* Student route (placeholder) */}
+        <Route
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/student" element={page(StudentHome)} />
+        </Route>
+
         {/* Redirects & fallback */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>

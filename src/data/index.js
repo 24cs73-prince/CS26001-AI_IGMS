@@ -8,6 +8,12 @@ export { timetable, periods, days } from './timetable';
 export { notices } from './notices';
 export { reports } from './reports';
 export {
+  teacherRoster,
+  teacherSubjects,
+  leaveApplications,
+  leaveTypes,
+} from './teacherPortal';
+export {
   dashboardStats,
   performanceTrend,
   enrollmentByClass,

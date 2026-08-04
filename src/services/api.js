@@ -19,6 +19,10 @@ import {
   recentActivities,
   systemStatus,
   performanceTrend,
+  teacherRoster,
+  teacherSubjects,
+  leaveApplications,
+  leaveTypes,
 } from '../data';
 
 const delay = (ms = 400) => new Promise((res) => setTimeout(res, ms));
@@ -38,6 +42,12 @@ export const api = {
   getTimetable: () => resolve(timetable),
   getNotices: () => resolve(notices),
   getReports: () => resolve(reports),
+  // Teacher portal
+  getTeacherRoster: (className) =>
+    resolve(className ? teacherRoster[className] || [] : teacherRoster),
+  getTeacherSubjects: () => resolve(teacherSubjects),
+  getLeaveApplications: () => resolve(leaveApplications),
+  getLeaveTypes: () => resolve(leaveTypes),
   getDashboard: () =>
     resolve({
       stats: dashboardStats,
