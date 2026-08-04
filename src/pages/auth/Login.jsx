@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiMail, FiLock, FiArrowRight, FiUserCheck, FiShield, FiUser } from 'react-icons/fi';
+import { FiMail, FiLock, FiArrowRight, FiInfo, FiUserCheck, FiShield, FiUser } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { ROLES, ROLE_ORDER } from '../../constants/app';
@@ -9,38 +9,39 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { cn } from '../../utils/cn';
 
+/**
+ * Login page. Frontend-only auth with three roles — Teacher, Principal,
+ * Student — each with its own demo credentials. Picking a role swaps the
+ * pre-filled credentials and decides which portal you land in.
+ */
 const ROLE_ICONS = {
   teacher: FiUserCheck,
   principal: FiShield,
   student: FiUser,
 };
 
-/**
- * Login page. Frontend-only auth with 3 roles (Teacher / Principal / Student).
- * - Teacher & Principal log in with their demo credentials.
- * - Student is a placeholder: signing in does nothing (portal coming soon).
- */
 export default function Login() {
   const { login } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [roleKey, setRoleKey] = useState('teacher');
+  const role = ROLES[roleKey];
+
   const [form, setForm] = useState({
-    email: ROLES.teacher.email,
-    password: ROLES.teacher.password,
+    email: role.credentials.email,
+    password: role.credentials.password,
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const isStudent = roleKey === 'student';
-
   const selectRole = (key) => {
     setRoleKey(key);
+    setForm({
+      email: ROLES[key].credentials.email,
+      password: ROLES[key].credentials.password,
+    });
     setError('');
-    // Auto-fill demo credentials for the chosen role
-    setForm({ email: ROLES[key].email, password: ROLES[key].password });
   };
 
   const handleChange = (e) => {
@@ -55,13 +56,20 @@ export default function Login() {
     try {
       const user = await login({ ...form, role: roleKey });
       toast.success(`Welcome back, ${user.name.split(' ')[0]}!`);
-      const from = location.state?.from?.pathname || user.home;
-      navigate(from, { replace: true });
+      navigate(user.home, { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const fillDemo = () => {
+    setForm({
+      email: role.credentials.email,
+      password: role.credentials.password,
+    });
+    setError('');
   };
 
   return (
@@ -89,27 +97,32 @@ export default function Login() {
       </div>
 
       {/* Role selector */}
-      <div className="mb-6 grid grid-cols-3 gap-2">
-        {ROLE_ORDER.map((key) => {
-          const Icon = ROLE_ICONS[key];
-          const active = roleKey === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => selectRole(key)}
-              className={cn(
-                'flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-xs font-medium transition-all',
-                active
-                  ? 'border-primary bg-primary/5 text-primary shadow-soft'
-                  : 'border-hairline bg-white text-slate-500 hover:border-slate-300 hover:text-ink'
-              )}
-            >
-              <Icon className="h-5 w-5" />
-              {ROLES[key].label}
-            </button>
-          );
-        })}
+      <div className="mb-6">
+        <p className="mb-2 text-[13px] font-medium text-slate-700">I am a…</p>
+        <div className="grid grid-cols-3 gap-2">
+          {ROLE_ORDER.map((key) => {
+            const Icon = ROLE_ICONS[key];
+            const active = roleKey === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => selectRole(key)}
+                className={cn(
+                  'flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-center transition-all',
+                  active
+                    ? 'border-primary bg-primary/5 shadow-soft'
+                    : 'border-hairline bg-white hover:border-slate-300 hover:bg-canvas'
+                )}
+              >
+                <Icon className={cn('h-5 w-5', active ? 'text-primary' : 'text-slate-400')} />
+                <span className={cn('text-xs font-semibold', active ? 'text-primary' : 'text-slate-600')}>
+                  {ROLES[key].label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -122,7 +135,6 @@ export default function Login() {
           placeholder="you@igms.gov.in"
           leadingIcon={FiMail}
           autoComplete="username"
-          disabled={isStudent}
           required
         />
         <Input
@@ -135,7 +147,6 @@ export default function Login() {
           leadingIcon={FiLock}
           error={error}
           autoComplete="current-password"
-          disabled={isStudent}
           required
         />
 
@@ -150,17 +161,23 @@ export default function Login() {
         </div>
 
         <Button type="submit" size="lg" loading={loading} iconRight={FiArrowRight} className="w-full">
-          {isStudent ? `Sign in as ${ROLES.student.label}` : `Sign in as ${ROLES[roleKey].label}`}
+          Sign in as {role.label}
         </Button>
       </form>
 
-      {!isStudent && (
-        <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs">
-          <p className="font-semibold text-primary">Demo credentials</p>
-          <p className="mt-0.5 text-slate-600">Email: {ROLES[roleKey].email}</p>
-          <p className="text-slate-600">Password: {ROLES[roleKey].password}</p>
+      {/* Demo credentials helper — reflects the selected role */}
+      <button
+        type="button"
+        onClick={fillDemo}
+        className="mt-6 flex w-full items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-left transition-colors hover:bg-primary/10"
+      >
+        <FiInfo className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <div className="text-xs">
+          <p className="font-semibold text-primary">{role.label} demo credentials (click to fill)</p>
+          <p className="mt-0.5 text-slate-600">Email: {role.credentials.email}</p>
+          <p className="text-slate-600">Password: {role.credentials.password}</p>
         </div>
-      )}
+      </button>
     </motion.div>
   );
 }

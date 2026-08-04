@@ -3,9 +3,10 @@ import { useAuth } from '../context/AuthContext';
 
 /**
  * Guards authenticated routes.
- * - Redirects unauthenticated users to /login (preserving intended destination).
- * - If `allowedRoles` is provided and the user's role isn't in it,
- *   redirects them to their own home page.
+ * - Redirects unauthenticated users to /login (preserving the destination).
+ * - If `allowedRoles` is given, users whose role isn't included are sent to
+ *   their own home portal — so a principal can't open teacher pages by URL,
+ *   and vice-versa.
  */
 export default function ProtectedRoute({ children, allowedRoles }) {
   const { isAuthenticated, user } = useAuth();
@@ -16,7 +17,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   }
 
   if (allowedRoles && !allowedRoles.includes(user?.roleKey)) {
-    return <Navigate to={user?.home || '/login'} replace />;
+    return <Navigate to={user?.home || '/dashboard'} replace />;
   }
 
   return children;

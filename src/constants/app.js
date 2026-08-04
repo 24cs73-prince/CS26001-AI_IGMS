@@ -8,52 +8,56 @@ export const APP = {
   version: 'v1.0.0',
 };
 
-// Demo credentials shown on the login screen (frontend-only auth)
-export const DEMO_CREDENTIALS = {
-  email: 'admin@igms.gov.in',
-  password: 'admin@123',
-};
-
 /**
- * Role-based auth config (frontend-only).
- * - principal: the admin portal built by the team.
- * - teacher:   Mark Attendance, Upload Marks, Apply Leave.
- * - student:   placeholder only — signing in does nothing for now.
+ * Role-based demo accounts (frontend-only auth).
+ * Each role has its own credentials, profile, and landing route.
+ * `key` is stored on the logged-in user and drives navigation + route guards.
  */
 export const ROLES = {
   principal: {
     key: 'principal',
     label: 'Principal',
-    name: 'Rohan Administrator',
-    role: 'Principal',
-    email: 'admin@igms.gov.in',
-    password: 'admin@123',
+    tagline: 'Administration & oversight',
+    credentials: { email: 'admin@igms.gov.in', password: 'admin@123' },
+    profile: {
+      name: 'Rohan Administrator',
+      role: 'Principal',
+      org: 'Directorate of School Education',
+    },
     home: '/dashboard',
   },
   teacher: {
     key: 'teacher',
     label: 'Teacher',
-    name: 'Priya Teacher',
-    role: 'Teacher',
-    email: 'teacher@igms.gov.in',
-    password: 'teacher@123',
+    tagline: 'Attendance, marks & leave',
+    credentials: { email: 'teacher@igms.gov.in', password: 'teacher@123' },
+    profile: {
+      name: 'Dr. Meenakshi Iyer',
+      role: 'Teacher',
+      org: 'Mathematics Department',
+    },
     home: '/teacher/attendance',
   },
   student: {
     key: 'student',
     label: 'Student',
-    name: 'Student',
-    role: 'Student',
-    email: 'student@igms.gov.in',
-    password: 'student@123',
-    home: '/student',
+    tagline: 'Your class portal',
+    credentials: { email: 'student@igms.gov.in', password: 'student@123' },
+    profile: {
+      name: 'Aarav Sharma',
+      role: 'Student',
+      org: 'Class 10 · Section A',
+    },
+    home: '/student/home',
   },
 };
 
-// Order of the role buttons on the login screen
+// Order the role buttons appear on the login screen
 export const ROLE_ORDER = ['teacher', 'principal', 'student'];
 
-// Project scope is grades 1–8 only (used by the teacher portal)
+// Backwards-compatible alias (principal = the original admin account)
+export const DEMO_CREDENTIALS = ROLES.principal.credentials;
+
 export const CLASSES = [
   'Class 1',
   'Class 2',
@@ -89,3 +93,20 @@ export const DEPARTMENTS = [
 ];
 
 export const DIFFICULTY_LEVELS = ['Easy', 'Medium', 'Hard', 'Mixed'];
+
+// Exam terms used when uploading marks
+export const EXAM_TERMS = [
+  'Unit Test 1',
+  'Mid-Term',
+  'Unit Test 2',
+  'Final Exam',
+];
+
+// Leave types available to teachers on the Apply Leave page
+export const LEAVE_TYPES = [
+  'Casual Leave',
+  'Sick Leave',
+  'Earned Leave',
+  'Maternity/Paternity Leave',
+  'Duty Leave',
+];

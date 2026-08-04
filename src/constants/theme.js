@@ -39,4 +39,7 @@ export const STATUS_TONE = {
   Pinned: 'primary',
   Pass: 'success',
   Fail: 'danger',
+  Approved: 'success',
+  Pending: 'warning',
+  Rejected: 'danger',
 };

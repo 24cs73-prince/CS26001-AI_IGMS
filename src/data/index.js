@@ -7,12 +7,7 @@ export { results, classStatistics, gradeDistribution } from './results';
 export { timetable, periods, days } from './timetable';
 export { notices } from './notices';
 export { reports } from './reports';
-export {
-  teacherRoster,
-  teacherSubjects,
-  leaveApplications,
-  leaveTypes,
-} from './teacherPortal';
+export { leaveApplications, leaveBalance } from './leave';
 export {
   dashboardStats,
   performanceTrend,

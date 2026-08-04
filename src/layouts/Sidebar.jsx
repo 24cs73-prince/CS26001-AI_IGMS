@@ -42,9 +42,8 @@ function NavItem({ item, onNavigate }) {
 }
 
 function SidebarContent({ onNavigate }) {
-  const { user } = useAuth();
-  const navGroups = navForRole(user?.roleKey);
-
+  const { roleKey } = useAuth();
+  const navGroups = navForRole(roleKey);
   return (
     <div className="flex h-full flex-col">
       {/* Brand */}

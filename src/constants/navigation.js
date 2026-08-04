@@ -1,7 +1,8 @@
 /**
- * Sidebar navigation configuration (role-aware).
- * Each item maps to a route and a React-Icons component.
- * Use navForRole(roleKey) to get the right groups for the logged-in user.
+ * Sidebar navigation configuration — organised per role.
+ * Each item maps to a route and a React-Icons component (imported in the Sidebar).
+ * `navForRole(roleKey)` returns the groups a given role should see, so teacher
+ * features never appear in the principal's sidebar (and vice-versa).
  */
 import {
   FiGrid,
@@ -12,7 +13,7 @@ import {
   FiCalendar,
 } from "react-icons/fi";
 
-// Principal (admin) portal — built by the team
+// Principal / admin — the full management portal
 export const PRINCIPAL_NAV = [
   {
     heading: "Overview",
@@ -27,10 +28,10 @@ export const PRINCIPAL_NAV = [
   },
 ];
 
-// Teacher portal — only these three features for now
+// Teacher — only the teacher tools
 export const TEACHER_NAV = [
   {
-    heading: "Teaching",
+    heading: "Teacher",
     items: [
       { label: "Mark Attendance", to: "/teacher/attendance", icon: FiCheckSquare },
       { label: "Upload Marks", to: "/teacher/marks", icon: FiEdit3 },
@@ -39,22 +40,26 @@ export const TEACHER_NAV = [
   },
 ];
 
-// Student portal — placeholder, no navigation for now
-export const STUDENT_NAV = [];
+// Student — dedicated self-service portal
+export const STUDENT_NAV = [
+  {
+    heading: "Student",
+    items: [{ label: "My Dashboard", to: "/student/home", icon: FiGrid }],
+  },
+];
 
-/** Returns the nav groups for a given role key. */
+const NAV_BY_ROLE = {
+  principal: PRINCIPAL_NAV,
+  teacher: TEACHER_NAV,
+  student: STUDENT_NAV,
+};
+
+/** Navigation groups for a given role key (defaults to principal). */
 export function navForRole(roleKey) {
-  switch (roleKey) {
-    case "teacher":
-      return TEACHER_NAV;
-    case "student":
-      return STUDENT_NAV;
-    case "principal":
-    default:
-      return PRINCIPAL_NAV;
-  }
+  return NAV_BY_ROLE[roleKey] || PRINCIPAL_NAV;
 }
 
-// Kept for backwards compatibility (defaults to principal)
-export const NAV_GROUPS = PRINCIPAL_NAV;
-export const NAV_FLAT = PRINCIPAL_NAV.flatMap((g) => g.items);
+// Flattened list of every route across roles — handy for breadcrumbs/titles
+export const NAV_FLAT = Object.values(NAV_BY_ROLE)
+  .flat()
+  .flatMap((g) => g.items);
