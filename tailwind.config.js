@@ -1,0 +1,87 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,jsx}'],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
+      colors: {
+        // AI-IGMS design system palette
+        primary: {
+          DEFAULT: '#2563EB', // Deep Royal Blue
+          50: '#EFF6FF',
+          100: '#DBEAFE',
+          200: '#BFDBFE',
+          300: '#93C5FD',
+          400: '#60A5FA',
+          500: '#3B82F6',
+          600: '#2563EB',
+          700: '#1D4ED8',
+          800: '#1E40AF',
+          900: '#1E3A8A',
+        },
+        secondary: {
+          DEFAULT: '#4F46E5', // Indigo
+          50: '#EEF2FF',
+          100: '#E0E7FF',
+          500: '#6366F1',
+          600: '#4F46E5',
+          700: '#4338CA',
+        },
+        accent: {
+          DEFAULT: '#10B981', // Emerald Green
+          50: '#ECFDF5',
+          100: '#D1FAE5',
+          500: '#10B981',
+          600: '#059669',
+          700: '#047857',
+        },
+        warning: {
+          DEFAULT: '#F59E0B', // Amber
+          50: '#FFFBEB',
+          100: '#FEF3C7',
+          500: '#F59E0B',
+          600: '#D97706',
+          700: '#B45309',
+        },
+        danger: {
+          DEFAULT: '#EF4444', // Red
+          50: '#FEF2F2',
+          100: '#FEE2E2',
+          500: '#EF4444',
+          600: '#DC2626',
+        },
+        sidebar: {
+          DEFAULT: '#1E293B', // Dark Slate
+          hover: '#334155',
+          active: '#2563EB',
+          muted: '#94A3B8',
+        },
+        surface: '#FFFFFF',
+        canvas: '#F8FAFC',
+        ink: '#0F172A',
+        hairline: '#E2E8F0',
+      },
+      borderRadius: {
+        xl: '12px',
+        '2xl': '16px',
+      },
+      boxShadow: {
+        soft: '0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.06)',
+        card: '0 1px 3px rgba(15, 23, 42, 0.06), 0 8px 24px -12px rgba(15, 23, 42, 0.10)',
+        lift: '0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 12px 32px -8px rgba(15, 23, 42, 0.14)',
+        glow: '0 0 0 4px rgba(37, 99, 235, 0.12)',
+      },
+      keyframes: {
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        },
+      },
+      animation: {
+        shimmer: 'shimmer 1.6s infinite',
+      },
+    },
+  },
+  plugins: [],
+};

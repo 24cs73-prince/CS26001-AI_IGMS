@@ -1,0 +1,10 @@
+/** Notice board dummy data. */
+export const notices = [
+  { id: 'NTC-01', title: 'Independence Day Celebration – 15 August', category: 'Event', body: 'All students and staff are requested to assemble in the main ground by 07:30 AM for the flag hoisting ceremony followed by cultural programmes.', author: 'Principal Office', date: '2026-07-30', pinned: true, priority: 'High' },
+  { id: 'NTC-02', title: 'Mid-Term Examination Schedule Released', category: 'Examination', body: 'The mid-term examination datesheet for Classes 6–12 has been published. Kindly review the timetable on the Examination page.', author: 'Examination Cell', date: '2026-07-28', pinned: true, priority: 'High' },
+  { id: 'NTC-03', title: 'Parent-Teacher Meeting – Classes 9 & 10', category: 'Meeting', body: 'A PTM is scheduled for Saturday to discuss student progress. Slots will be shared via SMS.', author: 'Academic Coordinator', date: '2026-07-27', pinned: false, priority: 'Medium' },
+  { id: 'NTC-04', title: 'Library Book Return Reminder', category: 'General', body: 'Students holding borrowed books are requested to return them before the term-end to avoid late fees.', author: 'Librarian', date: '2026-07-25', pinned: false, priority: 'Low' },
+  { id: 'NTC-05', title: 'Scholarship Application Window Open', category: 'Scholarship', body: 'The state merit-cum-means scholarship portal is now open. Eligible students may apply through the office.', author: 'Administration', date: '2026-07-22', pinned: false, priority: 'Medium' },
+  { id: 'NTC-06', title: 'Science Exhibition – Registrations', category: 'Event', body: 'Register your projects for the inter-house science exhibition by the end of this week with your class teacher.', author: 'Science Dept.', date: '2026-07-20', pinned: false, priority: 'Medium' },
+  { id: 'NTC-07', title: 'Revised Bus Route Timings', category: 'Transport', body: 'Effective Monday, morning bus timings for routes 4 and 7 will shift 10 minutes earlier. Please plan accordingly.', author: 'Transport Office', date: '2026-07-18', pinned: false, priority: 'Low' },
+];
