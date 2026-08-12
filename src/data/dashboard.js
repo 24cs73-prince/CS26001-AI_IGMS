@@ -43,12 +43,12 @@ export const attendanceSplit = [
 ];
 
 export const recentActivities = [
-  { id: 1, actor: 'Dr. Meenakshi Iyer', action: 'marked attendance for', target: 'Class 10-A', time: '2026-08-01T08:05:00', tone: 'accent' },
+  { id: 1, actor: 'Dr. Meenakshi Iyer', action: 'marked attendance for', target: 'Class 6-A', time: '2026-08-01T08:05:00', tone: 'accent' },
   { id: 2, actor: 'Examination Cell', action: 'published', target: 'Mid-Term Datesheet', time: '2026-08-01T07:40:00', tone: 'primary' },
-  { id: 3, actor: 'Sushmita Roy', action: 'uploaded results for', target: 'Class 9 English', time: '2026-07-31T16:22:00', tone: 'secondary' },
+  { id: 3, actor: 'Sushmita Roy', action: 'uploaded results for', target: 'Class 5 English', time: '2026-07-31T16:22:00', tone: 'secondary' },
   { id: 4, actor: 'Admin', action: 'added new student', target: 'Anika Bose (Class 6-B)', time: '2026-07-31T11:10:00', tone: 'primary' },
   { id: 5, actor: 'Transport Office', action: 'updated', target: 'Bus Route 4 timings', time: '2026-07-30T14:48:00', tone: 'warning' },
-  { id: 6, actor: 'Suresh Pillai', action: 'scheduled', target: 'CS Practical (Class 12)', time: '2026-07-30T09:15:00', tone: 'info' },
+  { id: 6, actor: 'Suresh Pillai', action: 'scheduled', target: 'CS Practical (Class 8)', time: '2026-07-30T09:15:00', tone: 'info' },
 ];
 
 export const systemStatus = [

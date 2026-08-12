@@ -11,6 +11,7 @@ import { useAuth } from "../context/AuthContext";
 import Login from "../pages/auth/Login";
 import Dashboard from "../pages/Dashboard";
 import Students from "../pages/Students";
+import Parents from "../pages/Parents";
 import Teachers from "../pages/Teachers";
 import Schools from "../pages/Schools";
 import Principals from "../pages/Principals";
@@ -19,6 +20,9 @@ import UploadMarks from "../pages/teacher/UploadMarks";
 import ApplyLeave from "../pages/teacher/ApplyLeave";
 import ChangePassword from "../pages/ChangePassword";
 import NotFound from "../pages/NotFound";
+import Timetable from "../pages/Timetable";
+import Notices from "../pages/Notices";
+import StudentDashboard from "../pages/StudentDashboard";
 
 /** Sends "/" to the logged-in user's home portal (or login if signed out). */
 function RoleHome() {
@@ -77,7 +81,8 @@ export default function AppRoutes() {
           {/* Principal portal */}
           <Route path="/students" element={page(Students, ["principal"])} />
           <Route path="/teachers" element={page(Teachers, ["principal"])} />
-          <Route path="/parents" element={page(Students, ["principal"])} />
+          <Route path="/parents" element={page(Parents, ["principal"])} />
+          <Route path="/notices" element={page(Notices, ["principal", "teacher"])} />
 
           {/* Teacher portal */}
           <Route
@@ -92,9 +97,19 @@ export default function AppRoutes() {
             path="/teacher/leave"
             element={page(ApplyLeave, ["teacher"])}
           />
+          <Route
+            path="/teacher/timetable"
+            element={page(Timetable, ["teacher"])}
+          />
 
-          {/* Student protected pages remain placeholders in the shell */}
-          <Route path="/student/home" element={page(Dashboard, ["student"])} />
+          {/* Student portal */}
+          <Route path="/student/home" element={page(StudentDashboard, ["student"])} />
+          <Route path="/student/notices" element={page(Notices, ["student"])} />
+
+          {/* Parent portal */}
+          <Route path="/parent/dashboard" element={page(Dashboard, ["parent"])} />
+          <Route path="/parent/notices" element={page(Dashboard, ["parent"])} />
+
           <Route
             path="/change-password"
             element={page(ChangePassword, [
@@ -102,6 +117,7 @@ export default function AppRoutes() {
               "principal",
               "teacher",
               "student",
+              "parent",
             ])}
           />
         </Route>

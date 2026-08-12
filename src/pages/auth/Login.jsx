@@ -28,6 +28,7 @@ const ROLE_ICONS = {
   principal: FiUserCheck,
   teacher: FiUserCheck,
   student: FiUser,
+  parent: FiUsers,
 };
 
 export default function Login() {
@@ -54,7 +55,9 @@ export default function Login() {
           ? "Principal@123"
           : selectedRole.key === "teacher"
             ? "Teacher@123"
-            : "Student@123";
+            : selectedRole.key === "parent"
+              ? "Parent@123"
+              : "Student@123";
 
     setRoleKey(key);
     setForm({

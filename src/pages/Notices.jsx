@@ -10,6 +10,7 @@ import PageHeader from '../components/common/PageHeader';
 import { Button, Badge, Card, SearchBox } from '../components/ui';
 import { PageLoader } from '../components/ui/Loader';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import { cn } from '../utils/cn';
 
 /**
@@ -29,6 +30,8 @@ const PRIORITY_TONE = { High: 'danger', Medium: 'warning', Low: 'muted' };
 export default function Notices() {
   const { data: notices, loading } = useFetch(() => api.getNotices(), []);
   const toast = useToast();
+  const { user } = useAuth();
+  const canPost = ["principal", "teacher"].includes(user?.roleKey);
   const [query, setQuery] = useState('');
 
   const { pinned, recent } = useMemo(() => {
@@ -80,7 +83,7 @@ export default function Notices() {
         title="Notice Board"
         description="Announcements, events, and important updates."
         breadcrumbs={[{ label: 'Notice Board' }]}
-        action={<Button icon={FiPlus} onClick={() => toast.success('Post notice (demo).')}>Post Notice</Button>}
+        action={canPost ? <Button icon={FiPlus} onClick={() => toast.success('Post notice (demo).')}>Post Notice</Button> : null}
       />
 
       <div className="mb-6 max-w-sm">

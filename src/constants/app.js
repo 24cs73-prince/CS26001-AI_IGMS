@@ -110,7 +110,7 @@ export const ROLES = {
     profile: {
       name: "Aarav Sharma",
       role: "Student",
-      org: "Class 10 · Section A",
+      org: "Class 6 · Section A",
       school_id: "school-001",
       schoolName: "Govt. Higher Secondary School · School A",
       isActive: true,
@@ -119,10 +119,30 @@ export const ROLES = {
     },
     home: "/student/home",
   },
+  parent: {
+    key: "parent",
+    label: "Parent",
+    tagline: "Your child's progress portal",
+    credentials: {
+      email: "parent@school-a.igms.gov.in",
+      passwordHash: hashPassword("Parent@123"),
+    },
+    profile: {
+      name: "Rajesh Sharma",
+      role: "Parent",
+      org: "Govt. Higher Secondary School · School A",
+      school_id: "school-001",
+      schoolName: "Govt. Higher Secondary School · School A",
+      isActive: true,
+      mustChangePassword: false,
+      permissions: ["parent.profile", "student.results", "student.attendance"],
+    },
+    home: "/parent/dashboard",
+  },
 };
 
 // Order the role buttons appear on the login screen
-export const ROLE_ORDER = ["super_admin", "principal", "teacher", "student"];
+export const ROLE_ORDER = ["super_admin", "principal", "teacher", "student", "parent"];
 
 // Backwards-compatible alias (principal = the original admin account)
 export const DEMO_CREDENTIALS = ROLES.principal.credentials;

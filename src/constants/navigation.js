@@ -12,6 +12,9 @@ import {
   FiEdit3,
   FiCalendar,
   FiHome,
+  FiBell,
+  FiClock,
+  FiSettings,
 } from "react-icons/fi";
 
 // Super Admin — system setup route
@@ -21,6 +24,12 @@ export const SUPER_ADMIN_NAV = [
     items: [
       { label: "Dashboard", to: "/dashboard", icon: FiGrid },
       { label: "Schools", to: "/schools", icon: FiHome },
+    ],
+  },
+  {
+    heading: "Account",
+    items: [
+      { label: "Change Password", to: "/change-password", icon: FiSettings },
     ],
   },
 ];
@@ -37,6 +46,13 @@ export const PRINCIPAL_NAV = [
       { label: "Students", to: "/students", icon: FiUsers },
       { label: "Teachers", to: "/teachers", icon: FiUserCheck },
       { label: "Parents", to: "/parents", icon: FiUsers },
+      { label: "Notices", to: "/notices", icon: FiBell },
+    ],
+  },
+  {
+    heading: "Account",
+    items: [
+      { label: "Change Password", to: "/change-password", icon: FiSettings },
     ],
   },
 ];
@@ -53,6 +69,14 @@ export const TEACHER_NAV = [
       },
       { label: "Upload Marks", to: "/teacher/marks", icon: FiEdit3 },
       { label: "Apply Leave", to: "/teacher/leave", icon: FiCalendar },
+      { label: "Timetable", to: "/teacher/timetable", icon: FiClock },
+      { label: "Notices", to: "/notices", icon: FiBell },
+    ],
+  },
+  {
+    heading: "Account",
+    items: [
+      { label: "Change Password", to: "/change-password", icon: FiSettings },
     ],
   },
 ];
@@ -61,7 +85,33 @@ export const TEACHER_NAV = [
 export const STUDENT_NAV = [
   {
     heading: "Student",
-    items: [{ label: "Student Home", to: "/student/home", icon: FiGrid }],
+    items: [
+      { label: "Student Home", to: "/student/home", icon: FiGrid },
+      { label: "Notices", to: "/student/notices", icon: FiBell },
+    ],
+  },
+  {
+    heading: "Account",
+    items: [
+      { label: "Change Password", to: "/change-password", icon: FiSettings },
+    ],
+  },
+];
+
+// Parent — portal
+export const PARENT_NAV = [
+  {
+    heading: "Parent Portal",
+    items: [
+      { label: "Parent Dashboard", to: "/parent/dashboard", icon: FiGrid },
+      { label: "Notices", to: "/parent/notices", icon: FiBell },
+    ],
+  },
+  {
+    heading: "Account",
+    items: [
+      { label: "Change Password", to: "/change-password", icon: FiSettings },
+    ],
   },
 ];
 
@@ -70,6 +120,7 @@ const NAV_BY_ROLE = {
   principal: PRINCIPAL_NAV,
   teacher: TEACHER_NAV,
   student: STUDENT_NAV,
+  parent: PARENT_NAV,
 };
 
 /** Navigation groups for a given role key (defaults to principal). */

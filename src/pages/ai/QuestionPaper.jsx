@@ -19,7 +19,7 @@ import { formatDate } from '../../utils/format';
 export default function QuestionPaper() {
   const toast = useToast();
   const [config, setConfig] = useState({
-    className: { value: 'Class 10', label: 'Class 10' },
+    className: { value: 'Class 8', label: 'Class 8' },
     subject: { value: 'Mathematics', label: 'Mathematics' },
     difficulty: { value: 'Medium', label: 'Medium' },
     count: 10,

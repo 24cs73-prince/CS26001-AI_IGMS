@@ -7,6 +7,7 @@ import { usePagination } from "../hooks/usePagination";
 import { api } from "../services/api";
 import { searchRows } from "../utils/filter";
 import { STATUS_TONE } from "../constants/theme";
+import { CLASSES } from "../constants/app";
 
 import PageHeader from "../components/common/PageHeader";
 import {
@@ -44,7 +45,7 @@ export default function Students() {
   const classOptionsFromData = useMemo(() => {
     if (!students) return [{ value: "all", label: "All Classes" }];
 
-    const allowedClasses = new Set(["Class 6", "Class 7", "Class 8"]);
+    const allowedClasses = new Set(CLASSES);
     const options = [
       ...new Set(
         students
@@ -61,7 +62,7 @@ export default function Students() {
   const filtered = useMemo(() => {
     if (!students) return [];
 
-    const allowedClasses = new Set(["Class 6", "Class 7", "Class 8"]);
+    const allowedClasses = new Set(CLASSES);
     let rows = students.filter((s) => allowedClasses.has(s.className));
     rows = searchRows(rows, debounced, ["name", "id", "email", "guardian"]);
     if (classFilter.value !== "all")

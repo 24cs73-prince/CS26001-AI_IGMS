@@ -59,7 +59,7 @@ export default function Navbar({ onMenuClick }) {
     },
     {
       id: 3,
-      title: "Class 9 English results uploaded",
+      title: "Class 8 English results uploaded",
       time: "3h ago",
       tone: "bg-accent",
     },

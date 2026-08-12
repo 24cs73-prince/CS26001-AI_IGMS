@@ -1,4 +1,4 @@
-/** Weekly timetable dummy data (Class 10-A view). */
+/** Weekly timetable dummy data (Class 6-A view). */
 export const periods = [
   '08:00 – 08:45',
   '08:45 – 09:30',
@@ -23,7 +23,7 @@ const S = {
 };
 
 export const timetable = {
-  className: 'Class 10 · Section A',
+  className: 'Class 6 · Section A',
   periods,
   days,
   grid: {

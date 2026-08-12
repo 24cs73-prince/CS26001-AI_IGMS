@@ -21,14 +21,14 @@ const TONE_CLASS = {
 
 export default function Timetable() {
   const { data: tt, loading } = useFetch(() => api.getTimetable(), []);
-  const [section, setSection] = useState({ value: '10A', label: 'Class 10 · Section A' });
+  const [section, setSection] = useState({ value: '8A', label: 'Class 8 · Section A' });
 
   if (loading || !tt) return <PageLoader label="Loading timetable…" />;
 
   const sectionOptions = [
-    { value: '10A', label: 'Class 10 · Section A' },
-    { value: '10B', label: 'Class 10 · Section B' },
-    { value: '9A', label: 'Class 9 · Section A' },
+    { value: '8A', label: 'Class 8 · Section A' },
+    { value: '8B', label: 'Class 8 · Section B' },
+    { value: '7A', label: 'Class 7 · Section A' },
   ];
 
   return (

@@ -60,8 +60,8 @@ export default function MarkAttendance() {
   const toast = useToast();
 
   const [classFilter, setClassFilter] = useState({
-    value: "Class 10",
-    label: "Class 10",
+    value: "Class 8",
+    label: "Class 8",
   });
   const [sectionFilter, setSectionFilter] = useState({
     value: "A",

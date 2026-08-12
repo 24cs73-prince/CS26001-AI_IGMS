@@ -16,13 +16,15 @@ const AuthContext = createContext(null);
 
 const STORAGE_KEY = "igms.auth.user";
 
+/**
+ * Always start fresh at the login page on every page load / dev server restart.
+ * The session is kept in memory while navigating within the app, but cleared
+ * on full reload so `npm run dev` always lands on the login screen.
+ */
 function readStoredUser() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  // Clear any previous session so the app always starts at login
+  localStorage.removeItem(STORAGE_KEY);
+  return null;
 }
 
 function emailIsValid(value) {
