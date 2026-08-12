@@ -1,8 +1,8 @@
 /**
  * Sidebar navigation configuration — organised per role.
- * Each item maps to a route and a React-Icons component (imported in the Sidebar).
- * `navForRole(roleKey)` returns the groups a given role should see, so teacher
- * features never appear in the principal's sidebar (and vice-versa).
+ * The hierarchy here mirrors the requested role isolation:
+ * Super Admin can provision schools and principals; Principal manages school-level users;
+ * Teachers / Students / Parents only get their own scoped portal navigation.
  */
 import {
   FiGrid,
@@ -11,7 +11,19 @@ import {
   FiCheckSquare,
   FiEdit3,
   FiCalendar,
+  FiHome,
 } from "react-icons/fi";
+
+// Super Admin — system setup route
+export const SUPER_ADMIN_NAV = [
+  {
+    heading: "Administration",
+    items: [
+      { label: "Dashboard", to: "/dashboard", icon: FiGrid },
+      { label: "Schools", to: "/schools", icon: FiHome },
+    ],
+  },
+];
 
 // Principal / admin — the full management portal
 export const PRINCIPAL_NAV = [
@@ -24,6 +36,7 @@ export const PRINCIPAL_NAV = [
     items: [
       { label: "Students", to: "/students", icon: FiUsers },
       { label: "Teachers", to: "/teachers", icon: FiUserCheck },
+      { label: "Parents", to: "/parents", icon: FiUsers },
     ],
   },
 ];
@@ -33,22 +46,27 @@ export const TEACHER_NAV = [
   {
     heading: "Teacher",
     items: [
-      { label: "Mark Attendance", to: "/teacher/attendance", icon: FiCheckSquare },
+      {
+        label: "Mark Attendance",
+        to: "/teacher/attendance",
+        icon: FiCheckSquare,
+      },
       { label: "Upload Marks", to: "/teacher/marks", icon: FiEdit3 },
       { label: "Apply Leave", to: "/teacher/leave", icon: FiCalendar },
     ],
   },
 ];
 
-// Student — dedicated self-service portal
+// Student — built separately by teammate; no nav here for now
 export const STUDENT_NAV = [
   {
     heading: "Student",
-    items: [{ label: "My Dashboard", to: "/student/home", icon: FiGrid }],
+    items: [{ label: "Student Home", to: "/student/home", icon: FiGrid }],
   },
 ];
 
 const NAV_BY_ROLE = {
+  super_admin: SUPER_ADMIN_NAV,
   principal: PRINCIPAL_NAV,
   teacher: TEACHER_NAV,
   student: STUDENT_NAV,

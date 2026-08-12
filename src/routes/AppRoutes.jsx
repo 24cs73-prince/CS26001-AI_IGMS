@@ -12,11 +12,13 @@ import Login from "../pages/auth/Login";
 import Dashboard from "../pages/Dashboard";
 import Students from "../pages/Students";
 import Teachers from "../pages/Teachers";
+import Schools from "../pages/Schools";
+import Principals from "../pages/Principals";
 import MarkAttendance from "../pages/teacher/MarkAttendance";
 import UploadMarks from "../pages/teacher/UploadMarks";
 import ApplyLeave from "../pages/teacher/ApplyLeave";
+import ChangePassword from "../pages/ChangePassword";
 import NotFound from "../pages/NotFound";
-import StudentHome from "../pages/student/StudentHome";
 
 /** Sends "/" to the logged-in user's home portal (or login if signed out). */
 function RoleHome() {
@@ -61,18 +63,47 @@ export default function AppRoutes() {
             </ProtectedRoute>
           }
         >
+          {/* Super Admin portal */}
+          <Route
+            path="/dashboard"
+            element={page(Dashboard, ["super_admin", "principal"])}
+          />
+          <Route path="/schools" element={page(Schools, ["super_admin"])} />
+          <Route
+            path="/principals"
+            element={page(Principals, ["super_admin"])}
+          />
+
           {/* Principal portal */}
-          <Route path="/dashboard" element={page(Dashboard, ["principal"])} />
           <Route path="/students" element={page(Students, ["principal"])} />
           <Route path="/teachers" element={page(Teachers, ["principal"])} />
+          <Route path="/parents" element={page(Students, ["principal"])} />
 
           {/* Teacher portal */}
-          <Route path="/teacher/attendance" element={page(MarkAttendance, ["teacher"])} />
-          <Route path="/teacher/marks" element={page(UploadMarks, ["teacher"])} />
-          <Route path="/teacher/leave" element={page(ApplyLeave, ["teacher"])} />
+          <Route
+            path="/teacher/attendance"
+            element={page(MarkAttendance, ["teacher"])}
+          />
+          <Route
+            path="/teacher/marks"
+            element={page(UploadMarks, ["teacher"])}
+          />
+          <Route
+            path="/teacher/leave"
+            element={page(ApplyLeave, ["teacher"])}
+          />
 
-          {/* Student portal */}
-          <Route path="/student/home" element={page(StudentHome, ["student"])} />
+          {/* Student protected pages remain placeholders in the shell */}
+          <Route path="/student/home" element={page(Dashboard, ["student"])} />
+          <Route
+            path="/change-password"
+            element={page(ChangePassword, [
+              "super_admin",
+              "principal",
+              "teacher",
+              "student",
+            ])}
+          />
         </Route>
 
         {/* Redirects & fallback */}

@@ -1,22 +1,32 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { FiMail, FiLock, FiArrowRight, FiInfo, FiUserCheck, FiShield, FiUser } from 'react-icons/fi';
-import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../../context/ToastContext';
-import { ROLES, ROLE_ORDER } from '../../constants/app';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import { cn } from '../../utils/cn';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  FiMail,
+  FiLock,
+  FiArrowRight,
+  FiInfo,
+  FiUserCheck,
+  FiShield,
+  FiUser,
+  FiKey,
+  FiUsers,
+} from "react-icons/fi";
+import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
+import { ROLES, ROLE_ORDER } from "../../constants/app";
+import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
+import { cn } from "../../utils/cn";
 
 /**
- * Login page. Frontend-only auth with three roles — Teacher, Principal,
- * Student — each with its own demo credentials. Picking a role swaps the
- * pre-filled credentials and decides which portal you land in.
+ * Login page. Frontend-only role-based auth simulation aligned with the
+ * requested hierarchy: Super Admin -> School -> Principal -> Teacher/Student/Parent.
  */
 const ROLE_ICONS = {
+  super_admin: FiShield,
+  principal: FiUserCheck,
   teacher: FiUserCheck,
-  principal: FiShield,
   student: FiUser,
 };
 
@@ -25,38 +35,69 @@ export default function Login() {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const [roleKey, setRoleKey] = useState('teacher');
-  const role = ROLES[roleKey];
+  const [roleKey, setRoleKey] = useState("super_admin");
+  const role = ROLES[roleKey] || ROLES.super_admin;
 
   const [form, setForm] = useState({
     email: role.credentials.email,
-    password: role.credentials.password,
+    password: "Super@123",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const selectRole = (key) => {
+    const selectedRole = ROLES[key] || ROLES.super_admin;
+    const placeholderPassword =
+      selectedRole.key === "super_admin"
+        ? "Super@123"
+        : selectedRole.key === "principal"
+          ? "Principal@123"
+          : selectedRole.key === "teacher"
+            ? "Teacher@123"
+            : "Student@123";
+
     setRoleKey(key);
     setForm({
-      email: ROLES[key].credentials.email,
-      password: ROLES[key].credentials.password,
+      email: selectedRole.credentials.email,
+      password: placeholderPassword,
     });
-    setError('');
+    setError("");
   };
 
   const handleChange = (e) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-    setError('');
+    setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.email || !form.email.trim()) {
+      setError("Email address is required.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.email.trim())) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    if (!form.password || !form.password.trim()) {
+      setError("Password is required.");
+      return;
+    }
+
     setLoading(true);
-    setError('');
+    setError("");
     try {
-      const user = await login({ ...form, role: roleKey });
-      toast.success(`Welcome back, ${user.name.split(' ')[0]}!`);
-      navigate(user.home, { replace: true });
+      const user = await login({
+        email: form.email,
+        password: form.password,
+        role: roleKey,
+      });
+      toast.success(`Welcome back, ${user.name.split(" ")[0]}!`);
+      if (user.mustChangePassword) {
+        navigate("/change-password", { replace: true });
+      } else {
+        navigate(user.home, { replace: true });
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -67,9 +108,9 @@ export default function Login() {
   const fillDemo = () => {
     setForm({
       email: role.credentials.email,
-      password: role.credentials.password,
+      password: role.credentials.password || "password",
     });
-    setError('');
+    setError("");
   };
 
   return (
@@ -109,14 +150,24 @@ export default function Login() {
                 type="button"
                 onClick={() => selectRole(key)}
                 className={cn(
-                  'flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-center transition-all',
+                  "flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-center transition-all",
                   active
-                    ? 'border-primary bg-primary/5 shadow-soft'
-                    : 'border-hairline bg-white hover:border-slate-300 hover:bg-canvas'
+                    ? "border-primary bg-primary/5 shadow-soft"
+                    : "border-hairline bg-white hover:border-slate-300 hover:bg-canvas",
                 )}
               >
-                <Icon className={cn('h-5 w-5', active ? 'text-primary' : 'text-slate-400')} />
-                <span className={cn('text-xs font-semibold', active ? 'text-primary' : 'text-slate-600')}>
+                <Icon
+                  className={cn(
+                    "h-5 w-5",
+                    active ? "text-primary" : "text-slate-400",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "text-xs font-semibold",
+                    active ? "text-primary" : "text-slate-600",
+                  )}
+                >
                   {ROLES[key].label}
                 </span>
               </button>
@@ -152,15 +203,28 @@ export default function Login() {
 
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" defaultChecked className="h-4 w-4 rounded border-hairline text-primary focus:ring-primary/30" />
+            <input
+              type="checkbox"
+              defaultChecked
+              className="h-4 w-4 rounded border-hairline text-primary focus:ring-primary/30"
+            />
             Remember me
           </label>
-          <button type="button" className="text-sm font-medium text-primary hover:text-primary-700">
+          <button
+            type="button"
+            className="text-sm font-medium text-primary hover:text-primary-700"
+          >
             Forgot password?
           </button>
         </div>
 
-        <Button type="submit" size="lg" loading={loading} iconRight={FiArrowRight} className="w-full">
+        <Button
+          type="submit"
+          size="lg"
+          loading={loading}
+          iconRight={FiArrowRight}
+          className="w-full"
+        >
           Sign in as {role.label}
         </Button>
       </form>
@@ -173,9 +237,18 @@ export default function Login() {
       >
         <FiInfo className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <div className="text-xs">
-          <p className="font-semibold text-primary">{role.label} demo credentials (click to fill)</p>
-          <p className="mt-0.5 text-slate-600">Email: {role.credentials.email}</p>
-          <p className="text-slate-600">Password: {role.credentials.password}</p>
+          <p className="font-semibold text-primary">
+            {role.label} demo credentials (click to fill)
+          </p>
+          <p className="mt-0.5 text-slate-600">
+            Email: {role.credentials.email}
+          </p>
+          <p className="text-slate-600">
+            Password:{" "}
+            {role.credentials.passwordHash
+              ? "••••••••"
+              : role.credentials.password}
+          </p>
         </div>
       </button>
     </motion.div>

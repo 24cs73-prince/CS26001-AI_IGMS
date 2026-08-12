@@ -1,10 +1,18 @@
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FiMenu, FiSearch, FiBell, FiChevronDown, FiLogOut, FiUser, FiSettings } from 'react-icons/fi';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
-import Avatar from '../components/ui/Avatar';
+import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  FiMenu,
+  FiSearch,
+  FiBell,
+  FiChevronDown,
+  FiLogOut,
+  FiUser,
+  FiSettings,
+} from "react-icons/fi";
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
+import Avatar from "../components/ui/Avatar";
 
 /**
  * Top navigation bar: mobile menu toggle, global search, notifications,
@@ -21,23 +29,40 @@ export default function Navbar({ onMenuClick }) {
 
   useEffect(() => {
     const handler = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
-      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target))
+        setMenuOpen(false);
+      if (notifRef.current && !notifRef.current.contains(e.target))
+        setNotifOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   const handleLogout = () => {
     logout();
-    toast.info('You have been signed out.');
-    navigate('/login');
+    toast.info("You have been signed out.");
+    navigate("/login");
   };
 
   const notifications = [
-    { id: 1, title: 'Mid-term datesheet published', time: '10m ago', tone: 'bg-primary' },
-    { id: 2, title: 'AI service running in degraded mode', time: '1h ago', tone: 'bg-warning' },
-    { id: 3, title: 'Class 9 English results uploaded', time: '3h ago', tone: 'bg-accent' },
+    {
+      id: 1,
+      title: "Mid-term datesheet published",
+      time: "10m ago",
+      tone: "bg-primary",
+    },
+    {
+      id: 2,
+      title: "AI service running in degraded mode",
+      time: "1h ago",
+      tone: "bg-warning",
+    },
+    {
+      id: 3,
+      title: "Class 9 English results uploaded",
+      time: "3h ago",
+      tone: "bg-accent",
+    },
   ];
 
   return (
@@ -82,13 +107,22 @@ export default function Navbar({ onMenuClick }) {
                 className="absolute right-0 mt-2 w-80 overflow-hidden rounded-2xl border border-hairline bg-white shadow-lift"
               >
                 <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
-                  <p className="text-sm font-semibold text-ink">Notifications</p>
-                  <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">3 new</span>
+                  <p className="text-sm font-semibold text-ink">
+                    Notifications
+                  </p>
+                  <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                    3 new
+                  </span>
                 </div>
                 <ul className="max-h-80 divide-y divide-hairline overflow-y-auto">
                   {notifications.map((n) => (
-                    <li key={n.id} className="flex gap-3 px-4 py-3 hover:bg-canvas transition-colors">
-                      <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.tone}`} />
+                    <li
+                      key={n.id}
+                      className="flex gap-3 px-4 py-3 hover:bg-canvas transition-colors"
+                    >
+                      <span
+                        className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.tone}`}
+                      />
                       <div>
                         <p className="text-sm text-ink">{n.title}</p>
                         <p className="text-xs text-slate-400">{n.time}</p>
@@ -107,10 +141,14 @@ export default function Navbar({ onMenuClick }) {
             onClick={() => setMenuOpen((p) => !p)}
             className="flex items-center gap-2 rounded-xl p-1.5 pr-2.5 hover:bg-slate-100 transition-colors"
           >
-            <Avatar name={user?.name || 'Admin'} size="sm" />
+            <Avatar name={user?.name || "Admin"} size="sm" />
             <span className="hidden text-left sm:block">
-              <span className="block text-sm font-medium leading-tight text-ink">{user?.name?.split(' ')[0] || 'Admin'}</span>
-              <span className="block text-[11px] leading-tight text-slate-400">{user?.role || 'Administrator'}</span>
+              <span className="block text-sm font-medium leading-tight text-ink">
+                {user?.name?.split(" ")[0] || "Admin"}
+              </span>
+              <span className="block text-[11px] leading-tight text-slate-400">
+                {user?.role || "Administrator"}
+              </span>
             </span>
             <FiChevronDown className="hidden h-4 w-4 text-slate-400 sm:block" />
           </button>
@@ -124,12 +162,26 @@ export default function Navbar({ onMenuClick }) {
                 className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-hairline bg-white shadow-lift"
               >
                 <div className="border-b border-hairline px-4 py-3">
-                  <p className="text-sm font-semibold text-ink">{user?.name || 'Administrator'}</p>
-                  <p className="truncate text-xs text-slate-400">{user?.email || 'admin@igms.gov.in'}</p>
+                  <p className="text-sm font-semibold text-ink">
+                    {user?.name || "Administrator"}
+                  </p>
+                  <p className="truncate text-xs text-slate-400">
+                    {user?.email || "admin@igms.gov.in"}
+                  </p>
                 </div>
                 <div className="p-1.5">
                   <button className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
                     <FiUser className="h-4 w-4 text-slate-400" /> My Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      navigate("/change-password");
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    <FiSettings className="h-4 w-4 text-slate-400" /> Change
+                    Password
                   </button>
                   <button className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
                     <FiSettings className="h-4 w-4 text-slate-400" /> Settings
@@ -138,7 +190,7 @@ export default function Navbar({ onMenuClick }) {
                     onClick={handleLogout}
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-danger hover:bg-danger/5"
                   >
-                    <FiLogOut className="h-4 w-4" /> Sign out
+                    <FiLogOut className="h-4 w-4" /> Logout
                   </button>
                 </div>
               </motion.div>
