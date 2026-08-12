@@ -23,6 +23,7 @@ import NotFound from "../pages/NotFound";
 import Timetable from "../pages/Timetable";
 import Notices from "../pages/Notices";
 import StudentDashboard from "../pages/StudentDashboard";
+import ParentDashboard from "../pages/ParentDashboard";
 
 /** Sends "/" to the logged-in user's home portal (or login if signed out). */
 function RoleHome() {
@@ -107,8 +108,8 @@ export default function AppRoutes() {
           <Route path="/student/notices" element={page(Notices, ["student"])} />
 
           {/* Parent portal */}
-          <Route path="/parent/dashboard" element={page(Dashboard, ["parent"])} />
-          <Route path="/parent/notices" element={page(Dashboard, ["parent"])} />
+          <Route path="/parent/dashboard" element={page(ParentDashboard, ["parent"])} />
+          <Route path="/parent/notices" element={page(Notices, ["parent"])} />
 
           <Route
             path="/change-password"
