@@ -97,7 +97,7 @@ export const ROLES = {
         "teacher.dashboard",
       ],
     },
-    home: "/teacher/attendance",
+    home: "/teacher/dashboard",
   },
   student: {
     key: "student",
@@ -133,6 +133,7 @@ export const ROLES = {
       org: "Govt. Higher Secondary School · School A",
       school_id: "school-001",
       schoolName: "Govt. Higher Secondary School · School A",
+      childStudentId: "STU-1001",
       isActive: true,
       mustChangePassword: false,
       permissions: ["parent.profile", "student.results", "student.attendance"],

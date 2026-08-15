@@ -18,12 +18,29 @@ import Principals from "../pages/Principals";
 import MarkAttendance from "../pages/teacher/MarkAttendance";
 import UploadMarks from "../pages/teacher/UploadMarks";
 import ApplyLeave from "../pages/teacher/ApplyLeave";
+import TeacherDashboard from "../pages/teacher/TeacherDashboard";
+import MyClass from "../pages/teacher/MyClass";
+import AIPaperGenerator from "../pages/teacher/AIPaperGenerator";
+import TeacherExamsPage from "../pages/teacher/TeacherExamsPage";
+import CreateExamPage from "../pages/teacher/CreateExamPage";
+import ExamDetailsPage from "../pages/teacher/ExamDetailsPage";
+import StudentSubmissionsPage from "../pages/teacher/StudentSubmissionsPage";
+import TeacherResultsPage from "../pages/teacher/TeacherResultsPage";
+
+import StudentExamsPage from "../pages/student/StudentExamsPage";
+import StudentExamStartPage from "../pages/student/StudentExamStartPage";
+import StudentExamAttemptPage from "../pages/student/StudentExamAttemptPage";
+
 import ChangePassword from "../pages/ChangePassword";
 import NotFound from "../pages/NotFound";
 import Timetable from "../pages/Timetable";
 import Notices from "../pages/Notices";
 import StudentDashboard from "../pages/StudentDashboard";
+import StudentResults from "../pages/StudentResults";
+import StudentAttendance from "../pages/StudentAttendance";
 import ParentDashboard from "../pages/ParentDashboard";
+import ParentResults from "../pages/ParentResults";
+import ParentAttendance from "../pages/ParentAttendance";
 
 /** Sends "/" to the logged-in user's home portal (or login if signed out). */
 function RoleHome() {
@@ -87,6 +104,38 @@ export default function AppRoutes() {
 
           {/* Teacher portal */}
           <Route
+            path="/teacher/dashboard"
+            element={page(TeacherDashboard, ["teacher"])}
+          />
+          <Route
+            path="/teacher/my-class"
+            element={<Navigate to="/teacher/dashboard" replace />}
+          />
+          <Route
+            path="/teacher/ai-generator"
+            element={<Navigate to="/teacher/exams/create" replace />}
+          />
+          <Route
+            path="/teacher/exams"
+            element={page(TeacherExamsPage, ["teacher"])}
+          />
+          <Route
+            path="/teacher/exams/create"
+            element={page(CreateExamPage, ["teacher"])}
+          />
+          <Route
+            path="/teacher/exams/:examId"
+            element={page(ExamDetailsPage, ["teacher"])}
+          />
+          <Route
+            path="/teacher/exams/:examId/submissions"
+            element={page(StudentSubmissionsPage, ["teacher"])}
+          />
+          <Route
+            path="/teacher/exams/:examId/results"
+            element={page(TeacherResultsPage, ["teacher"])}
+          />
+          <Route
             path="/teacher/attendance"
             element={page(MarkAttendance, ["teacher"])}
           />
@@ -105,10 +154,17 @@ export default function AppRoutes() {
 
           {/* Student portal */}
           <Route path="/student/home" element={page(StudentDashboard, ["student"])} />
+          <Route path="/student/exams" element={page(StudentExamsPage, ["student"])} />
+          <Route path="/student/exams/:examId/start" element={page(StudentExamStartPage, ["student"])} />
+          <Route path="/student/exams/:examId/attempt" element={page(StudentExamAttemptPage, ["student"])} />
+          <Route path="/student/results" element={page(StudentResults, ["student"])} />
+          <Route path="/student/attendance" element={page(StudentAttendance, ["student"])} />
           <Route path="/student/notices" element={page(Notices, ["student"])} />
 
           {/* Parent portal */}
           <Route path="/parent/dashboard" element={page(ParentDashboard, ["parent"])} />
+          <Route path="/parent/results" element={page(ParentResults, ["parent"])} />
+          <Route path="/parent/attendance" element={page(ParentAttendance, ["parent"])} />
           <Route path="/parent/notices" element={page(Notices, ["parent"])} />
 
           <Route

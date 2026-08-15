@@ -18,7 +18,7 @@ export default function Principals() {
         </Card>
         <Card title="Principal Credentials" subtitle="Credential assignment" className="bg-white">
           <div className="mt-4 rounded-2xl border border-hairline p-4 text-sm text-slate-600">
-            Super Admin -> Principal credential setup remains controlled at this layer.
+            Super Admin &rarr; Principal credential setup remains controlled at this layer.
           </div>
         </Card>
         <Card title="School Assignment" subtitle="Principal linked to one school" className="bg-white">

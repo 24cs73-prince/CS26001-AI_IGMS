@@ -57,11 +57,21 @@ export const PRINCIPAL_NAV = [
   },
 ];
 
-// Teacher — only the teacher tools
+// Teacher — clean & focused tools
 export const TEACHER_NAV = [
   {
-    heading: "Teacher",
+    heading: "Teacher Portal",
     items: [
+      {
+        label: "Teacher Dashboard",
+        to: "/teacher/dashboard",
+        icon: FiGrid,
+      },
+      {
+        label: "📝 Online Exams",
+        to: "/teacher/exams",
+        icon: FiEdit3,
+      },
       {
         label: "Mark Attendance",
         to: "/teacher/attendance",
@@ -87,6 +97,9 @@ export const STUDENT_NAV = [
     heading: "Student",
     items: [
       { label: "Student Home", to: "/student/home", icon: FiGrid },
+      { label: "📝 Online Exams", to: "/student/exams", icon: FiEdit3 },
+      { label: "My Results", to: "/student/results", icon: FiEdit3 },
+      { label: "My Attendance", to: "/student/attendance", icon: FiCheckSquare },
       { label: "Notices", to: "/student/notices", icon: FiBell },
     ],
   },
@@ -104,6 +117,8 @@ export const PARENT_NAV = [
     heading: "Parent Portal",
     items: [
       { label: "Parent Dashboard", to: "/parent/dashboard", icon: FiGrid },
+      { label: "Child's Results", to: "/parent/results", icon: FiEdit3 },
+      { label: "Child's Attendance", to: "/parent/attendance", icon: FiCheckSquare },
       { label: "Notices", to: "/parent/notices", icon: FiBell },
     ],
   },

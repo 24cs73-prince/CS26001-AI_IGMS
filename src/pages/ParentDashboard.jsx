@@ -1,9 +1,12 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { FiUser, FiBookOpen, FiClock, FiStar, FiFileText, FiBell } from "react-icons/fi";
 
 import { useAuth } from "../context/AuthContext";
+import { api } from "../services/api";
 import PageHeader from "../components/common/PageHeader";
 import Card from "../components/ui/Card";
+import { PageLoader } from "../components/ui/Loader";
 
 /**
  * Parent Dashboard — simple, clean view of child's academic snapshot.
@@ -11,23 +14,54 @@ import Card from "../components/ui/Card";
  */
 export default function ParentDashboard() {
   const { user } = useAuth();
+  const [child, setChild] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock child data (would come from API in production)
-  const child = {
-    name: "Aarav Sharma",
-    className: "Class 6",
-    section: "A",
-    rollNo: 12,
-    attendance: "92%",
-    grade: "A",
-    rank: "5th",
-  };
+  useEffect(() => {
+    async function fetchChildData() {
+      try {
+        const students = await api.getStudents();
+        const myChild = students.find(s => s.id === user?.childStudentId);
+        if (myChild) {
+          setChild({
+            name: myChild.name,
+            className: myChild.className,
+            section: myChild.section,
+            rollNo: myChild.roll,
+            attendance: myChild.attendance + "%",
+            grade: myChild.average >= 90 ? "A+" : myChild.average >= 80 ? "A" : myChild.average >= 70 ? "B" : myChild.average >= 60 ? "C" : "D",
+            rank: "5th", // Mocking rank for now
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch child data", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchChildData();
+  }, [user]);
 
   const recentNotices = [
     { id: 1, title: "Annual Sports Meet Registration Open", date: "Oct 1, 2025" },
     { id: 2, title: "Diwali Holidays – School Closed Oct 20–25", date: "Sep 28, 2025" },
     { id: 3, title: "Parent-Teacher Meeting on Nov 5", date: "Sep 25, 2025" },
   ];
+
+  if (loading) {
+    return <PageLoader label="Loading child data..." />;
+  }
+
+  if (!child) {
+    return (
+      <div>
+        <PageHeader title="Parent Portal" description="Welcome!" />
+        <Card>
+          <p className="text-slate-500">No child record found for your account.</p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div>
