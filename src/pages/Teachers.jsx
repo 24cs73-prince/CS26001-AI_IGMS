@@ -21,7 +21,7 @@ import { PageLoader } from "../components/ui/Loader";
 import { useToast } from "../context/ToastContext";
 
 /**
- * Teacher Management page: responsive card grid with search + department filter.
+ * Teacher Management page: responsive card grid with search + department filter...
  */
 export default function Teachers() {
   const { data: teachers, loading } = useFetch(() => api.getTeachers(), []);
