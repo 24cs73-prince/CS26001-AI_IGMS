@@ -5,3 +5,4 @@ dist-ssr
 .DS_Store
 .env
 .vite
+server/node_modules
