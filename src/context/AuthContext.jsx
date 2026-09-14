@@ -22,10 +22,17 @@ const STORAGE_KEY = "igms.auth.user";
  * on full reload so `npm run dev` always lands on the login screen.
  */
 function readStoredUser() {
-  // Clear any previous session so the app always starts at login
-  localStorage.removeItem(STORAGE_KEY);
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error("Error restoring auth session:", err);
+  }
   return null;
 }
+
 
 function emailIsValid(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
@@ -52,8 +59,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(readStoredUser);
 
   const login = useCallback(async ({ email, password, role = "principal" }) => {
-    await new Promise((r) => setTimeout(r, 700));
-
     if (!email || !email.trim()) {
       throw new Error("Email address is required.");
     }
@@ -66,6 +71,38 @@ export function AuthProvider({ children }) {
       throw new Error("Password is required.");
     }
 
+    // Try real backend Express API first
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || "";
+
+      const response = await fetch(`${baseUrl}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password, role }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.token) {
+          localStorage.setItem("igms.auth.token", data.token);
+        }
+        setUser(data);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        return data;
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        if (errData.message) {
+          throw new Error(errData.message);
+        }
+      }
+    } catch (err) {
+      if (err.message && !err.message.includes("Failed to fetch")) {
+        throw err;
+      }
+      console.warn("Backend server unreachable. Using fallback local authentication.");
+    }
+
+    // Fallback to local mock auth
     const config = ROLES[role];
     if (!config) {
       throw new Error("Please select a valid role.");

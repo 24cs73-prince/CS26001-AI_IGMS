@@ -108,7 +108,7 @@ export default function MarkAttendance() {
   const markedCount = counts.Present + counts.Absent + counts.Late;
   const allMarked = roster.length > 0 && markedCount === roster.length;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!roster.length) {
       toast.warning("No students in this class/section.");
       return;
@@ -119,9 +119,40 @@ export default function MarkAttendance() {
       );
       return;
     }
-    toast.success(
-      `Attendance saved for ${classFilter.value} · ${sectionFilter.value} (${roster.length} students).`,
-    );
+
+    try {
+      const records = roster.map((s) => ({
+        studentId: s.id || "ST-" + s.roll,
+        studentName: s.name,
+        status: marks[s.id] || "Present",
+        remarks: "Recorded via portal",
+      }));
+
+      const payload = {
+        school_id: "school-001",
+        classVal: classFilter.value.replace("Class ", ""),
+        division: sectionFilter.value,
+        date: new Date().toISOString().split("T")[0],
+        records,
+      };
+
+      const res = await fetch("/api/attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        toast.success(
+          `Attendance saved to database for ${classFilter.value} · ${sectionFilter.value} (${roster.length} students).`
+        );
+      } else {
+        toast.error("Failed to save attendance.");
+      }
+    } catch (err) {
+      console.error("Error saving attendance:", err);
+      toast.error("Network error while saving attendance.");
+    }
   };
 
   if (loading) return <PageLoader label="Loading roster…" />;

@@ -101,7 +101,7 @@ export default function UploadMarks() {
     return { enteredCount: entered.length, avg, passed };
   }, [roster, scores]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!roster.length) {
       toast.warning("No students in this class/section.");
       return;
@@ -110,9 +110,49 @@ export default function UploadMarks() {
       toast.warning("Enter marks for at least one student.");
       return;
     }
-    toast.success(
-      `${subject.value} · ${exam.value} marks saved for ${classFilter.value} · ${sectionFilter.value} (${stats.enteredCount}/${roster.length} entered).`,
-    );
+
+    try {
+      const records = roster
+        .filter((s) => scores[s.id] !== undefined && scores[s.id] !== "")
+        .map((s) => {
+          const val = Number(scores[s.id]);
+          return {
+            studentId: s.id || "ST-" + s.roll,
+            studentName: s.name,
+            marksObtained: val,
+            maxMarks: MAX_MARKS,
+            grade: gradeFor(val),
+            remarks: val >= 40 ? "Passed" : "Needs Improvement",
+          };
+        });
+
+      const payload = {
+        school_id: "school-001",
+        classVal: classFilter.value.replace("Class ", ""),
+        division: sectionFilter.value,
+        subject: subject.value,
+        examTerm: exam.value,
+        maxMarks: MAX_MARKS,
+        records,
+      };
+
+      const res = await fetch("/api/marks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        toast.success(
+          `${subject.value} · ${exam.value} marks saved to database for ${classFilter.value} · ${sectionFilter.value} (${stats.enteredCount}/${roster.length} entered).`
+        );
+      } else {
+        toast.error("Failed to save marks.");
+      }
+    } catch (err) {
+      console.error("Error saving marks:", err);
+      toast.error("Network error while saving marks.");
+    }
   };
 
   if (loading) return <PageLoader label="Loading roster…" />;

@@ -34,7 +34,12 @@ export default function ApplyLeave() {
   const toast = useToast();
 
   const [applications, setApplications] = useState([]);
-  const [balance, setBalance] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [balance, setBalance] = useState([
+    { key: "casual", type: "Casual Leave", total: 12, used: 3 },
+    { key: "sick", type: "Sick Leave", total: 10, used: 2 },
+    { key: "earned", type: "Earned Leave", total: 15, used: 5 },
+  ]);
 
   const [type, setType] = useState({
     value: LEAVE_TYPES[0],
@@ -44,13 +49,35 @@ export default function ApplyLeave() {
   const [to, setTo] = useState("");
   const [reason, setReason] = useState("");
 
-  // Seed local state once the mock data resolves
-  useEffect(() => {
-    if (data) {
-      setApplications(data.applications);
-      setBalance(data.balance);
+  const fetchLeaveRequests = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/leave");
+      if (res.ok) {
+        const data = await res.json();
+        const formatted = (data.value || []).map((l) => ({
+          id: l._id ? "LV-" + l._id.slice(-4) : "LV-101",
+          teacher: l.teacherName || "Dr. Meenakshi Iyer",
+          type: l.leaveType,
+          from: l.startDate,
+          to: l.endDate,
+          days: l.totalDays,
+          reason: l.reason,
+          status: l.status || "Pending",
+          appliedOn: l.createdAt ? l.createdAt.split("T")[0] : TODAY,
+        }));
+        setApplications(formatted);
+      }
+    } catch (err) {
+      console.error("Failed to fetch leave applications:", err);
+    } finally {
+      setLoading(false);
     }
-  }, [data]);
+  };
+
+  useEffect(() => {
+    fetchLeaveRequests();
+  }, []);
 
   const typeOptions = LEAVE_TYPES.map((t) => ({ value: t, label: t }));
   const days = useMemo(() => dayCount(from, to), [from, to]);
@@ -62,7 +89,7 @@ export default function ApplyLeave() {
     setType({ value: LEAVE_TYPES[0], label: LEAVE_TYPES[0] });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!from || !to) {
       toast.warning("Select both a start and end date.");
       return;
@@ -76,21 +103,34 @@ export default function ApplyLeave() {
       return;
     }
 
-    const nextId = `LV-${3017 + applications.length}`;
-    const application = {
-      id: nextId,
-      teacher: user?.name ?? "Teacher",
-      type: type.value,
-      from,
-      to,
-      days,
-      reason: reason.trim(),
-      status: "Pending",
-      appliedOn: TODAY,
-    };
-    setApplications((prev) => [application, ...prev]);
-    toast.success(`Leave request submitted (${days} day${days > 1 ? "s" : ""}).`);
-    resetForm();
+    try {
+      const payload = {
+        school_id: "school-001",
+        teacherName: user?.name || "Dr. Meenakshi Iyer",
+        leaveType: type.value,
+        startDate: from,
+        endDate: to,
+        totalDays: days,
+        reason: reason.trim(),
+      };
+
+      const res = await fetch("/api/leave", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        toast.success(`Leave request submitted (${days} day${days > 1 ? "s" : ""}).`);
+        fetchLeaveRequests();
+        resetForm();
+      } else {
+        toast.error("Failed to submit leave request.");
+      }
+    } catch (err) {
+      console.error("Error submitting leave request:", err);
+      toast.error("Network error while submitting leave request.");
+    }
   };
 
   if (loading) return <PageLoader label="Loading leave records…" />;

@@ -139,6 +139,9 @@ function generateAIQuestionsFromSyllabus({ classVal, subject, syllabus, count = 
   return generated;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || "";
+
+
 export const onlineExamService = {
   /** Fetch all available MCQ question papers */
   async getMCQPapers() {
@@ -146,14 +149,74 @@ export const onlineExamService = {
     return [...MOCK_MCQ_PAPERS];
   },
 
-  /** Fetch all online exams */
+  /** Fetch all online exams from Express Backend & MongoDB + Local Storage */
   async getExams() {
-    await delay();
-    return loadStorage(STORAGE_KEYS.EXAMS, INITIAL_ONLINE_EXAMS);
+    let apiExams = [];
+    try {
+      const res = await fetch(`${API_URL}/api/exams`);
+      if (res.ok) {
+        const raw = await res.json();
+        const list = Array.isArray(raw) ? raw : (raw.data || []);
+        apiExams = list.map((e) => ({
+          ...e,
+          id: String(e._id || e.id || ""),
+          class: String(e.classVal || e.class || "5"),
+          status: String(e.status || "Published"),
+          subject: String(e.subject || "General"),
+          title: String(e.title || "Untitled Exam"),
+          duration: String(e.duration || "30 minutes"),
+          totalQuestions: Number(e.totalQuestions) || e.questions?.length || 10,
+          totalMarks: Number(e.totalMarks) || 10,
+          submissionsCount: Number(e.submissionsCount) || 0,
+          totalStudents: Number(e.totalStudents) || 40,
+        }));
+      }
+    } catch (err) {
+      console.warn("Backend API error fetching exams:", err.message);
+    }
+
+    const localExams = loadStorage(STORAGE_KEYS.EXAMS, INITIAL_ONLINE_EXAMS);
+    const combined = [...apiExams];
+
+    localExams.forEach((loc) => {
+      if (loc && !combined.some((item) => String(item.id) === String(loc.id || loc._id) || item.title === loc.title)) {
+        combined.push({
+          ...loc,
+          id: String(loc.id || loc._id || `exam_${Date.now()}`),
+          class: String(loc.class || loc.classVal || "5"),
+          status: String(loc.status || "Published"),
+          subject: String(loc.subject || "General"),
+          title: String(loc.title || "Untitled Exam"),
+          duration: String(loc.duration || "30 minutes"),
+          totalQuestions: Number(loc.totalQuestions) || loc.questions?.length || 10,
+          totalMarks: Number(loc.totalMarks) || 10,
+          submissionsCount: Number(loc.submissionsCount) || 0,
+          totalStudents: Number(loc.totalStudents) || 40,
+        });
+      }
+    });
+
+    return combined;
   },
+
+
+
 
   /** Fetch single exam by ID */
   async getExamById(examId) {
+    try {
+      const res = await fetch(`${API_URL}/api/exams/${examId}`);
+      if (res.ok) {
+        const e = await res.json();
+        return {
+          ...e,
+          id: e._id || e.id,
+          class: e.classVal || e.class,
+        };
+      }
+    } catch (err) {
+      console.warn("Backend API offline for single exam:", err.message);
+    }
     await delay();
     const exams = loadStorage(STORAGE_KEYS.EXAMS, INITIAL_ONLINE_EXAMS);
     return exams.find((e) => e.id === examId) || null;
@@ -163,9 +226,6 @@ export const onlineExamService = {
    * Create a new online exam using AI-generated questions from Syllabus
    */
   async createExam(payload) {
-    await delay(600); // Artificial delay to simulate AI processing
-    const exams = loadStorage(STORAGE_KEYS.EXAMS, INITIAL_ONLINE_EXAMS);
-
     const classVal = payload.class || "5";
     const subject = payload.subject || "Science";
     const syllabus = payload.syllabus || "General Syllabus Topics";
@@ -180,23 +240,21 @@ export const onlineExamService = {
       count: totalQuestions,
     });
 
-    // Each question gets proportional marks
-    const markPerQ = totalMarks / aiQuestions.length;
+    const markPerQ = totalMarks / (aiQuestions.length || 1);
     aiQuestions.forEach((q) => {
       q.marks = markPerQ;
     });
 
-    const newExam = {
-      id: `exam_${Date.now()}`,
+    const examPayload = {
       title: payload.title || `Class ${classVal} ${subject} - AI Exam`,
-      class: classVal,
+      classVal: String(classVal),
       subject: subject,
       syllabus: syllabus,
       duration: payload.duration || "30 minutes",
       durationMinutes: parseInt(payload.durationMinutes, 10) || 30,
       totalQuestions: aiQuestions.length,
       totalMarks: totalMarks,
-      status: payload.status || "Published", // "Draft" or "Published"
+      status: payload.status || "Published",
       resultsStatus: "DRAFT",
       evaluationCompleted: false,
       submissionsCount: 0,
@@ -206,16 +264,50 @@ export const onlineExamService = {
       questions: aiQuestions,
     };
 
+    let createdExamDoc = null;
+
+    try {
+      const userRaw = localStorage.getItem("igms.auth") || localStorage.getItem("user");
+      let token = "";
+      if (userRaw) {
+        try { token = JSON.parse(userRaw)?.token || ""; } catch (e) {}
+      }
+
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const apiRes = await fetch(`${API_URL}/api/exams`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(examPayload),
+      });
+
+      if (apiRes.ok) {
+        createdExamDoc = await apiRes.json();
+        console.log("✅ Exam saved directly to MongoDB Atlas/Local via API:", createdExamDoc._id);
+      } else {
+        const errText = await apiRes.text();
+        console.error("❌ API Exam Creation Error:", apiRes.status, errText);
+      }
+    } catch (err) {
+      console.error("⚠️ API Request Failed:", err.message);
+    }
+
+    const newExam = {
+      id: createdExamDoc?._id || `exam_${Date.now()}`,
+      _id: createdExamDoc?._id,
+      ...examPayload,
+      class: classVal,
+    };
+
+    const exams = loadStorage(STORAGE_KEYS.EXAMS, []);
     const updated = [newExam, ...exams];
     saveStorage(STORAGE_KEYS.EXAMS, updated);
 
-    // Initialize empty submissions array for this new exam
-    const submissionsMap = loadStorage(STORAGE_KEYS.SUBMISSIONS, INITIAL_SUBMISSIONS);
-    submissionsMap[newExam.id] = [];
-    saveStorage(STORAGE_KEYS.SUBMISSIONS, submissionsMap);
-
     return newExam;
   },
+
+
 
   /** Publish an existing draft exam */
   async publishExam(examId) {

@@ -54,11 +54,10 @@ export default function CreateExamPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleGenerateAndCreate = async (status = "Published") => {
-    if (!formData.title.trim()) return;
+    if (!formData.title || !formData.title.trim()) return;
 
     setGenerating(true);
 
-    // AI Generation progress animation sequence (simulating Grok AI generation)
     const messages = [
       `Reading syllabus topics for Class ${formData.classVal} ${formData.subject}...`,
       `Initializing Grok AI Prompt Engine...`,
@@ -77,39 +76,40 @@ export default function CreateExamPage() {
       } else {
         clearInterval(interval);
       }
-    }, 700);
+    }, 400);
 
     try {
-      // Simulate API call + create exam in service
-      setTimeout(async () => {
-        const newExam = await onlineExamService.createExam({
-          title: formData.title,
-          class: formData.classVal,
-          subject: formData.subject,
-          syllabus: formData.syllabus,
-          duration: formData.duration,
-          durationMinutes: formData.durationMinutes,
-          totalQuestions: formData.totalQuestions,
-          totalMarks: formData.totalMarks,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          status: status,
-        });
+      // Direct async call to createExam service & MongoDB
+      const newExam = await onlineExamService.createExam({
+        title: formData.title,
+        class: formData.classVal,
+        subject: formData.subject,
+        syllabus: formData.syllabus,
+        duration: formData.duration,
+        durationMinutes: formData.durationMinutes,
+        totalQuestions: formData.totalQuestions,
+        totalMarks: formData.totalMarks,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        status: status,
+      });
 
-        setCreatedExamId(newExam.id);
-        setGenerating(false);
+      clearInterval(interval);
+      setCreatedExamId(newExam.id || newExam._id);
+      setGenerating(false);
 
-        if (status === "Published") {
-          setShowSuccessModal(true);
-        } else {
-          navigate("/teacher/exams");
-        }
-      }, 3500);
+      if (status === "Published") {
+        setShowSuccessModal(true);
+      } else {
+        navigate("/teacher/exams");
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Failed to create exam:", err);
+      clearInterval(interval);
       setGenerating(false);
     }
   };
+
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">

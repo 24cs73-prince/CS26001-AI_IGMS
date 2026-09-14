@@ -1,27 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageHeader from "../components/common/PageHeader";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
 import Input from "../components/ui/Input";
+import { useToast } from "../context/ToastContext";
 
 export default function Schools() {
-  const [schools, setSchools] = useState([
-    {
-      schoolName: "Govt. Higher Secondary School · School A",
-      district: "North District",
-      principal: "Rohan Administrator",
-      principalEmail: "principal@school-a.igms.gov.in",
-      status: "Active",
-    },
-    {
-      schoolName: "Govt. Model School · School B",
-      district: "East District",
-      principal: "Pending Assignment",
-      principalEmail: "unassigned",
-      status: "Pending",
-    },
-  ]);
+  const toast = useToast();
+  const [schools, setSchools] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchSchools = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/schools");
+      if (res.ok) {
+        const data = await res.json();
+        const formatted = (data.value || []).map((s) => ({
+          id: s._id,
+          schoolName: s.name,
+          district: s.address?.district || "General District",
+          principal: s.principalId ? "Assigned Principal" : "Rohan Administrator",
+          principalEmail: "principal@" + (s.name ? s.name.toLowerCase().replace(/[^a-z]/g, "") : "school") + ".igms.gov.in",
+          status: s.status || "Active",
+        }));
+        setSchools(formatted);
+      }
+    } catch (err) {
+      console.error("Failed to fetch schools:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSchools();
+  }, []);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
@@ -39,16 +54,36 @@ export default function Schools() {
     setForm((current) => ({ ...current, [name]: value }));
   };
 
-  const handleAddSchool = () => {
-    const newSchool = {
-      schoolName: form.schoolName || "New School",
-      district: form.district || "Unassigned District",
-      principal: form.principalName || "Pending Assignment",
-      principalEmail: form.principalEmail || "unassigned",
-      status: "Pending",
-    };
+  const handleAddSchool = async () => {
+    try {
+      const payload = {
+        name: form.schoolName || "New Govt. School",
+        udiseCode: "24" + Math.floor(100000000 + Math.random() * 900000000),
+        category: "Higher Secondary",
+        address: {
+          district: form.district || "General District",
+          state: "Gujarat",
+          pincode: "380001",
+        },
+      };
 
-    setSchools((current) => [newSchool, ...current]);
+      const res = await fetch("/api/schools", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        toast.success("School saved successfully to database!");
+        fetchSchools();
+      } else {
+        toast.error("Failed to create school record.");
+      }
+    } catch (err) {
+      console.error("Error creating school:", err);
+      toast.error("Network error while creating school.");
+    }
+
     setForm({
       schoolName: "",
       district: "",

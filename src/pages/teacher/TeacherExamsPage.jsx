@@ -45,18 +45,27 @@ export default function TeacherExamsPage() {
     fetchExams();
   }, []);
 
-  const filteredExams = exams.filter((exam) => {
+  const filteredExams = (exams || []).filter((exam) => {
+    if (!exam) return false;
+    const status = String(exam.status || "").toLowerCase();
     const matchesFilter =
       activeFilter === "All" ||
-      exam.status.toLowerCase() === activeFilter.toLowerCase();
+      status === activeFilter.toLowerCase();
+
+    const title = String(exam.title || "").toLowerCase();
+    const subject = String(exam.subject || "").toLowerCase();
+    const cls = String(exam.class || exam.classVal || "").toLowerCase();
+    const q = (searchQuery || "").toLowerCase();
 
     const matchesSearch =
-      exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      exam.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      exam.class.includes(searchQuery);
+      !q ||
+      title.includes(q) ||
+      subject.includes(q) ||
+      cls.includes(q);
 
     return matchesFilter && matchesSearch;
   });
+
 
   if (loading) {
     return <PageLoader label="Loading online examinations..." />;
