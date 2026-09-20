@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI-IGMS Ultra-HD Single Page A4 Flowchart Specification</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fira+Code:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #ffffff;
+      color: #0f172a;
+      width: 210mm;
+      height: 297mm;
+      padding: 10mm 12mm;
+      margin: 0 auto;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Header Bar */
+    .a4-header {
+      border-bottom: 2.5px solid #0f172a;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .a4-header h1 {
+      font-size: 18px;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .a4-header p {
+      font-size: 11px;
+      color: #475569;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .badge-hdr {
+      font-size: 11px;
+      font-weight: 800;
+      color: #1e40af;
+      background: #eff6ff;
+      border: 1.5px solid #3b82f6;
+      padding: 4px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    /* Step 1: Entry & Authentication Flow */
+    .section-label {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #2563eb;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .section-label::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #2563eb;
+      border-radius: 2px;
+    }
+
+    .auth-flow-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      gap: 8px;
+    }
+
+    .pill-start {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .box-step {
+      background: #ffffff;
+      border: 2px solid #2563eb;
+      border-radius: 8px;
+      padding: 6px 12px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .box-step small {
+      display: block;
+      font-size: 10px;
+      font-weight: 600;
+      color: #64748b;
+    }
+
+    .diamond-box {
+      border: 2px solid #2563eb;
+      background: #eff6ff;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #1e40af;
+      text-align: center;
+    }
+
+    .arr {
+      font-size: 14px;
+      color: #64748b;
+      font-weight: 900;
+    }
+
+    /* Step 2: 5 Roles Grid */
+    .roles-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .role-row {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .role-badge {
+      width: 130px;
+      background: #1e40af;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+      text-align: center;
+      padding: 6px 8px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    .role-tasks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 11px;
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .task-tag {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      padding: 3px 8px;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .code-fn {
+      font-family: 'Fira Code', monospace;
+      color: #4f46e5;
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+
+    /* Step 3: Exact Request Execution Pipeline */
+    .pipeline-container {
+      background: #faf5ff;
+      border: 2px dashed #9333ea;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+    }
+
+    .pipe-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .pipe-card {
+      background: #ffffff;
+      border: 1.5px solid #c084fc;
+      border-radius: 6px;
+      padding: 6px;
+      text-align: center;
+      font-size: 10.5px;
+      color: #4c1d95;
+    }
+
+    .pipe-card strong {
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      color: #581c87;
+      margin-bottom: 2px;
+    }
+
+    /* Step 4: Express API Controllers & Auto-Grading Engine */
+    .engine-row {
+      background: #ecfdf5;
+      border: 1.5px solid #10b981;
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .engine-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #065f46;
+    }
+
+    .engine-pills {
+      display: flex;
+      gap: 6px;
+    }
+
+    .engine-pill {
+      background: #ffffff;
+      border: 1px solid #6ee7b7;
+      color: #047857;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    /* Step 5: Database Storage Layer */
+    .db-container {
+      background: #0f172a;
+      color: #ffffff;
+      border-radius: 10px;
+      padding: 10px 14px;
+    }
+
+    .db-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .db-header h3 {
+      font-size: 13px;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+
+    .db-header span {
+      font-size: 10px;
+      color: #94a3b8;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .db-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .db-item {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 6px 8px;
+    }
+
+    .db-item-name {
+      font-size: 11px;
+      font-weight: 800;
+      color: #f8fafc;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .db-item-desc {
+      font-size: 9.5px;
+      color: #cbd5e1;
+      margin-top: 1px;
+    }
+
+    @media print {
+      body { width: 210mm; height: 297mm; padding: 8mm 10mm; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="a4-header">
+    <div>
+      <h1>AI-IGMS — Project System Architecture & Execution Flowchart</h1>
+      <p>Integrated Government School Management System · Full-Stack Technical Specification</p>
+    </div>
+    <div class="badge-hdr">Single Page A4 Specification</div>
+  </div>
+
+  <!-- Section 1: User Login & Role Authorization Flow -->
+  <div class="section-label">1. User Entry, Authentication & Role Dispatcher</div>
+  <div class="auth-flow-row">
+    <div class="pill-start">User Opens Web App</div>
+    <span class="arr">➔</span>
+    <div class="box-step">
+      Login / Registration
+      <small>Email + Password</small>
+    </div>
+    <span class="arr">➔</span>
+    <div class="diamond-box">Valid Credentials?</div>
+    <span class="arr">➔</span>
+    <div class="box-step" style="border-color:#16a34a; background:#f0fdf4; color:#15803d;">
+      JWT Auth Success
+      <small>Role Context Dispatch</small>
+    </div>
+  </div>
+
+  <!-- Section 2: Role-Based System Workflows -->
+  <div class="section-label">2. Role-Based User Portals & API Operations</div>
+  <div class="roles-container">
+    
+    <div class="role-row">
+      <div class="role-badge" style="background:#4338ca;">Super Admin</div>
+      <div class="role-tasks">
+        <div class="task-tag">School Management <span class="code-fn">GET/POST /api/schools</span></div>
+        <div class="task-tag">UDISE Code & Principal Assignment</div>
+        <div class="task-tag">Global Analytics & District Oversight</div>
+      </div>
+    </div>
+
+    <div class="role-row">
+      <div class="role-badge" style="background:#0284c7;">School Principal</div>
+      <div class="role-tasks">
+        <div class="task-tag">Broadcast Notices <span class="code-fn">POST /api/notices</span></div>
+        <div class="task-tag">Approve Teacher Leave <span class="code-fn">PATCH /api/leave/:id/status</span></div>
+        <div class="task-tag">School Roster & Performance Reports</div>
+      </div>
+    </div>
+
+    <div class="role-row">
+      <div class="role-badge" style="background:#059669;">Teacher</div>
+      <div class="role-tasks">
+        <div class="task-tag">Create Exam <span class="code-fn">POST /api/exams</span></div>
+        <div class="task-tag">Mark Attendance <span class="code-fn">POST /api/attendance</span></div>
+        <div class="task-tag">Upload Marks <span class="code-fn">POST /api/marks</span></div>
+        <div class="task-tag">Apply Leave <span class="code-fn">POST /api/leave</span></div>
+      </div>
+    </div>
+
+    <div class="role-row">
+      <div class="role-badge" style="background:#d97706;">Student</div>
+      <div class="role-tasks">
+        <div class="task-tag">Take Online Exam <span class="code-fn">GET /api/exams/:id</span></div>
+        <div class="task-tag">Submit Test <span class="code-fn">POST /api/exams/:id/submit</span></div>
+        <div class="task-tag">View Auto-Graded Results & Attendance</div>
+      </div>
+    </div>
+
+    <div class="role-row">
+      <div class="role-badge" style="background:#64748b;">Parent</div>
+      <div class="role-tasks">
+        <div class="task-tag">Track Child Attendance</div>
+        <div class="task-tag">View Child Exam Results & Grades</div>
+        <div class="task-tag">Read Official School Announcements</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Section 3: Exact Request Execution Pipeline -->
+  <div class="section-label">3. End-to-End Function Call Execution Pipeline</div>
+  <div class="pipeline-container">
+    <div style="font-size:11px; font-weight:800; color:#6b21a8; margin-bottom:4px;">
+      Frontend UI Event ➔ REST Request ➔ Auth Guard ➔ Controller Engine ➔ Mongoose ➔ Database
+    </div>
+    <div class="pipe-grid">
+      <div class="pipe-card">
+        <strong>1. UI Call</strong>
+        <span class="code-fn">handleSave()</span>
+      </div>
+      <div class="pipe-card">
+        <strong>2. REST Request</strong>
+        <span class="code-fn">fetch('/api/...')</span>
+      </div>
+      <div class="pipe-card">
+        <strong>3. Auth Guard</strong>
+        <span class="code-fn">authMiddleware.js</span>
+      </div>
+      <div class="pipe-card">
+        <strong>4. Engine</strong>
+        <span class="code-fn">gradingEngine.js</span>
+      </div>
+      <div class="pipe-card">
+        <strong>5. Mongoose</strong>
+        <span class="code-fn">Model.create()</span>
+      </div>
+      <div class="pipe-card">
+        <strong>6. Database</strong>
+        MongoDB <span class="code-fn">ai_igms</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: Controllers & Auto-Grading Engine -->
+  <div class="section-label">4. Backend Controller Services & Auto-Grading Engine</div>
+  <div class="engine-row">
+    <div class="engine-title">Node.js + Express REST API Server (Port 5000)</div>
+    <div class="engine-pills">
+      <span class="engine-pill">authController.js</span>
+      <span class="engine-pill">examController.js</span>
+      <span class="engine-pill">gradingEngine.js</span>
+      <span class="engine-pill">attendanceController.js</span>
+      <span class="engine-pill">markController.js</span>
+    </div>
+  </div>
+
+  <!-- Section 5: MongoDB Database Storage Layer -->
+  <div class="section-label">5. Local MongoDB Database Storage Layer</div>
+  <div class="db-container">
+    <div class="db-header">
+      <h3>MongoDB Collections (`mongodb://127.0.0.1:27017/ai_igms`)</h3>
+      <span>8 Collections Persisted</span>
+    </div>
+    <div class="db-grid">
+      <div class="db-item">
+        <div class="db-item-name">users</div>
+        <div class="db-item-desc">Auth & Roles</div>
+      </div>
+      <div class="db-item">
+        <div class="db-item-name">schools</div>
+        <div class="db-item-desc">Rosters & UDISE</div>
+      </div>
+      <div class="db-item">
+        <div class="db-item-name">exams</div>
+        <div class="db-item-desc">Papers & Answer Keys</div>
+      </div>
+      <div class="db-item">
+        <div class="db-item-name">submissions</div>
+        <div class="db-item-desc">Scores & Answers</div>
+      </div>
+      <div class="db-item">
+        <div class="db-item-name">attendances</div>
+        <div class="db-item-desc">Daily Roster Logs</div>
+      </div>
+      <div class="db-item">
+        <div class="db-item-name">marks</div>
+        <div class="db-item-desc">Subject Mark Sheets</div>
+      </div>
+      <div class="db-item">
+        <div class="db-item-name">notices</div>
+        <div class="db-item-desc">Broadcast Notices</div>
+      </div>
+      <div class="db-item">
+        <div class="db-item-name">leaves</div>
+        <div class="db-item-desc">Teacher Leave Logs</div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
