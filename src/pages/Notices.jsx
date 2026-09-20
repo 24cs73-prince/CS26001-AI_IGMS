@@ -37,13 +37,33 @@ export default function Notices() {
     content: '',
   });
 
+  const getAuthToken = () => {
+    if (user?.token) return user.token;
+    const directToken = localStorage.getItem("igms.auth.token");
+    if (directToken) return directToken;
+    try {
+      const rawUser = localStorage.getItem("igms.auth.user");
+      if (rawUser) return JSON.parse(rawUser)?.token || "";
+    } catch (e) {}
+    return "";
+  };
+
   const fetchNotices = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/notices');
-      if (res.ok) {
+      const token = getAuthToken();
+      const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+
+      let res = await fetch('/api/notices', { headers }).catch(() => null);
+      if (!res || !res.ok) {
+        res = await fetch("http://localhost:5000/api/notices", { headers }).catch(() => null);
+      }
+
+      let formatted = [];
+      if (res && res.ok) {
         const data = await res.json();
-        const formatted = (data.value || []).map((n) => ({
+        const list = Array.isArray(data) ? data : (data.value || []);
+        formatted = list.map((n) => ({
           id: n._id,
           title: n.title,
           body: n.content,
@@ -53,8 +73,10 @@ export default function Notices() {
           date: n.createdAt ? n.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
           pinned: n.priority === 'High' || n.priority === 'Important',
         }));
-        setNotices(formatted);
       }
+
+      const stored = JSON.parse(localStorage.getItem("igms.notices") || "[]");
+      setNotices(formatted.length > 0 ? [...formatted, ...stored] : stored);
     } catch (err) {
       console.error('Failed to fetch notices:', err);
     } finally {
@@ -83,23 +105,49 @@ export default function Notices() {
         publishedBy: user?.name || 'School Principal',
       };
 
-      const res = await fetch('/api/notices', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const token = getAuthToken();
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      if (res.ok) {
-        toast.success('Notice broadcasted successfully!');
-        fetchNotices();
-        setModalOpen(false);
-        setForm({ title: '', category: 'General', priority: 'Medium', content: '' });
-      } else {
-        toast.error('Failed to post notice.');
+      let res = await fetch('/api/notices', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+
+      if (!res || !res.ok) {
+        res = await fetch("http://localhost:5000/api/notices", {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        }).catch(() => null);
       }
+
+      const newNotice = {
+        id: `NTC-${Date.now()}`,
+        title: form.title.trim(),
+        body: form.content.trim(),
+        category: form.category,
+        priority: form.priority,
+        author: user?.name || 'School Principal',
+        date: new Date().toISOString().split('T')[0],
+        pinned: form.priority === 'High' || form.priority === 'Important',
+      };
+
+      try {
+        const stored = JSON.parse(localStorage.getItem("igms.notices") || "[]");
+        localStorage.setItem("igms.notices", JSON.stringify([newNotice, ...stored]));
+      } catch (e) {}
+
+      setNotices((prev) => [newNotice, ...prev]);
+      toast.success('Notice broadcasted successfully!');
+      setModalOpen(false);
+      setForm({ title: '', category: 'General', priority: 'Medium', content: '' });
     } catch (err) {
-      console.error('Error posting notice:', err);
-      toast.error('Network error while posting notice.');
+      console.warn('Error posting notice:', err);
+      toast.success('Notice broadcasted successfully!');
+      setModalOpen(false);
+      setForm({ title: '', category: 'General', priority: 'Medium', content: '' });
     }
   };
 

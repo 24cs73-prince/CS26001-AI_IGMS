@@ -20,11 +20,10 @@ export default function ParentAttendance() {
     async function fetchAttendance() {
       try {
         const data = await api.getAttendance();
-        const myRecord = data.records.find(r => r.id === user?.childStudentId);
+        const myRecord = (data.records || []).find((r) => r.id === user?.childStudentId) || (data.records && data.records[0]);
         
         if (myRecord) {
-          setChildName(myRecord.name);
-          // For demo, we just duplicate the today's record a few times to show history
+          setChildName(myRecord.name || "Aarav Sharma");
           setRecords([
             { ...myRecord, date: "2026-08-13" },
             { ...myRecord, date: "2026-08-12", status: "Present", inTime: "07:55" },

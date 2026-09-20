@@ -42,11 +42,9 @@ import ParentDashboard from "../pages/ParentDashboard";
 import ParentResults from "../pages/ParentResults";
 import ParentAttendance from "../pages/ParentAttendance";
 
-/** Sends "/" to the logged-in user's home portal (or login if signed out). */
+/** Root URL "/" always opens the Login page */
 function RoleHome() {
-  const { isAuthenticated, user } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return <Navigate to={user?.home || "/dashboard"} replace />;
+  return <Navigate to="/login" replace />;
 }
 
 /**
@@ -113,7 +111,7 @@ export default function AppRoutes() {
           />
           <Route
             path="/teacher/ai-generator"
-            element={<Navigate to="/teacher/exams/create" replace />}
+            element={page(AIPaperGenerator, ["teacher"])}
           />
           <Route
             path="/teacher/exams"
@@ -121,7 +119,7 @@ export default function AppRoutes() {
           />
           <Route
             path="/teacher/exams/create"
-            element={page(CreateExamPage, ["teacher"])}
+            element={page(AIPaperGenerator, ["teacher"])}
           />
           <Route
             path="/teacher/exams/:examId"

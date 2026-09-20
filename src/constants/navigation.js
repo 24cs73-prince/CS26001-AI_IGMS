@@ -15,6 +15,7 @@ import {
   FiBell,
   FiClock,
   FiSettings,
+  FiCpu,
 } from "react-icons/fi";
 
 // Super Admin — system setup route
@@ -71,6 +72,11 @@ export const TEACHER_NAV = [
         label: "📝 Online Exams",
         to: "/teacher/exams",
         icon: FiEdit3,
+      },
+      {
+        label: "✨ AI Paper Generator",
+        to: "/teacher/ai-generator",
+        icon: FiCpu,
       },
       {
         label: "Mark Attendance",

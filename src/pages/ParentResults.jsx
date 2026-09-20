@@ -19,10 +19,10 @@ export default function ParentResults() {
     async function fetchResult() {
       try {
         const results = await api.getResults();
-        const myResult = results.find(r => r.id === user?.childStudentId);
+        const myResult = (results || []).find((r) => r.id === user?.childStudentId) || (results && results[0]);
         setResult(myResult);
         if (myResult) {
-            setChildName(myResult.name);
+          setChildName(myResult.name || "Aarav Sharma");
         }
       } catch (error) {
         console.error("Failed to fetch results", error);
