@@ -9,6 +9,7 @@ import submissionRoutes from "./routes/submissionRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 
 import { seedAllData } from "./config/seedAllData.js";
+import { syncLocalToAtlas } from "./config/migrateLocalToAtlas.js";
 import studentRoutes from "./routes/studentRoutes.js";
 import teacherRoutes from "./routes/teacherRoutes.js";
 
@@ -16,7 +17,11 @@ import teacherRoutes from "./routes/teacherRoutes.js";
 dotenv.config();
 
 // Connect to MongoDB Atlas / Local MongoDB
-connectDB().then(() => {
+connectDB().then(async () => {
+  const atlasUri = process.env.MONGODB_ATLAS_URI || process.env.MONGODB_URI;
+  if (atlasUri && !atlasUri.includes("<db_password>")) {
+    await syncLocalToAtlas(atlasUri);
+  }
   seedExamsIfEmpty();
   seedAllData();
 });
