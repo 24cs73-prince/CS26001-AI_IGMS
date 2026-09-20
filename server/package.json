@@ -1,22 +1,12 @@
 {
   "name": "ai-igms-server",
   "version": "1.0.0",
-<<<<<<< HEAD
-  "description": "AI-IGMS Backend — Node.js + Express + MongoDB Atlas",
-  "type": "module",
-  "main": "src/server.js",
-  "scripts": {
-    "dev": "node --watch src/server.js",
-    "start": "node src/server.js",
-    "seed": "node src/seeds/seed.js"
-=======
   "description": "Backend API Server for AI-IGMS with MongoDB, JWT Auth, and Role-Based Access Control",
   "main": "server.js",
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
->>>>>>> edd0625 (feat(fullstack): complete Modules 2, 3, 4 Express backend APIs, MongoDB schemas, and frontend UI wire-up with session persistence fixes)
+    "dev": "node server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -24,15 +14,9 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-<<<<<<< HEAD
-    "mongoose": "^8.5.1",
-    "morgan": "^1.10.0",
-    "express-rate-limit": "^7.3.1"
-=======
     "mongoose": "^8.5.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"
->>>>>>> edd0625 (feat(fullstack): complete Modules 2, 3, 4 Express backend APIs, MongoDB schemas, and frontend UI wire-up with session persistence fixes)
   }
 }
