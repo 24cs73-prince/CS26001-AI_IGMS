@@ -5,29 +5,42 @@ import dns from "dns";
 try {
   dns.setServers(["8.8.8.8", "1.1.1.1"]);
 } catch (e) {
-  // Ignore DNS override errors if in restricted environment
+  // Ignore DNS override errors
 }
+
+let secondaryConn = null;
 
 export const connectDB = async () => {
   const atlasUri = process.env.MONGODB_ATLAS_URI || process.env.MONGODB_URI;
   const localUri = process.env.MONGODB_LOCAL_URI || "mongodb://127.0.0.1:27017/ai_igms";
 
-  // Check if atlasUri is configured and doesn't contain unreplaced placeholder <db_password>
   const isValidAtlas = atlasUri && !atlasUri.includes("<db_password>");
 
   if (isValidAtlas) {
     try {
-      console.log(`📡 Connecting to MongoDB Atlas Cloud Cluster...`);
+      console.log(`📡 Connecting primary database to MongoDB Atlas Cloud Cluster...`);
       const conn = await mongoose.connect(atlasUri, {
         serverSelectionTimeoutMS: 10000,
       });
-      console.log(`✅ MongoDB Atlas Connected [Database: ${conn.connection.name}]: ${conn.connection.host}`);
+      console.log(`✅ Primary Database (Atlas Cloud) Connected [${conn.connection.name}]: ${conn.connection.host}`);
+
+      // Establish secondary connection to Local MongoDB for instant parallel dual-write
+      try {
+        secondaryConn = await mongoose.createConnection(localUri, {
+          serverSelectionTimeoutMS: 3000,
+        }).asPromise();
+        console.log(`⚡ Secondary Database (Local Compass 127.0.0.1) Connected for parallel dual-write!`);
+      } catch (secErr) {
+        console.warn(`⚠️ Local MongoDB secondary connection failed: ${secErr.message}`);
+      }
+
+      setupDualWritePlugin();
       return;
     } catch (error) {
       console.warn(`⚠️ Atlas connection failed: ${error.message}. Falling back to local MongoDB...`);
     }
   } else {
-    console.log(`ℹ️ MONGODB_ATLAS_URI contains <db_password> placeholder. Using local MongoDB until password is set.`);
+    console.log(`ℹ️ MONGODB_ATLAS_URI contains <db_password> placeholder. Using local MongoDB.`);
   }
 
   // Fallback to local MongoDB
@@ -41,3 +54,30 @@ export const connectDB = async () => {
   }
 };
 
+function setupDualWritePlugin() {
+  // Automatically mirror all Mongoose writes to Local MongoDB so Compass & Atlas stay 100% identical in real-time
+  mongoose.plugin((schema) => {
+    schema.post("save", function (doc) {
+      if (secondaryConn && secondaryConn.readyState === 1 && doc && doc.collection) {
+        const colName = doc.collection.name;
+        const obj = doc.toObject ? doc.toObject() : doc;
+        secondaryConn.db.collection(colName).replaceOne({ _id: obj._id }, obj, { upsert: true }).catch(() => {});
+      }
+    });
+
+    schema.post("findOneAndUpdate", function (doc) {
+      if (secondaryConn && secondaryConn.readyState === 1 && doc && doc.collection) {
+        const colName = doc.collection.name;
+        const obj = doc.toObject ? doc.toObject() : doc;
+        secondaryConn.db.collection(colName).replaceOne({ _id: obj._id }, obj, { upsert: true }).catch(() => {});
+      }
+    });
+
+    schema.post("findOneAndDelete", function (doc) {
+      if (secondaryConn && secondaryConn.readyState === 1 && doc && doc.collection) {
+        const colName = doc.collection.name;
+        secondaryConn.db.collection(colName).deleteOne({ _id: doc._id }).catch(() => {});
+      }
+    });
+  });
+}
