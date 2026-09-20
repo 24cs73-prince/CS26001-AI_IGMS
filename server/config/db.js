@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import dns from "dns";
+import { startAutoSyncLoop, syncBothDatabases } from "./autoSync.js";
 
 // Ensure Node.js uses Google & Cloudflare public DNS for Atlas SRV record resolution
 try {
@@ -34,7 +35,11 @@ export const connectDB = async () => {
         console.warn(`⚠️ Local MongoDB secondary connection failed: ${secErr.message}`);
       }
 
-      setupDualWritePlugin();
+      // Initial full 2-way sync on startup
+      await syncBothDatabases();
+
+      // Start continuous background auto-sync loop (every 3 seconds)
+      startAutoSyncLoop(3000);
       return;
     } catch (error) {
       console.warn(`⚠️ Atlas connection failed: ${error.message}. Falling back to local MongoDB...`);
@@ -53,31 +58,3 @@ export const connectDB = async () => {
     console.error(`❌ MongoDB Connection Error: ${err.message}`);
   }
 };
-
-function setupDualWritePlugin() {
-  // Automatically mirror all Mongoose writes to Local MongoDB so Compass & Atlas stay 100% identical in real-time
-  mongoose.plugin((schema) => {
-    schema.post("save", function (doc) {
-      if (secondaryConn && secondaryConn.readyState === 1 && doc && doc.collection) {
-        const colName = doc.collection.name;
-        const obj = doc.toObject ? doc.toObject() : doc;
-        secondaryConn.db.collection(colName).replaceOne({ _id: obj._id }, obj, { upsert: true }).catch(() => {});
-      }
-    });
-
-    schema.post("findOneAndUpdate", function (doc) {
-      if (secondaryConn && secondaryConn.readyState === 1 && doc && doc.collection) {
-        const colName = doc.collection.name;
-        const obj = doc.toObject ? doc.toObject() : doc;
-        secondaryConn.db.collection(colName).replaceOne({ _id: obj._id }, obj, { upsert: true }).catch(() => {});
-      }
-    });
-
-    schema.post("findOneAndDelete", function (doc) {
-      if (secondaryConn && secondaryConn.readyState === 1 && doc && doc.collection) {
-        const colName = doc.collection.name;
-        secondaryConn.db.collection(colName).deleteOne({ _id: doc._id }).catch(() => {});
-      }
-    });
-  });
-}
