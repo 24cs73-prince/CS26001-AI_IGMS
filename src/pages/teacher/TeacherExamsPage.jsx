@@ -77,15 +77,6 @@ export default function TeacherExamsPage() {
         title="Online Exams"
         description="Manage online MCQ examinations, evaluate student submissions, and publish results."
         breadcrumbs={[{ label: "Online Exams" }]}
-        action={
-          <Button
-            icon={FiPlus}
-            onClick={() => navigate("/teacher/exams/create")}
-            className="bg-primary hover:bg-primary-600 shadow-soft"
-          >
-            Create Exam
-          </Button>
-        }
       />
 
       {/* Filters and Search Bar */}

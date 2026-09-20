@@ -56,6 +56,7 @@ function hashPassword(value) {
 }
 
 export function AuthProvider({ children }) {
+  // Restore stored session from localStorage on page refresh
   const [user, setUser] = useState(readStoredUser);
 
   const login = useCallback(async ({ email, password, role = "principal" }) => {

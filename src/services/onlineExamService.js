@@ -153,50 +153,35 @@ export const onlineExamService = {
   async getExams() {
     let apiExams = [];
     try {
-      const res = await fetch(`${API_URL}/api/exams`);
-      if (res.ok) {
+      let res = await fetch(`${API_URL}/api/exams`).catch(() => null);
+      if (!res || !res.ok) {
+        res = await fetch("http://localhost:5000/api/exams").catch(() => null);
+      }
+      if (res && res.ok) {
         const raw = await res.json();
         const list = Array.isArray(raw) ? raw : (raw.data || []);
-        apiExams = list.map((e) => ({
-          ...e,
-          id: String(e._id || e.id || ""),
-          class: String(e.classVal || e.class || "5"),
-          status: String(e.status || "Published"),
-          subject: String(e.subject || "General"),
-          title: String(e.title || "Untitled Exam"),
-          duration: String(e.duration || "30 minutes"),
-          totalQuestions: Number(e.totalQuestions) || e.questions?.length || 10,
-          totalMarks: Number(e.totalMarks) || 10,
-          submissionsCount: Number(e.submissionsCount) || 0,
-          totalStudents: Number(e.totalStudents) || 40,
-        }));
+        if (list.length > 0) {
+          return list.map((e) => ({
+            ...e,
+            id: String(e._id || e.id || ""),
+            class: String(e.classVal || e.class || "5"),
+            status: String(e.status || "Published"),
+            subject: String(e.subject || "General"),
+            title: String(e.title || "Untitled Exam"),
+            duration: String(e.duration || "30 minutes"),
+            totalQuestions: Number(e.totalQuestions) || e.questions?.length || 10,
+            totalMarks: Number(e.totalMarks) || 10,
+            submissionsCount: Number(e.submissionsCount) || 0,
+            totalStudents: Number(e.totalStudents) || 40,
+          }));
+        }
       }
     } catch (err) {
       console.warn("Backend API error fetching exams:", err.message);
     }
 
-    const localExams = loadStorage(STORAGE_KEYS.EXAMS, INITIAL_ONLINE_EXAMS);
-    const combined = [...apiExams];
-
-    localExams.forEach((loc) => {
-      if (loc && !combined.some((item) => String(item.id) === String(loc.id || loc._id) || item.title === loc.title)) {
-        combined.push({
-          ...loc,
-          id: String(loc.id || loc._id || `exam_${Date.now()}`),
-          class: String(loc.class || loc.classVal || "5"),
-          status: String(loc.status || "Published"),
-          subject: String(loc.subject || "General"),
-          title: String(loc.title || "Untitled Exam"),
-          duration: String(loc.duration || "30 minutes"),
-          totalQuestions: Number(loc.totalQuestions) || loc.questions?.length || 10,
-          totalMarks: Number(loc.totalMarks) || 10,
-          submissionsCount: Number(loc.submissionsCount) || 0,
-          totalStudents: Number(loc.totalStudents) || 40,
-        });
-      }
-    });
-
-    return combined;
+    const localExams = loadStorage(STORAGE_KEYS.EXAMS, []);
+    return localExams;
   },
 
 
@@ -232,13 +217,67 @@ export const onlineExamService = {
     const totalQuestions = parseInt(payload.totalQuestions, 10) || 10;
     const totalMarks = parseInt(payload.totalMarks, 10) || totalQuestions;
 
-    // Generate AI questions matching the syllabus and class
-    const aiQuestions = generateAIQuestionsFromSyllabus({
-      classVal,
-      subject,
-      syllabus,
-      count: totalQuestions,
-    });
+    let aiQuestions = [];
+
+    // Attempt live Groq AI generation call
+    try {
+      const storedUser = JSON.parse(localStorage.getItem("ai_igms_user") || localStorage.getItem("igms.auth") || "{}");
+      const token = storedUser?.token || "";
+
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      let aiRes = await fetch(`${API_URL}/api/ai/generate-questions`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          classVal,
+          subject,
+          syllabus,
+          count: totalQuestions,
+          totalQuestions,
+        }),
+      }).catch(() => null);
+
+      if (!aiRes || !aiRes.ok) {
+        aiRes = await fetch("http://localhost:5000/api/ai/generate-questions", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            classVal,
+            subject,
+            syllabus,
+            count: totalQuestions,
+            totalQuestions,
+          }),
+        });
+      }
+
+      if (aiRes.ok) {
+        const aiData = await aiRes.json();
+        const rawQs = aiData.questions || aiData.value || [];
+        if (Array.isArray(rawQs) && rawQs.length > 0) {
+          aiQuestions = rawQs.map((q, idx) => ({
+            id: idx + 1,
+            question: q.question || q.questionText || q.q,
+            options: q.options || [],
+            correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : 0,
+            marks: 1,
+          }));
+        }
+      }
+    } catch (err) {
+      console.warn("Live Groq AI generation exception in service, falling back:", err.message);
+    }
+
+    if (!aiQuestions || aiQuestions.length === 0) {
+      aiQuestions = generateAIQuestionsFromSyllabus({
+        classVal,
+        subject,
+        syllabus,
+        count: totalQuestions,
+      });
+    }
 
     const markPerQ = totalMarks / (aiQuestions.length || 1);
     aiQuestions.forEach((q) => {
