@@ -6,13 +6,14 @@ import { generateMCQPaperWithGrok, analyzePerformanceWithGrok } from "../utils/g
  */
 export const generateQuestions = async (req, res) => {
   try {
-    const { classVal, subject, syllabus, totalQuestions } = req.body;
+    const { classVal, subject, syllabus, totalQuestions, count } = req.body;
+    const numQuestions = Number(count || totalQuestions) || 5;
 
     const questions = await generateMCQPaperWithGrok({
       classVal: String(classVal || "5"),
       subject: subject || "Science",
       syllabus: syllabus || "",
-      count: Number(totalQuestions) || 10,
+      count: numQuestions,
     });
 
     res.json({

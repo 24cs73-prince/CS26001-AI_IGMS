@@ -22,20 +22,28 @@ export const createExam = async (req, res) => {
       status,
     } = req.body;
 
+    const cleanedQuestions = (questions || []).map((q, idx) => ({
+      id: q.id || idx + 1,
+      question: String(q.question || q.questionText || q.q || `Question ${idx + 1}`),
+      options: Array.isArray(q.options) && q.options.length > 0 ? q.options.map(String) : ["Option A", "Option B", "Option C", "Option D"],
+      correctAnswer: typeof q.correctAnswer === "number" ? q.correctAnswer : 0,
+      marks: Number(q.marks) || 1,
+    }));
+
     const exam = await Exam.create({
-      title,
-      classVal: String(classVal),
-      subject,
-      syllabus,
+      title: title || `${subject} Exam (Class ${classVal})`,
+      classVal: String(classVal || "5"),
+      subject: subject || "General",
+      syllabus: syllabus || "Standard Curriculum",
       duration: duration || "30 minutes",
       durationMinutes: Number(durationMinutes) || 30,
-      totalQuestions: Number(totalQuestions) || questions?.length || 10,
-      totalMarks: Number(totalMarks) || 10,
+      totalQuestions: Number(totalQuestions) || cleanedQuestions.length || 10,
+      totalMarks: Number(totalMarks) || cleanedQuestions.length || 10,
       startDate: startDate || new Date(),
       endDate: endDate || new Date(Date.now() + 86400000 * 5),
-      status: status || "Published",
+      status: status === "Draft" ? "Draft" : "Published",
       resultsStatus: "DRAFT",
-      questions: questions || [],
+      questions: cleanedQuestions,
       createdBy: req.user?._id,
     });
 

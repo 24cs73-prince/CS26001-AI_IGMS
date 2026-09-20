@@ -17,7 +17,7 @@ export const validateCreateExam = (req, res, next) => {
   }
 
   if (!syllabus || !String(syllabus).trim()) {
-    return res.status(400).json({ message: "Syllabus / Topics context is required." });
+    req.body.syllabus = "Standard Grade Curriculum";
   }
 
   next();

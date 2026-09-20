@@ -10,37 +10,47 @@ const GROK_API_URL = "https://api.x.ai/v1/chat/completions";
  * @param {Object} params - { classVal, subject, syllabus, count }
  */
 export async function generateMCQPaperWithGrok({ classVal = "5", subject = "Science", syllabus = "", count = 10 }) {
-  const apiKey = process.env.GROK_API_KEY;
+  const apiKey = process.env.GROK_API_KEY || process.env.GROQ_API_KEY;
   const numQuestions = Math.max(1, parseInt(count, 10) || 10);
 
-  const prompt = `You are an expert school examination creator for Indian Government Schools.
+  const prompt = `You are an expert school examination question paper creator for Indian Government Schools.
 Generate ${numQuestions} multiple-choice questions (MCQs) for Class ${classVal} students in subject "${subject}".
-Syllabus / Topics context: "${syllabus || 'General Curriculum'}".
+Topics to cover: "${syllabus || 'General Curriculum'}".
 
-IMPORTANT FORMAT REQUIREMENT:
-Return ONLY a valid raw JSON array of objects without markdown formatting or commentary. Each object MUST have:
+CRITICAL INSTRUCTIONS:
+1. Do NOT include, quote, or copy-paste the raw syllabus description inside the question text!
+2. Each question must be clean, concise, and appropriate for Class ${classVal} students (e.g. testing vocabulary, phonics, naming words, action words, basic grammar, or reading comprehension).
+3. Return ONLY a valid raw JSON array of objects without markdown formatting or commentary.
+
+Each object MUST have:
 - "id": number (1 to ${numQuestions})
-- "question": string
-- "options": array of 4 strings
-- "correctAnswer": number (0-indexed integer representing the correct option index: 0, 1, 2, or 3)
+- "question": string (clean question text ONLY)
+- "options": array of 4 distinct string choices
+- "correctAnswer": number (0-indexed integer: 0, 1, 2, or 3)
 - "marks": 1
 `;
 
   if (apiKey && apiKey !== "your_xai_grok_api_key_here") {
     try {
-      const response = await fetch(GROK_API_URL, {
+      const isGroq = apiKey.startsWith("gsk_");
+      const apiUrl = isGroq ? "https://api.groq.com/openai/v1/chat/completions" : GROK_API_URL;
+      const model = isGroq ? "groq/compound-mini" : "grok-2-latest";
+
+      console.log(`🤖 Requesting AI MCQ generation via ${isGroq ? "Groq Cloud" : "xAI Grok"}...`);
+
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "grok-2-latest",
+          model,
           messages: [
             { role: "system", content: "You are a JSON-only API assistant for educational exam creation." },
             { role: "user", content: prompt },
           ],
-          temperature: 0.7,
+          temperature: 0.6,
         }),
       });
 
@@ -50,15 +60,15 @@ Return ONLY a valid raw JSON array of objects without markdown formatting or com
         const cleanJson = rawContent.replace(/```json/g, "").replace(/```/g, "").trim();
         const parsed = JSON.parse(cleanJson);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          console.log(`🤖 Grok AI successfully generated ${parsed.length} MCQs for Class ${classVal} ${subject}`);
+          console.log(`✅ AI Engine successfully generated ${parsed.length} MCQs for Class ${classVal} ${subject}`);
           return parsed;
         }
       } else {
         const errText = await response.text();
-        console.warn("⚠️ Grok AI API returned error:", response.status, errText);
+        console.warn("⚠️ AI API returned error:", response.status, errText);
       }
     } catch (error) {
-      console.warn("⚠️ Grok AI API Connection Exception:", error.message);
+      console.warn("⚠️ AI API Connection Exception:", error.message);
     }
   }
 
