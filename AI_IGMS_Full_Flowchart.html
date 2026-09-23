@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI-IGMS System Architecture & Complete Data Flowchart</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fira+Code:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A3 portrait;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #0b0f19;
+      color: #f8fafc;
+      width: 297mm;
+      min-height: 420mm;
+      padding: 12mm;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Container Box */
+    .flow-wrapper {
+      width: 100%;
+      background: #0f172a;
+      border: 2px solid #1e293b;
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    /* Nodes & Cards Styles */
+    .pill-green {
+      background: #10b981;
+      color: #022c22;
+      font-size: 13px;
+      font-weight: 900;
+      padding: 8px 24px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+    }
+
+    .node-blue {
+      background: #1e3a8a;
+      border: 2px solid #3b82f6;
+      color: #eff6ff;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      width: 380px;
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+    }
+
+    .node-req {
+      background: #78350f;
+      border: 2px solid #f59e0b;
+      color: #fef3c7;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 800;
+      text-align: center;
+      width: 420px;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .node-purple {
+      background: #3b0764;
+      border: 2px solid #a855f7;
+      color: #faf5ff;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-align: center;
+      width: 480px;
+    }
+
+    /* Decision Diamond */
+    .diamond-shape {
+      width: 130px;
+      height: 70px;
+      background: #78350f;
+      border: 2px solid #f59e0b;
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 900;
+      text-align: center;
+      margin: 2px 0;
+    }
+
+    .decision-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .red-err {
+      background: #7f1d1d;
+      border: 2px solid #ef4444;
+      color: #fef2f2;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 10.5px;
+      font-weight: 800;
+      width: 220px;
+      text-align: center;
+    }
+
+    .arr-v {
+      color: #94a3b8;
+      font-size: 14px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    /* 5 Roles Section */
+    .roles-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      width: 100%;
+      margin-top: 6px;
+    }
+
+    .role-column-box {
+      background: #1e293b;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .role-hdr {
+      padding: 6px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 900;
+      text-align: center;
+      text-transform: uppercase;
+      color: #ffffff;
+      letter-spacing: 0.05em;
+    }
+
+    .task-item {
+      background: #0f172a;
+      border: 1.5px solid #334155;
+      border-radius: 6px;
+      padding: 5px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .task-name {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #f8fafc;
+    }
+
+    .task-meta {
+      font-size: 8.5px;
+      color: #94a3b8;
+      font-family: 'Fira Code', monospace;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Database Layer */
+    .db-container {
+      width: 100%;
+      background: #042f2e;
+      border: 2.5px solid #14b8a6;
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 0 20px rgba(20, 184, 166, 0.2);
+    }
+
+    .db-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: #2dd4bf;
+      letter-spacing: 0.03em;
+    }
+
+    .db-cylinders {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .cyl-item {
+      background: #0d9488;
+      color: #ffffff;
+      border-radius: 12px / 6px;
+      padding: 6px 14px;
+      font-size: 10px;
+      font-weight: 800;
+      font-family: 'Fira Code', monospace;
+      border: 1px solid #5eead4;
+      text-align: center;
+      min-width: 80px;
+    }
+
+    /* Error Handling Sidebar */
+    .error-sidebar {
+      position: absolute;
+      top: 140px;
+      right: 16px;
+      width: 180px;
+      background: #450a0a;
+      border: 2px dashed #ef4444;
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .error-title {
+      font-size: 10px;
+      font-weight: 900;
+      color: #fca5a5;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .error-step {
+      background: #7f1d1d;
+      color: #fef2f2;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 8.5px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    /* Legend Box */
+    .legend-box {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: #020617;
+      border: 1.5px solid #334155;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 9px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 8px;
+    }
+
+    .leg-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+    .leg-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="flow-wrapper">
+
+    <!-- START -->
+    <div class="pill-green">START — User Opens AI-IGMS</div>
+    <div class="arr-v">↓</div>
+
+    <!-- Login Page -->
+    <div class="node-blue">Login Page — Enter Email, Password, Select Role</div>
+    <div class="arr-v">↓</div>
+
+    <!-- POST Auth -->
+    <div class="node-req">Send POST /api/auth/login (email, password)</div>
+    <div class="arr-v">↓</div>
+
+    <!-- Express Server Middleware -->
+    <div class="node-purple">Express Server Receives ➔ CORS ➔ JSON Parser ➔ Rate Limiter ➔ Morgan Logger</div>
+    <div class="arr-v">↓</div>
+
+    <!-- Router -->
+    <div class="node-purple">Router matches /api/auth/login ➔ authController.login()</div>
+    <div class="arr-v">↓</div>
+
+    <!-- Find User -->
+    <div class="node-purple">Find user: User.findOne({email}).select('+password')</div>
+    <div class="arr-v">↓</div>
+
+    <!-- Decision 1: User Exists? -->
+    <div class="decision-row">
+      <div class="diamond-shape">User exists?</div>
+      <div class="red-err">NO ➔ 401: Invalid email or password</div>
+    </div>
+    <div class="arr-v">↓ YES</div>
+
+    <!-- Decision 2: Account Active? -->
+    <div class="decision-row">
+      <div class="diamond-shape">Account isActive?</div>
+      <div class="red-err">NO ➔ 403: Account deactivated</div>
+    </div>
+    <div class="arr-v">↓ YES</div>
+
+    <!-- Decision 3: bcrypt Compare -->
+    <div class="decision-row">
+      <div class="diamond-shape">bcrypt compare matches?</div>
+      <div class="red-err">NO ➔ 401: Invalid email or password</div>
+    </div>
+    <div class="arr-v">↓ YES</div>
+
+    <!-- JWT Sign -->
+    <div class="node-purple">Generate JWT: jwt.sign({id}, SECRET, {expiresIn: 7d})</div>
+    <div class="arr-v">↓</div>
+
+    <!-- Auth Response -->
+    <div class="node-purple">Response: {success: true, token, user} — password stripped by toJSON()</div>
+    <div class="arr-v">↓</div>
+
+    <!-- Browser Storage -->
+    <div class="node-blue">Browser stores JWT in localStorage ➔ AuthContext updates ➔ ProtectedRoute reads role</div>
+    <div class="arr-v">↓</div>
+
+    <!-- Role Decision -->
+    <div class="diamond-shape" style="width:160px; height:80px; font-size:13px;">User Role?</div>
+    <div class="arr-v">↓</div>
+
+    <!-- 5 ROLES GRID -->
+    <div class="roles-grid">
+
+      <!-- SUPER ADMIN -->
+      <div class="role-column-box" style="border-color:#ef4444;">
+        <div class="role-hdr" style="background:#dc2626;">Super Admin</div>
+        
+        <div class="task-item">
+          <div class="task-name">Manage Schools (CRUD)</div>
+          <div class="task-meta"><span>GET/POST /api/schools</span><span>schools</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">Assign Principals</div>
+          <div class="task-meta"><span>PATCH /api/schools</span><span>users</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">View Network Reports</div>
+          <div class="task-meta"><span>GET /api/reports</span><span>users, schools</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">Register Users</div>
+          <div class="task-meta"><span>POST /api/auth/register</span><span>users</span></div>
+        </div>
+      </div>
+
+      <!-- PRINCIPAL -->
+      <div class="role-column-box" style="border-color:#a855f7;">
+        <div class="role-hdr" style="background:#9333ea;">Principal</div>
+
+        <div class="task-item">
+          <div class="task-name">Manage Students (CRUD)</div>
+          <div class="task-meta"><span>/api/students</span><span>users</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">Manage Teachers (CRUD)</div>
+          <div class="task-meta"><span>/api/teachers</span><span>users</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">Post Notices</div>
+          <div class="task-meta"><span>POST /api/notices</span><span>notices</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">Approve Leaves</div>
+          <div class="task-meta"><span>PATCH /api/leave/:id</span><span>leave</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">View Reports</div>
+          <div class="task-meta"><span>/api/reports</span><span>all</span></div>
+        </div>
+      </div>
+
+      <!-- TEACHER -->
+      <div class="role-column-box" style="border-color:#3b82f6;">
+        <div class="role-hdr" style="background:#2563eb;">Teacher</div>
+
+        <div class="task-item">
+          <div class="task-name">Mark Attendance</div>
+          <div class="task-meta"><span>POST /api/attendance</span><span>attendances</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">Upload Marks</div>
+          <div class="task-meta"><span>POST /api/marks</span><span>marks</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">Create Online Exam</div>
+          <div class="task-meta"><span>POST /api/exams</span><span>exams</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">Evaluate Submissions</div>
+          <div class="task-meta"><span>GET /api/submissions</span><span>submissions</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">Apply Leave</div>
+          <div class="task-meta"><span>POST /api/leave</span><span>leaves</span></div>
+        </div>
+      </div>
+
+      <!-- STUDENT -->
+      <div class="role-column-box" style="border-color:#10b981;">
+        <div class="role-hdr" style="background:#16a34a;">Student</div>
+
+        <div class="task-item">
+          <div class="task-name">View My Attendance</div>
+          <div class="task-meta"><span>GET /api/attendance/me</span><span>attendances</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">View My Results</div>
+          <div class="task-meta"><span>GET /api/results/me</span><span>marks</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">Attempt Online Exam</div>
+          <div class="task-meta"><span>POST /api/exams/:id/submit</span><span>submissions</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">View Notices</div>
+          <div class="task-meta"><span>GET /api/notices</span><span>notices</span></div>
+        </div>
+      </div>
+
+      <!-- PARENT -->
+      <div class="role-column-box" style="border-color:#f59e0b;">
+        <div class="role-hdr" style="background:#d97706;">Parent</div>
+
+        <div class="task-item">
+          <div class="task-name">View Child Overview</div>
+          <div class="task-meta"><span>GET /api/users/child</span><span>users</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">View Child Attendance</div>
+          <div class="task-meta"><span>GET /api/attendance/child</span><span>attendances</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">View Child Results</div>
+          <div class="task-meta"><span>GET /api/results/child</span><span>marks</span></div>
+        </div>
+
+        <div class="task-item">
+          <div class="task-name">View Notices</div>
+          <div class="task-meta"><span>GET /api/notices</span><span>notices</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="arr-v">↓</div>
+
+    <!-- API Middleware Protection -->
+    <div class="node-purple" style="width:100%;">
+      All Requests: Bearer JWT in header ➔ protect middleware (jwt.verify) ➔ authorize(role)
+    </div>
+    <div class="arr-v">↓</div>
+
+    <div class="node-purple" style="width:100%;">
+      Controller processes ➔ Mongoose ODM query
+    </div>
+    <div class="arr-v">↓</div>
+
+    <!-- DATABASE LAYER -->
+    <div class="db-container">
+      <div class="db-title">MongoDB Atlas — ai_igms database</div>
+      <div class="db-cylinders">
+        <div class="cyl-item">users</div>
+        <div class="cyl-item">schools</div>
+        <div class="cyl-item">attendances</div>
+        <div class="cyl-item">marks</div>
+        <div class="cyl-item">exams</div>
+        <div class="cyl-item">submissions</div>
+        <div class="cyl-item">notices</div>
+        <div class="cyl-item">leaves</div>
+      </div>
+    </div>
+
+    <div class="arr-v">↓</div>
+
+    <!-- Response Payload -->
+    <div class="node-purple" style="width:100%;">
+      Response: {success: true, data} ➔ JSON back to browser
+    </div>
+    <div class="arr-v">↓</div>
+
+    <!-- Frontend UI Update -->
+    <div class="node-blue" style="width:100%;">
+      useFetch hook updates ➔ React re-renders UI ➔ Toast notification
+    </div>
+    <div class="arr-v">↓</div>
+
+    <!-- END -->
+    <div class="pill-green">END — User sees updated data</div>
+
+    <!-- ERROR HANDLING SIDEBAR -->
+    <div class="error-sidebar">
+      <div class="error-title">Error Handling Pipeline</div>
+      <div class="error-step">Error Thrown</div>
+      <div class="error-step">asyncHandler catches</div>
+      <div class="error-step">errorHandler middleware</div>
+      <div class="error-step">JSON Response (400/401/403/404/500)</div>
+      <div class="error-step">Frontend: toast.error() — page stays, nothing crashes</div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="legend-box">
+      <div class="leg-item"><div class="leg-dot" style="background:#2563eb;"></div> Frontend</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#f59e0b;"></div> Request</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#a855f7;"></div> Backend</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ef4444;"></div> Error</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#14b8a6;"></div> Database</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#10b981;"></div> Success</div>
+    </div>
+
+  </div>
+
+</body>
+</html>
