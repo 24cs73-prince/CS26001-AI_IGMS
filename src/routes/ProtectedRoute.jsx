@@ -15,16 +15,23 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  const currentRole = user?.roleKey || user?.role || "";
+
   if (
-    user?.roleKey === "super_admin" &&
+    currentRole === "super_admin" &&
     user?.mustChangePassword === true &&
     location.pathname !== "/change-password"
   ) {
     return <Navigate to="/change-password" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user?.roleKey)) {
-    return <Navigate to={user?.home || "/dashboard"} replace />;
+  if (allowedRoles && allowedRoles.length > 0) {
+    const isAllowed = allowedRoles.some(
+      (r) => r === currentRole || r === user?.role
+    );
+    if (!isAllowed) {
+      return <Navigate to={user?.home || "/dashboard"} replace />;
+    }
   }
 
   return children;

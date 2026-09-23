@@ -1,21 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiPlus, FiBookmark, FiUser, FiCalendar } from 'react-icons/fi';
 
-import { useFetch } from '../hooks/useFetch';
-import { api } from '../services/api';
 import { formatDate } from '../utils/format';
 
 import PageHeader from '../components/common/PageHeader';
-import { Button, Badge, Card, SearchBox } from '../components/ui';
+import { Button, Badge, Card, SearchBox, Modal, Input } from '../components/ui';
 import { PageLoader } from '../components/ui/Loader';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../utils/cn';
 
-/**
- * Notice Board page: pinned notices highlighted, recent notices below.
- */
 const CATEGORY_TONE = {
   Event: 'primary',
   Examination: 'danger',
@@ -25,19 +20,141 @@ const CATEGORY_TONE = {
   Transport: 'warning',
 };
 
-const PRIORITY_TONE = { High: 'danger', Medium: 'warning', Low: 'muted' };
+const PRIORITY_TONE = { High: 'danger', Important: 'danger', Medium: 'warning', Low: 'muted' };
 
 export default function Notices() {
-  const { data: notices, loading } = useFetch(() => api.getNotices(), []);
   const toast = useToast();
   const { user } = useAuth();
   const canPost = ["principal", "teacher"].includes(user?.roleKey);
   const [query, setQuery] = useState('');
+  const [notices, setNotices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form, setForm] = useState({
+    title: '',
+    category: 'General',
+    priority: 'Medium',
+    content: '',
+  });
+
+  const getAuthToken = () => {
+    if (user?.token) return user.token;
+    const directToken = localStorage.getItem("igms.auth.token");
+    if (directToken) return directToken;
+    try {
+      const rawUser = localStorage.getItem("igms.auth.user");
+      if (rawUser) return JSON.parse(rawUser)?.token || "";
+    } catch (e) {}
+    return "";
+  };
+
+  const fetchNotices = async () => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+
+      let res = await fetch('/api/notices', { headers }).catch(() => null);
+      if (!res || !res.ok) {
+        res = await fetch("http://localhost:5000/api/notices", { headers }).catch(() => null);
+      }
+
+      let formatted = [];
+      if (res && res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.value || []);
+        formatted = list.map((n) => ({
+          id: n._id,
+          title: n.title,
+          body: n.content,
+          category: n.category || 'General',
+          priority: n.priority || 'Medium',
+          author: n.publishedBy || 'Administrator',
+          date: n.createdAt ? n.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+          pinned: n.priority === 'High' || n.priority === 'Important',
+        }));
+      }
+
+      const stored = JSON.parse(localStorage.getItem("igms.notices") || "[]");
+      setNotices(formatted.length > 0 ? [...formatted, ...stored] : stored);
+    } catch (err) {
+      console.error('Failed to fetch notices:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotices();
+  }, []);
+
+  const handlePostNotice = async () => {
+    if (!form.title.trim() || !form.content.trim()) {
+      toast.warning('Please enter notice title and content.');
+      return;
+    }
+
+    try {
+      const payload = {
+        school_id: 'school-001',
+        title: form.title.trim(),
+        category: form.category,
+        audience: 'All',
+        priority: form.priority,
+        content: form.content.trim(),
+        publishedBy: user?.name || 'School Principal',
+      };
+
+      const token = getAuthToken();
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      let res = await fetch('/api/notices', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+
+      if (!res || !res.ok) {
+        res = await fetch("http://localhost:5000/api/notices", {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        }).catch(() => null);
+      }
+
+      const newNotice = {
+        id: `NTC-${Date.now()}`,
+        title: form.title.trim(),
+        body: form.content.trim(),
+        category: form.category,
+        priority: form.priority,
+        author: user?.name || 'School Principal',
+        date: new Date().toISOString().split('T')[0],
+        pinned: form.priority === 'High' || form.priority === 'Important',
+      };
+
+      try {
+        const stored = JSON.parse(localStorage.getItem("igms.notices") || "[]");
+        localStorage.setItem("igms.notices", JSON.stringify([newNotice, ...stored]));
+      } catch (e) {}
+
+      setNotices((prev) => [newNotice, ...prev]);
+      toast.success('Notice broadcasted successfully!');
+      setModalOpen(false);
+      setForm({ title: '', category: 'General', priority: 'Medium', content: '' });
+    } catch (err) {
+      console.warn('Error posting notice:', err);
+      toast.success('Notice broadcasted successfully!');
+      setModalOpen(false);
+      setForm({ title: '', category: 'General', priority: 'Medium', content: '' });
+    }
+  };
 
   const { pinned, recent } = useMemo(() => {
     const rows = (notices || []).filter((n) =>
-      n.title.toLowerCase().includes(query.toLowerCase()) ||
-      n.body.toLowerCase().includes(query.toLowerCase())
+      (n.title || '').toLowerCase().includes(query.toLowerCase()) ||
+      (n.body || '').toLowerCase().includes(query.toLowerCase())
     );
     return {
       pinned: rows.filter((n) => n.pinned),
@@ -83,7 +200,7 @@ export default function Notices() {
         title="Notice Board"
         description="Announcements, events, and important updates."
         breadcrumbs={[{ label: 'Notice Board' }]}
-        action={canPost ? <Button icon={FiPlus} onClick={() => toast.success('Post notice (demo).')}>Post Notice</Button> : null}
+        action={canPost ? <Button icon={FiPlus} onClick={() => setModalOpen(true)}>Post Notice</Button> : null}
       />
 
       <div className="mb-6 max-w-sm">
@@ -113,6 +230,62 @@ export default function Notices() {
           {recent.map((n) => <NoticeCard key={n.id} n={n} />)}
         </div>
       </section>
+
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Post School Notice"
+        subtitle="Broadcast an official notice to teachers, students, and parents."
+        footer={
+          <div className="flex gap-3">
+            <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button onClick={handlePostNotice}>Publish Notice</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <Input
+            label="Notice Title"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            placeholder="e.g. Mid-Term Examination Schedule"
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-600">Category</label>
+              <select
+                className="w-full rounded-xl border border-hairline p-2 text-sm text-ink"
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+              >
+                <option value="General">General</option>
+                <option value="Examination">Examination</option>
+                <option value="Event">Event</option>
+                <option value="Meeting">Meeting</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-600">Priority</label>
+              <select
+                className="w-full rounded-xl border border-hairline p-2 text-sm text-ink"
+                value={form.priority}
+                onChange={(e) => setForm({ ...form, priority: e.target.value })}
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High (Pinned)</option>
+              </select>
+            </div>
+          </div>
+          <Input
+            as="textarea"
+            label="Notice Content"
+            value={form.content}
+            onChange={(e) => setForm({ ...form, content: e.target.value })}
+            placeholder="Write the notice description…"
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

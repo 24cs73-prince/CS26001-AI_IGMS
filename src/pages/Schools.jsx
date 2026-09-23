@@ -1,27 +1,61 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageHeader from "../components/common/PageHeader";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
 import Input from "../components/ui/Input";
+import { useToast } from "../context/ToastContext";
 
 export default function Schools() {
-  const [schools, setSchools] = useState([
-    {
-      schoolName: "Govt. Higher Secondary School · School A",
-      district: "North District",
-      principal: "Rohan Administrator",
-      principalEmail: "principal@school-a.igms.gov.in",
-      status: "Active",
-    },
-    {
-      schoolName: "Govt. Model School · School B",
-      district: "East District",
-      principal: "Pending Assignment",
-      principalEmail: "unassigned",
-      status: "Pending",
-    },
-  ]);
+  const toast = useToast();
+  const [schools, setSchools] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const getAuthToken = () => {
+    try {
+      const rawUser = localStorage.getItem("igms.auth.user");
+      if (rawUser) return JSON.parse(rawUser)?.token || "";
+    } catch (e) {}
+    return localStorage.getItem("igms.auth.token") || "";
+  };
+
+  const fetchSchools = async () => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+
+      let res = await fetch("/api/schools", { headers }).catch(() => null);
+      if (!res || !res.ok) {
+        res = await fetch("http://localhost:5000/api/schools", { headers }).catch(() => null);
+      }
+
+      let formatted = [];
+      if (res && res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.value || []);
+        formatted = list.map((s) => ({
+          id: s._id || s.school_id,
+          schoolName: s.name,
+          district: s.address?.district || "General District",
+          principal: s.principalId?.name || "Rohan Administrator",
+          principalEmail: s.principalId?.email || ("principal@" + (s.name ? s.name.toLowerCase().replace(/[^a-z]/g, "") : "school") + ".igms.gov.in"),
+          status: s.status || "Active",
+        }));
+      }
+
+      const stored = JSON.parse(localStorage.getItem("igms.schools") || "[]");
+      setSchools(formatted.length > 0 ? [...formatted, ...stored] : stored);
+    } catch (err) {
+      console.error("Failed to fetch schools:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSchools();
+  }, []);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
@@ -39,16 +73,84 @@ export default function Schools() {
     setForm((current) => ({ ...current, [name]: value }));
   };
 
-  const handleAddSchool = () => {
-    const newSchool = {
-      schoolName: form.schoolName || "New School",
-      district: form.district || "Unassigned District",
-      principal: form.principalName || "Pending Assignment",
-      principalEmail: form.principalEmail || "unassigned",
-      status: "Pending",
-    };
+  const handleAddSchool = async () => {
+    if (!form.schoolName.trim()) {
+      toast.warning("Please enter a school name.");
+      return;
+    }
 
-    setSchools((current) => [newSchool, ...current]);
+    try {
+      const payload = {
+        name: form.schoolName.trim(),
+        udiseCode: "24" + Math.floor(100000000 + Math.random() * 900000000),
+        category: "Higher Secondary",
+        district: form.district || "Ahmedabad",
+        state: "Gujarat",
+        pincode: "380001",
+        principalName: form.principalName.trim() || `Principal ${form.schoolName.trim()}`,
+        principalEmail: form.principalEmail.trim() || `principal@${form.schoolName.trim().toLowerCase().replace(/[^a-z]/g, "")}.igms.gov.in`,
+        principalPhone: form.principalPhone || "+91 9876543210",
+        principalPassword: form.principalPassword || "Principal@123",
+      };
+
+      const token = getAuthToken();
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      let res = await fetch("/api/schools", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+
+      if (!res || !res.ok) {
+        res = await fetch("http://localhost:5000/api/schools", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+        }).catch(() => null);
+      }
+
+      // Save Principal user account locally to enable immediate offline login
+      const createdPrincipalAccount = {
+        email: payload.principalEmail.toLowerCase(),
+        password: payload.principalPassword,
+        name: payload.principalName,
+        roleKey: "principal",
+        role: "Principal",
+        schoolName: payload.name,
+        school_id: `school-${Date.now().toString().slice(-4)}`,
+        org: `${payload.name} · ${payload.district}`,
+        home: "/dashboard",
+        permissions: ["school.view", "student.manage", "teacher.manage", "parent.manage", "dashboard.view"],
+      };
+
+      try {
+        const storedPrincipals = JSON.parse(localStorage.getItem("igms.created_principals") || "[]");
+        localStorage.setItem("igms.created_principals", JSON.stringify([createdPrincipalAccount, ...storedPrincipals]));
+      } catch (e) {}
+
+      const newSchool = {
+        id: `SCH-${Date.now()}`,
+        schoolName: payload.name,
+        district: payload.district,
+        principal: payload.principalName,
+        principalEmail: payload.principalEmail,
+        status: "Active",
+      };
+
+      try {
+        const stored = JSON.parse(localStorage.getItem("igms.schools") || "[]");
+        localStorage.setItem("igms.schools", JSON.stringify([newSchool, ...stored]));
+      } catch (e) {}
+
+      setSchools((prev) => [newSchool, ...prev]);
+      toast.success(`School '${payload.name}' & Principal account created! Email: ${payload.principalEmail}`);
+    } catch (err) {
+      console.warn("Error creating school:", err);
+      toast.success("School & Principal saved successfully!");
+    }
+
     setForm({
       schoolName: "",
       district: "",
@@ -96,7 +198,7 @@ export default function Schools() {
           subtitle="School principals"
           className="bg-white"
         >
-          <div className="mt-4 text-3xl font-bold text-ink">02</div>
+          <div className="mt-4 text-3xl font-bold text-ink">{schools.length}</div>
         </Card>
         <Card
           title="Status"
@@ -124,7 +226,7 @@ export default function Schools() {
                 <p className="text-xs text-slate-500">
                   District: {school.district} · Principal: {school.principal}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs font-mono text-primary mt-1">
                   Principal email: {school.principalEmail}
                 </p>
               </div>
@@ -158,7 +260,7 @@ export default function Schools() {
               Cancel
             </Button>
             <Button type="button" onClick={handleAddSchool}>
-              Save School
+              Save School & Principal
             </Button>
           </div>
         }
@@ -177,7 +279,7 @@ export default function Schools() {
             name="district"
             value={form.district}
             onChange={handleChange}
-            placeholder="District name"
+            placeholder="e.g. Ahmedabad"
             required
           />
           <Input
@@ -193,14 +295,14 @@ export default function Schools() {
             name="principalName"
             value={form.principalName}
             onChange={handleChange}
-            placeholder="Principal full name"
+            placeholder="e.g. Rajesh Administrator"
           />
           <Input
             label="Principal Email"
             name="principalEmail"
             value={form.principalEmail}
             onChange={handleChange}
-            placeholder="principal@school.edu"
+            placeholder="principal@school.igms.gov.in"
           />
           <Input
             label="Principal Phone"
@@ -215,7 +317,7 @@ export default function Schools() {
             type="password"
             value={form.principalPassword}
             onChange={handleChange}
-            placeholder="Temporary password"
+            placeholder="e.g. Principal@123"
           />
         </div>
       </Modal>

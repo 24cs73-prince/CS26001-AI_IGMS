@@ -148,16 +148,31 @@ export const ROLE_ORDER = ["super_admin", "principal", "teacher", "student", "pa
 // Backwards-compatible alias (principal = the original admin account)
 export const DEMO_CREDENTIALS = ROLES.principal.credentials;
 
-export const CLASSES = [
-  "Class 1",
-  "Class 2",
-  "Class 3",
-  "Class 4",
-  "Class 5",
-  "Class 6",
-  "Class 7",
-  "Class 8",
+export const STANDARDS = [
+  "Std 1",
+  "Std 2",
+  "Std 3",
+  "Std 4",
+  "Std 5",
+  "Std 6",
+  "Std 7",
+  "Std 8",
 ];
+
+export const CLASSES = STANDARDS;
+
+export function formatStandard(val) {
+  if (!val) return "Std 5";
+  const s = String(val).trim();
+  if (s.toLowerCase().startsWith("std")) return s;
+  if (s.toLowerCase().startsWith("class")) {
+    const num = s.replace(/[^0-9]/g, "");
+    return num ? `Std ${num}` : s;
+  }
+  if (!isNaN(s)) return `Std ${s}`;
+  return s;
+}
+
 
 export const SECTIONS = ["A", "B", "C", "D"];
 

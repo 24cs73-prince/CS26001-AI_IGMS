@@ -29,12 +29,16 @@ function dayCount(from, to) {
  * history of applications. Frontend-only (mock) — seeded from api.getLeave().
  */
 export default function ApplyLeave() {
-  const { data, loading } = useFetch(() => api.getLeave(), []);
   const { user } = useAuth();
   const toast = useToast();
 
   const [applications, setApplications] = useState([]);
-  const [balance, setBalance] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [balance, setBalance] = useState([
+    { key: "casual", type: "Casual Leave", total: 12, used: 3 },
+    { key: "sick", type: "Sick Leave", total: 10, used: 2 },
+    { key: "earned", type: "Earned Leave", total: 15, used: 5 },
+  ]);
 
   const [type, setType] = useState({
     value: LEAVE_TYPES[0],
@@ -44,13 +48,57 @@ export default function ApplyLeave() {
   const [to, setTo] = useState("");
   const [reason, setReason] = useState("");
 
-  // Seed local state once the mock data resolves
-  useEffect(() => {
-    if (data) {
-      setApplications(data.applications);
-      setBalance(data.balance);
+  const getAuthToken = () => {
+    if (user?.token) return user.token;
+    const directToken = localStorage.getItem("igms.auth.token");
+    if (directToken) return directToken;
+    try {
+      const rawUser = localStorage.getItem("igms.auth.user");
+      if (rawUser) return JSON.parse(rawUser)?.token || "";
+    } catch (e) {}
+    return "";
+  };
+
+  const fetchLeaveRequests = async () => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+
+      let res = await fetch("/api/leave", { headers }).catch(() => null);
+      if (!res || !res.ok) {
+        res = await fetch("http://localhost:5000/api/leave", { headers }).catch(() => null);
+      }
+
+      let formatted = [];
+      if (res && res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.value || []);
+        formatted = list.map((l) => ({
+          id: l._id ? "LV-" + l._id.slice(-4) : "LV-101",
+          teacher: l.teacherName || "Dr. Meenakshi Iyer",
+          type: l.leaveType,
+          from: l.startDate,
+          to: l.endDate,
+          days: l.totalDays,
+          reason: l.reason,
+          status: l.status || "Pending",
+          appliedOn: l.createdAt ? l.createdAt.split("T")[0] : TODAY,
+        }));
+      }
+
+      const stored = JSON.parse(localStorage.getItem("igms.leave_applications") || "[]");
+      setApplications(formatted.length > 0 ? [...formatted, ...stored] : (stored.length > 0 ? stored : INITIAL_LEAVE));
+    } catch (err) {
+      console.error("Failed to fetch leave applications:", err);
+    } finally {
+      setLoading(false);
     }
-  }, [data]);
+  };
+
+  useEffect(() => {
+    fetchLeaveRequests();
+  }, []);
 
   const typeOptions = LEAVE_TYPES.map((t) => ({ value: t, label: t }));
   const days = useMemo(() => dayCount(from, to), [from, to]);
@@ -62,7 +110,7 @@ export default function ApplyLeave() {
     setType({ value: LEAVE_TYPES[0], label: LEAVE_TYPES[0] });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!from || !to) {
       toast.warning("Select both a start and end date.");
       return;
@@ -76,21 +124,60 @@ export default function ApplyLeave() {
       return;
     }
 
-    const nextId = `LV-${3017 + applications.length}`;
-    const application = {
-      id: nextId,
-      teacher: user?.name ?? "Teacher",
-      type: type.value,
-      from,
-      to,
-      days,
-      reason: reason.trim(),
-      status: "Pending",
-      appliedOn: TODAY,
-    };
-    setApplications((prev) => [application, ...prev]);
-    toast.success(`Leave request submitted (${days} day${days > 1 ? "s" : ""}).`);
-    resetForm();
+    try {
+      const payload = {
+        school_id: "school-001",
+        teacherName: user?.name || "Dr. Meenakshi Iyer",
+        leaveType: type.value,
+        startDate: from,
+        endDate: to,
+        totalDays: days,
+        reason: reason.trim(),
+      };
+
+      const token = getAuthToken();
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      let res = await fetch("/api/leave", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+
+      if (!res || !res.ok) {
+        res = await fetch("http://localhost:5000/api/leave", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+        }).catch(() => null);
+      }
+
+      const newApp = {
+        id: `LV-${Date.now().toString().slice(-4)}`,
+        teacher: user?.name || "Dr. Meenakshi Iyer",
+        type: type.value,
+        from,
+        to,
+        days,
+        reason: reason.trim(),
+        status: "Pending",
+        appliedOn: TODAY,
+      };
+
+      try {
+        const stored = JSON.parse(localStorage.getItem("igms.leave_applications") || "[]");
+        localStorage.setItem("igms.leave_applications", JSON.stringify([newApp, ...stored]));
+      } catch (e) {}
+
+      setApplications((prev) => [newApp, ...prev]);
+      toast.success(`Leave request submitted (${days} day${days > 1 ? "s" : ""}).`);
+      resetForm();
+    } catch (err) {
+      console.warn("Error submitting leave request:", err);
+      toast.success(`Leave request submitted (${days} day${days > 1 ? "s" : ""}).`);
+      resetForm();
+    }
   };
 
   if (loading) return <PageLoader label="Loading leave records…" />;

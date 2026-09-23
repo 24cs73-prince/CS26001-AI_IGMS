@@ -8,22 +8,38 @@ import {
 import { ROLES } from "../constants/app";
 
 /**
- * Frontend-only auth simulation that mirrors the requested hierarchy:
- * Super Admin -> School/Principal assignment -> Principal -> teacher/student/parent assignment.
- * The real backend would replace this object and keep server-side permission checks.
+ * AuthContext supporting both Backend API JWT Auth and local demo auth fallback.
  */
 const AuthContext = createContext(null);
 
 const STORAGE_KEY = "igms.auth.user";
 
-/**
- * Always start fresh at the login page on every page load / dev server restart.
- * The session is kept in memory while navigating within the app, but cleared
- * on full reload so `npm run dev` always lands on the login screen.
- */
+function normalizeUser(userData) {
+  if (!userData) return null;
+  const roleKey = userData.roleKey || userData.role || "principal";
+  const defaultHome = 
+    roleKey === "teacher" ? "/teacher/dashboard" :
+    roleKey === "student" ? "/student/home" :
+    roleKey === "parent" ? "/parent/dashboard" : "/dashboard";
+
+  return {
+    ...userData,
+    roleKey,
+    role: userData.role || roleKey,
+    home: userData.home || defaultHome,
+    permissions: userData.permissions || ["school.view", "student.manage", "teacher.manage", "parent.manage", "dashboard.view"],
+  };
+}
+
 function readStoredUser() {
-  // Clear any previous session so the app always starts at login
-  localStorage.removeItem(STORAGE_KEY);
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      return normalizeUser(JSON.parse(raw));
+    }
+  } catch (err) {
+    console.error("Error restoring auth session:", err);
+  }
   return null;
 }
 
@@ -52,8 +68,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(readStoredUser);
 
   const login = useCallback(async ({ email, password, role = "principal" }) => {
-    await new Promise((r) => setTimeout(r, 700));
-
     if (!email || !email.trim()) {
       throw new Error("Email address is required.");
     }
@@ -66,22 +80,71 @@ export function AuthProvider({ children }) {
       throw new Error("Password is required.");
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Try real backend Express API first
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || "";
+
+      const response = await fetch(`${baseUrl}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail, password, role }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.token) {
+          localStorage.setItem("igms.auth.token", data.token);
+        }
+        const normalized = normalizeUser(data);
+        setUser(normalized);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+        return normalized;
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        if (errData.message) {
+          throw new Error(errData.message);
+        }
+      }
+    } catch (err) {
+      if (err.message && !err.message.includes("Failed to fetch")) {
+        throw err;
+      }
+      console.warn("Backend server unreachable. Using fallback local authentication.");
+    }
+
+    // Check dynamically created Principal accounts in localStorage
+    try {
+      const createdPrincipals = JSON.parse(localStorage.getItem("igms.created_principals") || "[]");
+      const matchedPrincipal = createdPrincipals.find(
+        (p) => p.email.toLowerCase() === cleanEmail && p.password === password
+      );
+
+      if (matchedPrincipal) {
+        const nextUser = normalizeUser(matchedPrincipal);
+        setUser(nextUser);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
+        return nextUser;
+      }
+    } catch (e) {}
+
+    // Fallback to local mock auth config
     const config = ROLES[role];
     if (!config) {
       throw new Error("Please select a valid role.");
     }
 
-    const expectedEmail = config.credentials.email;
+    const expectedEmail = config.credentials.email.toLowerCase();
     const expectedHash = config.credentials.passwordHash;
     const suppliedHash = hashPassword(password);
 
     const ok =
-      email.trim().toLowerCase() === expectedEmail &&
-      suppliedHash === expectedHash;
+      cleanEmail === expectedEmail && suppliedHash === expectedHash;
 
     if (!ok) {
       throw new Error(
-        `Invalid ${config.label} credentials. Please verify your details.`,
+        `Invalid ${config.label} credentials. Please verify your email and password.`,
       );
     }
 
@@ -92,7 +155,7 @@ export function AuthProvider({ children }) {
       );
     }
 
-    const nextUser = {
+    const nextUser = normalizeUser({
       ...profile,
       email: config.credentials.email,
       roleKey: config.key,
@@ -101,7 +164,7 @@ export function AuthProvider({ children }) {
       mustChangePassword: profile.mustChangePassword ?? false,
       home: config.home,
       permissions: profile.permissions ?? [],
-    };
+    });
 
     setUser(nextUser);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
@@ -111,6 +174,7 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem("igms.auth.token");
   }, []);
 
   const changePassword = useCallback(
@@ -147,11 +211,11 @@ export function AuthProvider({ children }) {
         );
       }
 
-      const updatedUser = {
+      const updatedUser = normalizeUser({
         ...user,
         mustChangePassword: false,
         passwordHash: hashPassword(newPassword),
-      };
+      });
 
       setUser(updatedUser);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
@@ -176,7 +240,6 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
