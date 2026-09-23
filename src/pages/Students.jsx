@@ -7,7 +7,6 @@ import { usePagination } from "../hooks/usePagination";
 import { api } from "../services/api";
 import { searchRows } from "../utils/filter";
 import { STATUS_TONE } from "../constants/theme";
-import { CLASSES } from "../constants/app";
 
 import PageHeader from "../components/common/PageHeader";
 import {
@@ -27,10 +26,10 @@ import { useToast } from "../context/ToastContext";
 
 /**
  * Student Management page: searchable, filterable, paginated table
- * with a profile drawer and an (UI-only) "Add Student" modal.
+ * with a profile drawer and student creation modal.
  */
 export default function Students() {
-  const { data: students, loading } = useFetch(() => api.getStudents(), []);
+  const { data: rawStudents, loading } = useFetch(() => api.getStudents(), []);
   const toast = useToast();
 
   const [query, setQuery] = useState("");
@@ -42,31 +41,56 @@ export default function Students() {
   const [selected, setSelected] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
 
-  const classOptionsFromData = useMemo(() => {
-    if (!students) return [{ value: "all", label: "All Classes" }];
+  const students = useMemo(() => {
+    if (!rawStudents || !Array.isArray(rawStudents)) return [];
+    return rawStudents.map((s, idx) => ({
+      ...s,
+      id: s.id || s.studentId || `STU-${1000 + idx}`,
+      name: s.name || "Unknown Student",
+      className: s.className || "Class 5",
+      section: s.section || "A",
+      guardian: s.guardian || "Parent",
+      attendance: Number(s.attendance) || 90,
+      average: Number(s.average) || 80,
+      status: s.status || "Active",
+      phone: s.phone || "+91 98000 00000",
+      email: s.email || "student@igms.edu",
+      admissionDate: s.admissionDate || "2022-04-10",
+    }));
+  }, [rawStudents]);
 
-    const allowedClasses = new Set(CLASSES);
-    const options = [
+  const classOptionsFromData = useMemo(() => {
+    if (!students || students.length === 0) return [{ value: "all", label: "All Classes" }];
+
+    const uniqueClasses = [
       ...new Set(
         students
-          .filter((s) => allowedClasses.has(s.className))
-          .map((s) => s.className),
+          .map((s) => String(s.className || "").trim())
+          .filter(Boolean)
       ),
     ];
     return [
       { value: "all", label: "All Classes" },
-      ...options.map((c) => ({ value: c, label: c })),
+      ...uniqueClasses.map((c) => ({
+        value: c,
+        label: c.toLowerCase().startsWith("class") ? c : `Class ${c}`,
+      })),
     ];
   }, [students]);
 
   const filtered = useMemo(() => {
-    if (!students) return [];
+    if (!students || students.length === 0) return [];
 
-    const allowedClasses = new Set(CLASSES);
-    let rows = students.filter((s) => allowedClasses.has(s.className));
-    rows = searchRows(rows, debounced, ["name", "id", "email", "guardian"]);
-    if (classFilter.value !== "all")
-      rows = rows.filter((s) => s.className === classFilter.value);
+    let rows = [...students];
+    rows = searchRows(rows, debounced, ["name", "id", "email", "guardian", "className"]);
+    
+    if (classFilter.value !== "all") {
+      const target = classFilter.value.toLowerCase().trim();
+      rows = rows.filter((s) => {
+        const cls = String(s.className || "").toLowerCase().trim();
+        return cls === target || `class ${cls}` === target || cls === target.replace("class ", "");
+      });
+    }
     return rows;
   }, [students, debounced, classFilter]);
 
@@ -74,8 +98,6 @@ export default function Students() {
     usePagination(filtered, 8);
 
   if (loading) return <PageLoader label="Loading students…" />;
-
-  const classOptions = classOptionsFromData;
 
   const columns = [
     {
@@ -96,7 +118,7 @@ export default function Students() {
       header: "Class",
       render: (r) => (
         <span>
-          {r.className} · {r.section}
+          {r.className.toLowerCase().startsWith("class") ? r.className : `Class ${r.className}`} · {r.section}
         </span>
       ),
     },
@@ -180,11 +202,10 @@ export default function Students() {
         }).catch(() => null);
       }
 
-      toast.success(`Student ${newStudent.name} saved to MongoDB database!`);
+      toast.success(`Student ${newStudent.name} saved successfully!`);
       setAddOpen(false);
       setNewStudent({ name: "", roll: "", className: "Class 5", section: "A", guardian: "", phone: "", email: "" });
       
-      // Force page reload to reflect new student live
       setTimeout(() => window.location.reload(), 600);
     } catch (err) {
       console.warn("Student creation error:", err);
@@ -227,7 +248,7 @@ export default function Students() {
           <div className="flex flex-1 items-center gap-2 md:justify-end">
             <FiFilter className="hidden h-4 w-4 text-slate-400 md:block" />
             <Dropdown
-              options={classOptions}
+              options={classOptionsFromData}
               value={classFilter}
               onChange={setClassFilter}
               className="w-40"
@@ -274,7 +295,7 @@ export default function Students() {
                   {selected.roll}
                 </p>
                 <div className="mt-1">
-                  <Badge tone={STATUS_TONE[selected.status]}>
+                  <Badge tone={STATUS_TONE[selected.status] || "neutral"}>
                     {selected.status}
                   </Badge>
                 </div>

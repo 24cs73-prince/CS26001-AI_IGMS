@@ -8,31 +8,40 @@ import {
 import { ROLES } from "../constants/app";
 
 /**
- * Frontend-only auth simulation that mirrors the requested hierarchy:
- * Super Admin -> School/Principal assignment -> Principal -> teacher/student/parent assignment.
- * The real backend would replace this object and keep server-side permission checks.
+ * AuthContext supporting both Backend API JWT Auth and local demo auth fallback.
  */
 const AuthContext = createContext(null);
 
 const STORAGE_KEY = "igms.auth.user";
 
-/**
- * Always start fresh at the login page on every page load / dev server restart.
- * The session is kept in memory while navigating within the app, but cleared
- * on full reload so `npm run dev` always lands on the login screen.
- */
+function normalizeUser(userData) {
+  if (!userData) return null;
+  const roleKey = userData.roleKey || userData.role || "principal";
+  const defaultHome = 
+    roleKey === "teacher" ? "/teacher/dashboard" :
+    roleKey === "student" ? "/student/home" :
+    roleKey === "parent" ? "/parent/dashboard" : "/dashboard";
+
+  return {
+    ...userData,
+    roleKey,
+    role: userData.role || roleKey,
+    home: userData.home || defaultHome,
+    permissions: userData.permissions || [],
+  };
+}
+
 function readStoredUser() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      return normalizeUser(JSON.parse(raw));
     }
   } catch (err) {
     console.error("Error restoring auth session:", err);
   }
   return null;
 }
-
 
 function emailIsValid(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
@@ -56,7 +65,6 @@ function hashPassword(value) {
 }
 
 export function AuthProvider({ children }) {
-  // Restore stored session from localStorage on page refresh
   const [user, setUser] = useState(readStoredUser);
 
   const login = useCallback(async ({ email, password, role = "principal" }) => {
@@ -87,9 +95,10 @@ export function AuthProvider({ children }) {
         if (data.token) {
           localStorage.setItem("igms.auth.token", data.token);
         }
-        setUser(data);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        return data;
+        const normalized = normalizeUser(data);
+        setUser(normalized);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+        return normalized;
       } else {
         const errData = await response.json().catch(() => ({}));
         if (errData.message) {
@@ -130,7 +139,7 @@ export function AuthProvider({ children }) {
       );
     }
 
-    const nextUser = {
+    const nextUser = normalizeUser({
       ...profile,
       email: config.credentials.email,
       roleKey: config.key,
@@ -139,7 +148,7 @@ export function AuthProvider({ children }) {
       mustChangePassword: profile.mustChangePassword ?? false,
       home: config.home,
       permissions: profile.permissions ?? [],
-    };
+    });
 
     setUser(nextUser);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
@@ -149,6 +158,7 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem("igms.auth.token");
   }, []);
 
   const changePassword = useCallback(
@@ -185,11 +195,11 @@ export function AuthProvider({ children }) {
         );
       }
 
-      const updatedUser = {
+      const updatedUser = normalizeUser({
         ...user,
         mustChangePassword: false,
         passwordHash: hashPassword(newPassword),
-      };
+      });
 
       setUser(updatedUser);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
@@ -214,7 +224,6 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within an AuthProvider");

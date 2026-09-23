@@ -5,7 +5,6 @@ import AuthLayout from "../layouts/AuthLayout";
 import DashboardLayout from "../layouts/DashboardLayout";
 import ProtectedRoute from "./ProtectedRoute";
 import PageTransition from "./PageTransition";
-import { useAuth } from "../context/AuthContext";
 
 // Pages
 import Login from "../pages/auth/Login";
@@ -19,10 +18,8 @@ import MarkAttendance from "../pages/teacher/MarkAttendance";
 import UploadMarks from "../pages/teacher/UploadMarks";
 import ApplyLeave from "../pages/teacher/ApplyLeave";
 import TeacherDashboard from "../pages/teacher/TeacherDashboard";
-import MyClass from "../pages/teacher/MyClass";
 import AIPaperGenerator from "../pages/teacher/AIPaperGenerator";
 import TeacherExamsPage from "../pages/teacher/TeacherExamsPage";
-import CreateExamPage from "../pages/teacher/CreateExamPage";
 import ExamDetailsPage from "../pages/teacher/ExamDetailsPage";
 import StudentSubmissionsPage from "../pages/teacher/StudentSubmissionsPage";
 import TeacherResultsPage from "../pages/teacher/TeacherResultsPage";
@@ -47,18 +44,9 @@ function RoleHome() {
   return <Navigate to="/login" replace />;
 }
 
-/**
- * Central route configuration.
- * - /login          → AuthLayout (public)
- * - all app routes  → DashboardLayout (protected)
- * Each page is additionally guarded by role via `allowedRoles`, so teacher
- * pages live only in the teacher portal and management pages only in the
- * principal portal.
- */
 export default function AppRoutes() {
   const location = useLocation();
 
-  // Wrap a page with its transition + a role guard
   const page = (Component, allowedRoles) => (
     <ProtectedRoute allowedRoles={allowedRoles}>
       <PageTransition>
@@ -83,22 +71,22 @@ export default function AppRoutes() {
             </ProtectedRoute>
           }
         >
-          {/* Super Admin portal */}
+          {/* Super Admin / Principal portals */}
           <Route
             path="/dashboard"
-            element={page(Dashboard, ["super_admin", "principal"])}
+            element={page(Dashboard, ["super_admin", "principal", "admin"])}
           />
-          <Route path="/schools" element={page(Schools, ["super_admin"])} />
+          <Route path="/schools" element={page(Schools, ["super_admin", "admin"])} />
           <Route
             path="/principals"
-            element={page(Principals, ["super_admin"])}
+            element={page(Principals, ["super_admin", "admin"])}
           />
 
-          {/* Principal portal */}
-          <Route path="/students" element={page(Students, ["principal"])} />
-          <Route path="/teachers" element={page(Teachers, ["principal"])} />
-          <Route path="/parents" element={page(Parents, ["principal"])} />
-          <Route path="/notices" element={page(Notices, ["principal", "teacher"])} />
+          {/* Student & Management routes */}
+          <Route path="/students" element={page(Students, ["principal", "super_admin", "admin"])} />
+          <Route path="/teachers" element={page(Teachers, ["principal", "super_admin", "admin"])} />
+          <Route path="/parents" element={page(Parents, ["principal", "super_admin", "admin"])} />
+          <Route path="/notices" element={page(Notices, ["principal", "super_admin", "admin", "teacher"])} />
 
           {/* Teacher portal */}
           <Route
@@ -170,6 +158,7 @@ export default function AppRoutes() {
             element={page(ChangePassword, [
               "super_admin",
               "principal",
+              "admin",
               "teacher",
               "student",
               "parent",
