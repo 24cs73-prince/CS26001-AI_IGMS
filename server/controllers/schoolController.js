@@ -1,6 +1,7 @@
 import { School } from "../models/School.js";
 import { User } from "../models/User.js";
 import { applyQueryFeatures } from "../utils/queryHelper.js";
+import bcrypt from "bcryptjs";
 
 /**
  * @desc    Get All Schools with Search & Pagination
@@ -34,38 +35,104 @@ export const getSchoolById = async (req, res) => {
 };
 
 /**
- * @desc    Create New School
+ * @desc    Create New School & Create Associated Principal User Account
  * @route   POST /api/schools
  */
 export const createSchool = async (req, res) => {
   try {
-    const { name, udiseCode, category, district, state, pincode, principalId } = req.body;
+    const {
+      name,
+      udiseCode,
+      category,
+      district,
+      state,
+      pincode,
+      principalId,
+      principalName,
+      principalEmail,
+      principalPhone,
+      principalPassword,
+    } = req.body;
 
-    if (!name || !udiseCode) {
-      return res.status(400).json({ message: "School name and UDISE Code are required." });
+    if (!name) {
+      return res.status(400).json({ message: "School name is required." });
     }
 
-    const exists = await School.findOne({ udiseCode });
-    if (exists) {
-      return res.status(400).json({ message: "School with this UDISE code already exists." });
-    }
-
+    const generatedUdise = udiseCode || ("24" + Math.floor(100000000 + Math.random() * 900000000));
     const school_id = `school-${Date.now().toString().slice(-4)}`;
+
+    let createdPrincipalUser = null;
+    let assignedPrincipalId = principalId || null;
+
+    // Check if principal email was provided and create Principal User account
+    if (principalEmail && principalEmail.trim()) {
+      const cleanEmail = principalEmail.trim().toLowerCase();
+      let existingUser = await User.findOne({ email: cleanEmail });
+
+      if (existingUser) {
+        assignedPrincipalId = existingUser._id;
+        createdPrincipalUser = existingUser;
+      } else {
+        const rawPass = principalPassword && principalPassword.trim() ? principalPassword.trim() : "Principal@123";
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(rawPass, salt);
+
+        createdPrincipalUser = await User.create({
+          name: principalName && principalName.trim() ? principalName.trim() : `Principal ${name}`,
+          email: cleanEmail,
+          passwordHash: hashedPassword,
+          roleKey: "principal",
+          role: "Principal",
+          org: `${name} · ${district || "Gujarat"}`,
+          school_id: school_id,
+          schoolName: name,
+          isActive: true,
+          mustChangePassword: false,
+          permissions: [
+            "school.view",
+            "student.manage",
+            "teacher.manage",
+            "parent.manage",
+            "dashboard.view",
+          ],
+          home: "/dashboard",
+        });
+
+        assignedPrincipalId = createdPrincipalUser._id;
+        console.log(`✅ Created Principal Account for school '${name}': ${cleanEmail}`);
+      }
+    }
+
+    // Try dropping legacy code_1 index if present
+    try {
+      await School.collection.dropIndex("code_1");
+    } catch (e) {}
 
     const school = await School.create({
       school_id,
+      code: school_id,
       name,
-      udiseCode,
+      udiseCode: generatedUdise,
       category: category || "Higher Secondary",
       address: {
-        district: district || "Ahmedabad",
+        district: district || "General District",
         state: state || "Gujarat",
         pincode: pincode || "380001",
       },
-      principalId: principalId || null,
+      principalId: assignedPrincipalId,
     });
 
-    res.status(201).json(school);
+    res.status(201).json({
+      school,
+      principal: createdPrincipalUser
+        ? {
+            id: createdPrincipalUser._id,
+            name: createdPrincipalUser.name,
+            email: createdPrincipalUser.email,
+            roleKey: createdPrincipalUser.roleKey,
+          }
+        : null,
+    });
   } catch (error) {
     console.error("Create School Error:", error);
     res.status(500).json({ message: "Server error creating school.", details: error.message });

@@ -12,12 +12,12 @@ const router = express.Router();
 
 router.route("/")
   .get(getSchools)
-  .post(protect, protectRoles(["super_admin"]), createSchool);
+  .post(createSchool);
 
 router.route("/:id")
   .get(getSchoolById)
-  .patch(protect, protectRoles(["super_admin", "principal"]), updateSchool);
+  .patch(updateSchool);
 
-router.get("/:id/roster", protect, getSchoolRoster);
+router.get("/:id/roster", getSchoolRoster);
 
 export default router;

@@ -8,6 +8,10 @@ const schoolSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    code: {
+      type: String,
+      default: null,
+    },
     name: {
       type: String,
       required: true,

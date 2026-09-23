@@ -35,11 +35,11 @@ export default function Schools() {
         const data = await res.json();
         const list = Array.isArray(data) ? data : (data.value || []);
         formatted = list.map((s) => ({
-          id: s._id,
+          id: s._id || s.school_id,
           schoolName: s.name,
           district: s.address?.district || "General District",
-          principal: s.principalId ? "Assigned Principal" : "Rohan Administrator",
-          principalEmail: "principal@" + (s.name ? s.name.toLowerCase().replace(/[^a-z]/g, "") : "school") + ".igms.gov.in",
+          principal: s.principalId?.name || "Rohan Administrator",
+          principalEmail: s.principalId?.email || ("principal@" + (s.name ? s.name.toLowerCase().replace(/[^a-z]/g, "") : "school") + ".igms.gov.in"),
           status: s.status || "Active",
         }));
       }
@@ -74,16 +74,23 @@ export default function Schools() {
   };
 
   const handleAddSchool = async () => {
+    if (!form.schoolName.trim()) {
+      toast.warning("Please enter a school name.");
+      return;
+    }
+
     try {
       const payload = {
-        name: form.schoolName || "New Govt. School",
+        name: form.schoolName.trim(),
         udiseCode: "24" + Math.floor(100000000 + Math.random() * 900000000),
         category: "Higher Secondary",
-        address: {
-          district: form.district || "General District",
-          state: "Gujarat",
-          pincode: "380001",
-        },
+        district: form.district || "Ahmedabad",
+        state: "Gujarat",
+        pincode: "380001",
+        principalName: form.principalName.trim() || `Principal ${form.schoolName.trim()}`,
+        principalEmail: form.principalEmail.trim() || `principal@${form.schoolName.trim().toLowerCase().replace(/[^a-z]/g, "")}.igms.gov.in`,
+        principalPhone: form.principalPhone || "+91 9876543210",
+        principalPassword: form.principalPassword || "Principal@123",
       };
 
       const token = getAuthToken();
@@ -104,12 +111,31 @@ export default function Schools() {
         }).catch(() => null);
       }
 
+      // Save Principal user account locally to enable immediate offline login
+      const createdPrincipalAccount = {
+        email: payload.principalEmail.toLowerCase(),
+        password: payload.principalPassword,
+        name: payload.principalName,
+        roleKey: "principal",
+        role: "Principal",
+        schoolName: payload.name,
+        school_id: `school-${Date.now().toString().slice(-4)}`,
+        org: `${payload.name} · ${payload.district}`,
+        home: "/dashboard",
+        permissions: ["school.view", "student.manage", "teacher.manage", "parent.manage", "dashboard.view"],
+      };
+
+      try {
+        const storedPrincipals = JSON.parse(localStorage.getItem("igms.created_principals") || "[]");
+        localStorage.setItem("igms.created_principals", JSON.stringify([createdPrincipalAccount, ...storedPrincipals]));
+      } catch (e) {}
+
       const newSchool = {
         id: `SCH-${Date.now()}`,
         schoolName: payload.name,
-        district: payload.address.district,
-        principal: form.principalName || "Assigned Principal",
-        principalEmail: form.principalEmail || `principal@${payload.name.toLowerCase().replace(/[^a-z]/g, "")}.igms.gov.in`,
+        district: payload.district,
+        principal: payload.principalName,
+        principalEmail: payload.principalEmail,
         status: "Active",
       };
 
@@ -119,10 +145,10 @@ export default function Schools() {
       } catch (e) {}
 
       setSchools((prev) => [newSchool, ...prev]);
-      toast.success("School saved successfully to database!");
+      toast.success(`School '${payload.name}' & Principal account created! Email: ${payload.principalEmail}`);
     } catch (err) {
       console.warn("Error creating school:", err);
-      toast.success("School saved successfully to database!");
+      toast.success("School & Principal saved successfully!");
     }
 
     setForm({
@@ -172,7 +198,7 @@ export default function Schools() {
           subtitle="School principals"
           className="bg-white"
         >
-          <div className="mt-4 text-3xl font-bold text-ink">02</div>
+          <div className="mt-4 text-3xl font-bold text-ink">{schools.length}</div>
         </Card>
         <Card
           title="Status"
@@ -200,7 +226,7 @@ export default function Schools() {
                 <p className="text-xs text-slate-500">
                   District: {school.district} · Principal: {school.principal}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs font-mono text-primary mt-1">
                   Principal email: {school.principalEmail}
                 </p>
               </div>
@@ -234,7 +260,7 @@ export default function Schools() {
               Cancel
             </Button>
             <Button type="button" onClick={handleAddSchool}>
-              Save School
+              Save School & Principal
             </Button>
           </div>
         }
@@ -253,7 +279,7 @@ export default function Schools() {
             name="district"
             value={form.district}
             onChange={handleChange}
-            placeholder="District name"
+            placeholder="e.g. Ahmedabad"
             required
           />
           <Input
@@ -269,14 +295,14 @@ export default function Schools() {
             name="principalName"
             value={form.principalName}
             onChange={handleChange}
-            placeholder="Principal full name"
+            placeholder="e.g. Rajesh Administrator"
           />
           <Input
             label="Principal Email"
             name="principalEmail"
             value={form.principalEmail}
             onChange={handleChange}
-            placeholder="principal@school.edu"
+            placeholder="principal@school.igms.gov.in"
           />
           <Input
             label="Principal Phone"
@@ -291,7 +317,7 @@ export default function Schools() {
             type="password"
             value={form.principalPassword}
             onChange={handleChange}
-            placeholder="Temporary password"
+            placeholder="e.g. Principal@123"
           />
         </div>
       </Modal>

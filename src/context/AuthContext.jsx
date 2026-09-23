@@ -27,7 +27,7 @@ function normalizeUser(userData) {
     roleKey,
     role: userData.role || roleKey,
     home: userData.home || defaultHome,
-    permissions: userData.permissions || [],
+    permissions: userData.permissions || ["school.view", "student.manage", "teacher.manage", "parent.manage", "dashboard.view"],
   };
 }
 
@@ -80,6 +80,8 @@ export function AuthProvider({ children }) {
       throw new Error("Password is required.");
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+
     // Try real backend Express API first
     try {
       const baseUrl = import.meta.env.VITE_API_URL || "";
@@ -87,7 +89,7 @@ export function AuthProvider({ children }) {
       const response = await fetch(`${baseUrl}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password, role }),
+        body: JSON.stringify({ email: cleanEmail, password, role }),
       });
 
       if (response.ok) {
@@ -112,23 +114,37 @@ export function AuthProvider({ children }) {
       console.warn("Backend server unreachable. Using fallback local authentication.");
     }
 
-    // Fallback to local mock auth
+    // Check dynamically created Principal accounts in localStorage
+    try {
+      const createdPrincipals = JSON.parse(localStorage.getItem("igms.created_principals") || "[]");
+      const matchedPrincipal = createdPrincipals.find(
+        (p) => p.email.toLowerCase() === cleanEmail && p.password === password
+      );
+
+      if (matchedPrincipal) {
+        const nextUser = normalizeUser(matchedPrincipal);
+        setUser(nextUser);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
+        return nextUser;
+      }
+    } catch (e) {}
+
+    // Fallback to local mock auth config
     const config = ROLES[role];
     if (!config) {
       throw new Error("Please select a valid role.");
     }
 
-    const expectedEmail = config.credentials.email;
+    const expectedEmail = config.credentials.email.toLowerCase();
     const expectedHash = config.credentials.passwordHash;
     const suppliedHash = hashPassword(password);
 
     const ok =
-      email.trim().toLowerCase() === expectedEmail &&
-      suppliedHash === expectedHash;
+      cleanEmail === expectedEmail && suppliedHash === expectedHash;
 
     if (!ok) {
       throw new Error(
-        `Invalid ${config.label} credentials. Please verify your details.`,
+        `Invalid ${config.label} credentials. Please verify your email and password.`,
       );
     }
 
