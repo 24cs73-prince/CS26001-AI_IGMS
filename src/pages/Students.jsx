@@ -43,20 +43,24 @@ export default function Students() {
 
   const students = useMemo(() => {
     if (!rawStudents || !Array.isArray(rawStudents)) return [];
-    return rawStudents.map((s, idx) => ({
-      ...s,
-      id: s.id || s.studentId || `STU-${1000 + idx}`,
-      name: s.name || "Unknown Student",
-      className: s.className || "Class 5",
-      section: s.section || "A",
-      guardian: s.guardian || "Parent",
-      attendance: Number(s.attendance) || 90,
-      average: Number(s.average) || 80,
-      status: s.status || "Active",
-      phone: s.phone || "+91 98000 00000",
-      email: s.email || "student@igms.edu",
-      admissionDate: s.admissionDate || "2022-04-10",
-    }));
+    return rawStudents.map((s, idx) => {
+      const classNameStr = String(s?.className || "5").trim();
+      return {
+        ...s,
+        id: String(s?.id || s?.studentId || `STU-${1000 + idx}`),
+        name: String(s?.name || "Student"),
+        className: classNameStr,
+        displayClass: classNameStr.toLowerCase().startsWith("class") ? classNameStr : `Class ${classNameStr}`,
+        section: String(s?.section || "A"),
+        guardian: String(s?.guardian || "Parent"),
+        attendance: Number(s?.attendance) || 90,
+        average: Number(s?.average) || 80,
+        status: String(s?.status || "Active"),
+        phone: String(s?.phone || "+91 98000 00000"),
+        email: String(s?.email || "student@igms.edu"),
+        admissionDate: String(s?.admissionDate || "2022-04-10"),
+      };
+    });
   }, [rawStudents]);
 
   const classOptionsFromData = useMemo(() => {
@@ -65,7 +69,7 @@ export default function Students() {
     const uniqueClasses = [
       ...new Set(
         students
-          .map((s) => String(s.className || "").trim())
+          .map((s) => s.displayClass)
           .filter(Boolean)
       ),
     ];
@@ -73,7 +77,7 @@ export default function Students() {
       { value: "all", label: "All Classes" },
       ...uniqueClasses.map((c) => ({
         value: c,
-        label: c.toLowerCase().startsWith("class") ? c : `Class ${c}`,
+        label: c,
       })),
     ];
   }, [students]);
@@ -82,13 +86,13 @@ export default function Students() {
     if (!students || students.length === 0) return [];
 
     let rows = [...students];
-    rows = searchRows(rows, debounced, ["name", "id", "email", "guardian", "className"]);
+    rows = searchRows(rows, debounced, ["name", "id", "email", "guardian", "displayClass"]);
     
     if (classFilter.value !== "all") {
-      const target = classFilter.value.toLowerCase().trim();
+      const target = String(classFilter.value).toLowerCase().trim();
       rows = rows.filter((s) => {
-        const cls = String(s.className || "").toLowerCase().trim();
-        return cls === target || `class ${cls}` === target || cls === target.replace("class ", "");
+        const cls = String(s.displayClass || "").toLowerCase().trim();
+        return cls === target;
       });
     }
     return rows;
@@ -118,7 +122,7 @@ export default function Students() {
       header: "Class",
       render: (r) => (
         <span>
-          {r.className.toLowerCase().startsWith("class") ? r.className : `Class ${r.className}`} · {r.section}
+          {r.displayClass} · {r.section}
         </span>
       ),
     },
@@ -291,7 +295,7 @@ export default function Students() {
                   {selected.name}
                 </h3>
                 <p className="text-sm text-slate-500">
-                  {selected.className} · Section {selected.section} · Roll{" "}
+                  {selected.displayClass} · Section {selected.section} · Roll{" "}
                   {selected.roll}
                 </p>
                 <div className="mt-1">
