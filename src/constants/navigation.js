@@ -1,9 +1,3 @@
-/**
- * Sidebar navigation configuration — organised per role.
- * The hierarchy here mirrors the requested role isolation:
- * Super Admin can provision schools and principals; Principal manages school-level users;
- * Teachers / Students / Parents only get their own scoped portal navigation.
- */
 import {
   FiGrid,
   FiUsers,
@@ -16,15 +10,26 @@ import {
   FiClock,
   FiSettings,
   FiCpu,
+  FiShield,
 } from "react-icons/fi";
 
-// Super Admin — system setup route
+// Super Admin — system setup & full directory oversight
 export const SUPER_ADMIN_NAV = [
   {
-    heading: "Administration",
+    heading: "Directorate Control",
     items: [
       { label: "Dashboard", to: "/dashboard", icon: FiGrid },
-      { label: "Schools", to: "/schools", icon: FiHome },
+      { label: "Schools Directory", to: "/schools", icon: FiHome },
+      { label: "Principals Roster", to: "/principals", icon: FiShield },
+    ],
+  },
+  {
+    heading: "State Management",
+    items: [
+      { label: "Students Master", to: "/students", icon: FiUsers },
+      { label: "Teachers Roster", to: "/teachers", icon: FiUserCheck },
+      { label: "Parents Directory", to: "/parents", icon: FiUsers },
+      { label: "Notices & Directives", to: "/notices", icon: FiBell },
     ],
   },
   {
@@ -97,7 +102,7 @@ export const TEACHER_NAV = [
   },
 ];
 
-// Student — built separately by teammate; no nav here for now
+// Student portal
 export const STUDENT_NAV = [
   {
     heading: "Student",
@@ -117,7 +122,7 @@ export const STUDENT_NAV = [
   },
 ];
 
-// Parent — portal
+// Parent portal
 export const PARENT_NAV = [
   {
     heading: "Parent Portal",
@@ -144,12 +149,10 @@ const NAV_BY_ROLE = {
   parent: PARENT_NAV,
 };
 
-/** Navigation groups for a given role key (defaults to principal). */
 export function navForRole(roleKey) {
   return NAV_BY_ROLE[roleKey] || PRINCIPAL_NAV;
 }
 
-// Flattened list of every route across roles — handy for breadcrumbs/titles
 export const NAV_FLAT = Object.values(NAV_BY_ROLE)
   .flat()
   .flatMap((g) => g.items);

@@ -7,6 +7,10 @@ import PageTransition from "./PageTransition";
 
 // Pages
 import Login from "../pages/auth/Login";
+import AboutDepartment from "../pages/public/AboutDepartment";
+import GovServices from "../pages/public/GovServices";
+import GovSchoolsDirectory from "../pages/public/GovSchoolsDirectory";
+import ContactUs from "../pages/public/ContactUs";
 import Dashboard from "../pages/Dashboard";
 import Students from "../pages/Students";
 import Parents from "../pages/Parents";
@@ -56,9 +60,13 @@ export default function AppRoutes() {
 
   return (
     <Routes location={location} key={location.pathname}>
-      {/* Public auth routes */}
+      {/* Public auth & info routes */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
+        <Route path="/about-department" element={<AboutDepartment />} />
+        <Route path="/services" element={<GovServices />} />
+        <Route path="/schools-directory" element={<GovSchoolsDirectory />} />
+        <Route path="/contact-us" element={<ContactUs />} />
       </Route>
 
       {/* Protected app shell (requires auth) */}
