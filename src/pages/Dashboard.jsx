@@ -117,8 +117,57 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Page Header if not super admin */}
-      {!isSuperAdmin && (
+      {/* Principal Institutional Administration Banner */}
+      {user?.roleKey === "principal" && (
+        <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-[#0f2b4d] via-[#163d6b] to-indigo-950 p-6 text-white shadow-lg sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-amber-300 backdrop-blur-xs">
+                <FiShield className="h-4 w-4 text-amber-400" />
+                Office of the Principal • Institutional Administration Desk
+              </div>
+              <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl text-white">
+                {user?.schoolName || "Government Higher Secondary School"}
+              </h1>
+              <p className="mt-1 text-xs text-blue-200 font-medium">
+                Principal: <span className="font-bold text-white">{user?.name || "Rohan Administrator"}</span> • UDISE Code: 24070100101 • Gandhinagar Division
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-2xl bg-white/10 p-3 backdrop-blur-xs border border-white/10 text-xs">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400 text-[#0f2b4d] font-black">
+                SCH
+              </div>
+              <div>
+                <p className="font-bold text-white">Academic Year 2025-26</p>
+                <p className="text-[10px] text-emerald-300 font-bold">● Institutional Portal Active</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-3 border-t border-white/10 pt-4 sm:grid-cols-4 text-xs">
+            <div className="rounded-xl bg-white/5 p-3">
+              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">Enrolled Students</p>
+              <p className="text-lg font-extrabold text-white mt-0.5">420 Students</p>
+            </div>
+            <div className="rounded-xl bg-white/5 p-3">
+              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">Teaching Faculty</p>
+              <p className="text-lg font-extrabold text-emerald-300 mt-0.5">18 Active Teachers</p>
+            </div>
+            <div className="rounded-xl bg-white/5 p-3">
+              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">Today's Attendance</p>
+              <p className="text-lg font-extrabold text-amber-300 mt-0.5">96.4% Present</p>
+            </div>
+            <div className="rounded-xl bg-white/5 p-3">
+              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">Leave Approvals</p>
+              <p className="text-lg font-extrabold text-purple-300 mt-0.5">2 Pending</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Page Header if regular staff/student */}
+      {!isSuperAdmin && user?.roleKey !== "principal" && (
         <PageHeader
           title="School Dashboard"
           description="Welcome back — here's what's happening across your school today."
@@ -133,8 +182,75 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Quick Actions for Non-Super Admin */}
-      {!isSuperAdmin && (
+      {/* Principal Direct Administration Access Cards */}
+      {user?.roleKey === "principal" && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-bold text-[#0f2b4d]">
+              Principal Administrative Operations
+            </h2>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Management Tools
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-4">
+            <Link
+              to="/teachers"
+              className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 hover:border-blue-500 hover:bg-blue-50/50 transition group"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition">
+                <FiUserCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[#0f2b4d]">Faculty Roster</p>
+                <p className="text-[11px] text-slate-500">18 Teachers on duty</p>
+              </div>
+            </Link>
+
+            <Link
+              to="/students"
+              className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 hover:border-emerald-500 hover:bg-emerald-50/50 transition group"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition">
+                <FiUsers className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[#0f2b4d]">Student Enrollment</p>
+                <p className="text-[11px] text-slate-500">Class 1 to 8 directory</p>
+              </div>
+            </Link>
+
+            <Link
+              to="/principal/leaves"
+              className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/30 p-3 hover:border-amber-500 hover:bg-amber-50/70 transition group"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700 group-hover:bg-amber-500 group-hover:text-white transition">
+                <FiCalendar className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[#0f2b4d]">Leave Approvals</p>
+                <p className="text-[11px] text-amber-700 font-bold">2 Pending Review</p>
+              </div>
+            </Link>
+
+            <Link
+              to="/notices"
+              className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 hover:border-purple-500 hover:bg-purple-50/50 transition group"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-700 group-hover:bg-purple-600 group-hover:text-white transition">
+                <FiAward className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[#0f2b4d]">School Circulars</p>
+                <p className="text-[11px] text-slate-500">Publish school notices</p>
+              </div>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Actions for Non-Super Admin / Non-Principal */}
+      {!isSuperAdmin && user?.roleKey !== "principal" && (
         <div className="mt-6">
           <div className="mb-3 flex items-center gap-2">
             <FiZap className="h-4 w-4 text-blue-600" />

@@ -17,6 +17,7 @@ import Parents from "../pages/Parents";
 import Teachers from "../pages/Teachers";
 import Schools from "../pages/Schools";
 import Principals from "../pages/Principals";
+import PrincipalLeaves from "../pages/principal/PrincipalLeaves";
 import MarkAttendance from "../pages/teacher/MarkAttendance";
 import UploadMarks from "../pages/teacher/UploadMarks";
 import ApplyLeave from "../pages/teacher/ApplyLeave";
@@ -93,6 +94,10 @@ export default function AppRoutes() {
         <Route path="/teachers" element={page(Teachers, ["principal", "super_admin", "admin"])} />
         <Route path="/parents" element={page(Parents, ["principal", "super_admin", "admin"])} />
         <Route path="/notices" element={page(Notices, ["principal", "super_admin", "admin", "teacher"])} />
+        <Route
+          path="/principal/leaves"
+          element={page(PrincipalLeaves, ["principal", "super_admin", "admin"])}
+        />
 
         {/* Teacher portal */}
         <Route

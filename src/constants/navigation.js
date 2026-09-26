@@ -40,19 +40,27 @@ export const SUPER_ADMIN_NAV = [
   },
 ];
 
-// Principal / admin — the full management portal
+// Principal / admin — Institutional Governance & Oversight Portal
 export const PRINCIPAL_NAV = [
   {
-    heading: "Overview",
-    items: [{ label: "Dashboard", to: "/dashboard", icon: FiGrid }],
+    heading: "Institutional Desk",
+    items: [
+      { label: "Principal Dashboard", to: "/dashboard", icon: FiGrid },
+      {
+        label: "Faculty Leave Desk",
+        to: "/principal/leaves",
+        icon: FiCalendar,
+        badge: "Approvals",
+      },
+    ],
   },
   {
-    heading: "Management",
+    heading: "Roster & Operations",
     items: [
-      { label: "Students", to: "/students", icon: FiUsers },
-      { label: "Teachers", to: "/teachers", icon: FiUserCheck },
-      { label: "Parents", to: "/parents", icon: FiUsers },
-      { label: "Notices", to: "/notices", icon: FiBell },
+      { label: "Faculty Directory", to: "/teachers", icon: FiUserCheck },
+      { label: "Student Enrollment", to: "/students", icon: FiUsers },
+      { label: "Parent Directory", to: "/parents", icon: FiUsers },
+      { label: "School Circulars", to: "/notices", icon: FiBell },
     ],
   },
   {
