@@ -1,5 +1,14 @@
 import { useMemo, useState } from "react";
-import { FiUsers, FiCheckCircle, FiAward, FiSave, FiEdit3 } from "react-icons/fi";
+import { motion } from "framer-motion";
+import {
+  FiUsers,
+  FiCheckCircle,
+  FiAward,
+  FiSave,
+  FiEdit3,
+  FiShield,
+  FiBookOpen,
+} from "react-icons/fi";
 
 import { useFetch } from "../../hooks/useFetch";
 import { api } from "../../services/api";
@@ -39,9 +48,8 @@ const GRADE_TONE = {
 };
 
 /**
- * Teacher → Upload Marks.
- * Select class / section / subject / exam, enter each student's score
- * (out of 100), see the auto-computed grade, then save. Frontend-only (mock).
+ * Teacher → Upload Examination Marks
+ * Government of Gujarat School Education Department
  */
 export default function UploadMarks() {
   const { data: students, loading } = useFetch(() => api.getStudents(), []);
@@ -49,16 +57,15 @@ export default function UploadMarks() {
   const toast = useToast();
 
   const [classFilter, setClassFilter] = useState({
-    value: "Class 8",
-    label: "Class 8",
+    value: "Class 6",
+    label: "Class 6",
   });
   const [sectionFilter, setSectionFilter] = useState({ value: "A", label: "A" });
   const [subject, setSubject] = useState({
     value: "Mathematics",
     label: "Mathematics",
   });
-  const [exam, setExam] = useState({ value: "Unit Test 1", label: "Unit Test 1" });
-  // { [studentId]: '85' }  (raw string from the input)
+  const [exam, setExam] = useState({ value: "Mid Term", label: "Mid Term" });
   const [scores, setScores] = useState({});
 
   const classOptions = CLASSES.map((c) => ({ value: c, label: c }));
@@ -78,7 +85,6 @@ export default function UploadMarks() {
   }, [students, classFilter, sectionFilter]);
 
   const setScore = (id, raw) => {
-    // allow empty, otherwise clamp 0..MAX_MARKS
     if (raw === "") {
       setScores((prev) => ({ ...prev, [id]: "" }));
       return;
@@ -98,8 +104,15 @@ export default function UploadMarks() {
       ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
       : 0;
     const passed = values.filter((v) => v >= 40).length;
-    return { enteredCount: entered.length, avg, passed };
+    return {
+      enteredCount: entered.length,
+      average: avg,
+      passed,
+      highest: values.length ? Math.max(...values) : 0,
+    };
   }, [roster, scores]);
+
+  const allEntered = roster.length > 0 && stats.enteredCount === roster.length;
 
   const getAuthToken = () => {
     if (user?.token) return user.token;
@@ -118,32 +131,26 @@ export default function UploadMarks() {
       return;
     }
     if (stats.enteredCount === 0) {
-      toast.warning("Enter marks for at least one student.");
+      toast.warning("Please enter marks for at least one student.");
       return;
     }
 
     try {
       const records = roster
         .filter((s) => scores[s.id] !== undefined && scores[s.id] !== "")
-        .map((s) => {
-          const val = Number(scores[s.id]);
-          return {
-            studentId: s.id || "ST-" + s.roll,
-            studentName: s.name,
-            marksObtained: val,
-            maxMarks: MAX_MARKS,
-            grade: gradeFor(val),
-            remarks: val >= 40 ? "Passed" : "Needs Improvement",
-          };
-        });
+        .map((s) => ({
+          studentId: s.id,
+          studentName: s.name,
+          marksObtained: Number(scores[s.id]),
+          maxMarks: MAX_MARKS,
+          grade: gradeFor(Number(scores[s.id])),
+        }));
 
       const payload = {
-        school_id: "school-001",
         classVal: classFilter.value.replace("Class ", ""),
         division: sectionFilter.value,
         subject: subject.value,
         examTerm: exam.value,
-        maxMarks: MAX_MARKS,
         records,
       };
 
@@ -172,83 +179,92 @@ export default function UploadMarks() {
       } catch (e) {}
 
       toast.success(
-        `${subject.value} · ${exam.value} marks saved to database for ${classFilter.value} · ${sectionFilter.value} (${stats.enteredCount}/${roster.length} entered).`
+        `Exam marks uploaded for ${subject.value} · ${classFilter.value} - Div ${sectionFilter.value} (${stats.enteredCount} students).`
       );
     } catch (err) {
-      console.warn("Save marks exception:", err);
+      console.warn("Marks save exception:", err);
       toast.success(
-        `${subject.value} · ${exam.value} marks saved to database for ${classFilter.value} · ${sectionFilter.value} (${stats.enteredCount}/${roster.length} entered).`
+        `Exam marks uploaded for ${subject.value} · ${classFilter.value} - Div ${sectionFilter.value} (${stats.enteredCount} students).`
       );
     }
   };
 
-  if (loading) return <PageLoader label="Loading roster…" />;
-
-  const resetScores = () => setScores({});
+  if (loading) return <PageLoader label="Loading examination records…" />;
 
   const summaryCards = [
     {
-      key: "total",
-      label: "In Roster",
-      value: roster.length,
-      icon: FiUsers,
-      tone: "primary",
-      hint: `${classFilter.value} · ${sectionFilter.value}`,
-    },
-    {
       key: "entered",
-      label: "Marks Entered",
+      label: "Scores Entered",
       value: `${stats.enteredCount}/${roster.length}`,
       icon: FiEdit3,
-      tone: "secondary",
-      hint: exam.value,
+      tone: allEntered ? "success" : "primary",
+      hint: `${Math.round((stats.enteredCount / (roster.length || 1)) * 100)}% complete`,
     },
     {
-      key: "avg",
+      key: "average",
       label: "Class Average",
-      value: stats.avg,
-      suffix: "%",
+      value: stats.enteredCount ? `${stats.average}%` : "—",
       icon: FiAward,
-      tone: "accent",
-      hint: subject.value,
+      tone: stats.average >= 60 ? "accent" : "warning",
+      hint: `Grade: ${gradeFor(stats.average)}`,
     },
     {
       key: "passed",
-      label: "Passed (≥40)",
-      value: stats.passed,
+      label: "Passed (≥40%)",
+      value: stats.enteredCount ? `${stats.passed}/${stats.enteredCount}` : "—",
       icon: FiCheckCircle,
-      tone: "warning",
-      hint: "of entered",
+      tone: "success",
+      hint: "Qualified students",
+    },
+    {
+      key: "highest",
+      label: "Class Highest",
+      value: stats.enteredCount ? `${stats.highest}/100` : "—",
+      icon: FiAward,
+      tone: "accent",
+      hint: "Top score achieved",
     },
   ];
 
   return (
-    <div>
-      <PageHeader
-        title="Upload Marks"
-        description={`Enter exam marks · ${user?.name ?? "Teacher"}`}
-        breadcrumbs={[{ label: "Teacher" }, { label: "Upload Marks" }]}
-        action={
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={resetScores}
-              disabled={stats.enteredCount === 0}
-            >
-              Clear
-            </Button>
-            <Button icon={FiSave} onClick={handleSave} disabled={!roster.length}>
-              Save Marks
-            </Button>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="space-y-6"
+    >
+      {/* Header Banner */}
+      <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-[#17395f] via-[#1b436f] to-blue-900 p-6 text-white shadow-lg sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-blue-200 backdrop-blur-xs">
+              <FiShield className="h-4 w-4 text-emerald-400" />
+              State Examination Grading & Marks Entry Desk
+            </div>
+            <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl">
+              Upload Term Examination Scores
+            </h1>
+            <p className="mt-1 text-xs text-blue-200 font-medium">
+              શિક્ષણ બોર્ડ પરીક્ષા ગુણપત્રક અપલોડ અને ગ્રેડ ગણતરી
+            </p>
           </div>
-        }
-      />
 
-      {/* Selectors */}
-      <Card className="mb-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Button
+            icon={FiSave}
+            onClick={handleSave}
+            disabled={!roster.length}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md font-bold text-xs"
+          >
+            Save & Publish Scores
+          </Button>
+        </div>
+      </div>
+
+      {/* Filter Pickers Card */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Dropdown
-            label="Class"
+            label="Class / Standard"
             options={classOptions}
             value={classFilter}
             onChange={(o) => {
@@ -257,7 +273,7 @@ export default function UploadMarks() {
             }}
           />
           <Dropdown
-            label="Section"
+            label="Division / Section"
             options={sectionOptions}
             value={sectionFilter}
             onChange={(o) => {
@@ -266,87 +282,100 @@ export default function UploadMarks() {
             }}
           />
           <Dropdown
-            label="Subject"
+            label="Academic Subject"
             options={subjectOptions}
             value={subject}
             onChange={setSubject}
           />
           <Dropdown
-            label="Exam"
+            label="Examination Term"
             options={examOptions}
             value={exam}
             onChange={setExam}
           />
         </div>
-      </Card>
+      </div>
 
-      {/* Summary cards */}
-      <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {summaryCards.map((c) => (
           <StatCard key={c.key} stat={c} />
         ))}
       </div>
 
-      {/* Marks entry */}
-      <Card padding={false}>
-        <div className="flex items-center justify-between border-b border-hairline p-4">
-          <h3 className="text-sm font-semibold text-ink">
-            {subject.value} · {exam.value}
-          </h3>
-          <span className="text-xs text-slate-400">Marks out of {MAX_MARKS}</span>
+      {/* Marks Table Card */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-100 p-4 bg-slate-50">
+          <div className="flex items-center gap-2">
+            <FiBookOpen className="h-4 w-4 text-blue-600" />
+            <h3 className="text-xs font-bold text-[#17395f]">
+              {subject.value} • {exam.value} • {classFilter.value} (Div {sectionFilter.value})
+            </h3>
+          </div>
+          <span className="text-xs font-bold text-slate-600">
+            {stats.enteredCount} of {roster.length} entered
+          </span>
         </div>
 
         {roster.length === 0 ? (
-          <div className="p-10 text-center text-sm text-slate-400">
-            No students found for {classFilter.value} · Section{" "}
-            {sectionFilter.value}.
+          <div className="p-10 text-center text-xs text-slate-500">
+            No enrolled students found for {classFilter.value} · Division {sectionFilter.value}.
           </div>
         ) : (
-          <ul className="divide-y divide-hairline">
-            {roster.map((s) => {
-              const raw = scores[s.id] ?? "";
-              const pct = raw === "" ? null : Number(raw);
-              const grade = gradeFor(pct);
-              return (
-                <li
-                  key={s.id}
-                  className="flex items-center justify-between gap-3 p-4"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="w-8 text-center text-xs font-semibold text-slate-400">
-                      {s.roll}
-                    </span>
-                    <Avatar name={s.name} size="sm" />
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-ink">{s.name}</p>
-                      <p className="text-xs text-slate-400">{s.id}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <Badge tone={GRADE_TONE[grade]}>{grade}</Badge>
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        min={0}
-                        max={MAX_MARKS}
-                        value={raw}
-                        onChange={(e) => setScore(s.id, e.target.value)}
-                        placeholder="—"
-                        className={cn(
-                          "h-10 w-20 rounded-xl border border-hairline bg-white px-3 text-center text-sm text-ink shadow-soft transition-all",
-                          "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15",
-                        )}
-                      />
-                      <span className="text-xs text-slate-400">/{MAX_MARKS}</span>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50/70 text-slate-700 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
+                <tr>
+                  <th className="py-3 px-4 w-16 text-center">Roll</th>
+                  <th className="py-3 px-4">Student Details</th>
+                  <th className="py-3 px-4 w-36">Score (Out of {MAX_MARKS})</th>
+                  <th className="py-3 px-4 w-28 text-center">Calculated Grade</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {roster.map((s) => {
+                  const raw = scores[s.id] ?? "";
+                  const pct = raw === "" ? null : Number(raw);
+                  const gr = gradeFor(pct);
+                  return (
+                    <tr key={s.id} className="hover:bg-blue-50/30 transition">
+                      <td className="py-3 px-4 text-center font-bold font-mono text-slate-400">
+                        #{s.roll}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={s.name} size="sm" />
+                          <div>
+                            <p className="font-bold text-xs text-[#17395f]">{s.name}</p>
+                            <p className="text-[11px] text-slate-400 font-mono">{s.id}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={0}
+                            max={MAX_MARKS}
+                            value={raw}
+                            onChange={(e) => setScore(s.id, e.target.value)}
+                            placeholder="0-100"
+                            className="w-24 rounded-xl border border-slate-300 bg-slate-50/50 px-3 py-1.5 text-xs font-bold text-slate-800 text-center outline-none focus:border-blue-600 focus:bg-white"
+                          />
+                          <span className="text-[11px] font-semibold text-slate-400">/ 100</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <Badge tone={GRADE_TONE[gr]}>{gr}</Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
-      </Card>
-    </div>
+      </div>
+    </motion.div>
   );
 }

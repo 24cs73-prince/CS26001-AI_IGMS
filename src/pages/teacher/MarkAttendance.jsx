@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   FiCheckCircle,
   FiXCircle,
@@ -6,6 +7,7 @@ import {
   FiUsers,
   FiSave,
   FiCalendar,
+  FiShield,
 } from "react-icons/fi";
 
 import { useFetch } from "../../hooks/useFetch";
@@ -28,16 +30,16 @@ const STATUS_OPTIONS = [
 
 const TONE_CLASSES = {
   accent: {
-    active: "bg-accent text-white border-accent",
-    idle: "text-accent-600 border-hairline hover:bg-accent/10",
+    active: "bg-emerald-600 text-white border-emerald-600 shadow-xs font-bold",
+    idle: "text-emerald-700 border-emerald-200 hover:bg-emerald-50",
   },
   danger: {
-    active: "bg-danger text-white border-danger",
-    idle: "text-danger-600 border-hairline hover:bg-danger/10",
+    active: "bg-red-600 text-white border-red-600 shadow-xs font-bold",
+    idle: "text-red-700 border-red-200 hover:bg-red-50",
   },
   warning: {
-    active: "bg-warning text-white border-warning",
-    idle: "text-warning-600 border-hairline hover:bg-warning/10",
+    active: "bg-amber-500 text-white border-amber-500 shadow-xs font-bold",
+    idle: "text-amber-700 border-amber-200 hover:bg-amber-50",
   },
 };
 
@@ -49,10 +51,8 @@ const todayStr = new Date().toLocaleDateString("en-IN", {
 });
 
 /**
- * Teacher → Mark Attendance.
- * Pick a class + section to load the roster, then mark each student
- * Present / Absent / Late and save. Frontend-only (mock) — persists to a
- * toast today; swap the save handler for an API call when the backend exists.
+ * Teacher → Mark Daily Attendance
+ * Government of Gujarat School Education Faculty Portal
  */
 export default function MarkAttendance() {
   const { data: students, loading } = useFetch(() => api.getStudents(), []);
@@ -60,14 +60,13 @@ export default function MarkAttendance() {
   const toast = useToast();
 
   const [classFilter, setClassFilter] = useState({
-    value: "Class 8",
-    label: "Class 8",
+    value: "Class 6",
+    label: "Class 6",
   });
   const [sectionFilter, setSectionFilter] = useState({
     value: "A",
     label: "A",
   });
-  // { [studentId]: 'Present' | 'Absent' | 'Late' }
   const [marks, setMarks] = useState({});
 
   const classOptions = CLASSES.map((c) => ({ value: c, label: c }));
@@ -172,155 +171,171 @@ export default function MarkAttendance() {
       } catch (e) {}
 
       toast.success(
-        `Attendance saved to database for ${classFilter.value} · ${sectionFilter.value} (${roster.length} students).`
+        `Attendance recorded for ${classFilter.value} - Div ${sectionFilter.value} (${roster.length} students).`
       );
     } catch (err) {
       console.warn("Attendance save exception:", err);
       toast.success(
-        `Attendance saved to database for ${classFilter.value} · ${sectionFilter.value} (${roster.length} students).`
+        `Attendance recorded for ${classFilter.value} - Div ${sectionFilter.value} (${roster.length} students).`
       );
     }
   };
 
-  if (loading) return <PageLoader label="Loading roster…" />;
+  if (loading) return <PageLoader label="Loading classroom roster…" />;
 
   const summaryCards = [
     {
       key: "total",
-      label: "In Roster",
+      label: "Enrolled Roster",
       value: roster.length,
       icon: FiUsers,
       tone: "primary",
-      hint: `${classFilter.value} · ${sectionFilter.value}`,
+      hint: `${classFilter.value} · Div ${sectionFilter.value}`,
     },
     {
       key: "present",
-      label: "Present",
+      label: "Marked Present",
       value: counts.Present,
       icon: FiCheckCircle,
       tone: "accent",
-      hint: "marked present",
+      hint: "Attended session",
     },
     {
       key: "absent",
-      label: "Absent",
+      label: "Marked Absent",
       value: counts.Absent,
       icon: FiXCircle,
       tone: "danger",
-      hint: "marked absent",
+      hint: "Reported absent",
     },
     {
       key: "late",
-      label: "Late",
+      label: "Marked Late",
       value: counts.Late,
       icon: FiClock,
       tone: "warning",
-      hint: "marked late",
+      hint: "Late arrival",
     },
   ];
 
   return (
-    <div>
-      <PageHeader
-        title="Mark Attendance"
-        description={`${todayStr} · ${user?.name ?? "Teacher"}`}
-        breadcrumbs={[{ label: "Teacher" }, { label: "Mark Attendance" }]}
-        action={
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="space-y-6"
+    >
+      {/* Header Banner */}
+      <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-[#17395f] via-[#1b436f] to-blue-900 p-6 text-white shadow-lg sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-blue-200 backdrop-blur-xs">
+              <FiShield className="h-4 w-4 text-emerald-400" />
+              Daily Classroom Attendance Register
+            </div>
+            <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl">
+              Mark Student Daily Attendance
+            </h1>
+            <p className="mt-1 text-xs text-blue-200 font-medium">
+              {todayStr} • ગુજરાત સરકાર દૈનિક હાજરી પત્રક
+            </p>
+          </div>
+
           <Button
             icon={FiSave}
             onClick={handleSave}
             disabled={!roster.length}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md font-bold text-xs"
           >
             Save Attendance
           </Button>
-        }
-      />
+        </div>
+      </div>
 
-      {/* Class / section pickers */}
-      <Card className="mb-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end">
+      {/* Class / Section Pickers & Bulk Mark */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end justify-between">
           <div className="flex flex-1 flex-col gap-4 sm:flex-row">
             <Dropdown
-              label="Class"
+              label="Select Standard / Class"
               options={classOptions}
               value={classFilter}
               onChange={(o) => {
                 setClassFilter(o);
                 setMarks({});
               }}
-              className="sm:w-48"
+              className="sm:w-52"
             />
             <Dropdown
-              label="Section"
+              label="Division / Section"
               options={sectionOptions}
               value={sectionFilter}
               onChange={(o) => {
                 setSectionFilter(o);
                 setMarks({});
               }}
-              className="sm:w-40"
+              className="sm:w-44"
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="hidden text-xs text-slate-400 sm:inline">
-              Quick mark:
+            <span className="hidden text-xs text-slate-500 font-semibold sm:inline">
+              Quick Action:
             </span>
-            <Button
-              size="sm"
-              variant="outline"
-              icon={FiCheckCircle}
+            <button
+              type="button"
               onClick={() => markAll("Present")}
               disabled={!roster.length}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition disabled:opacity-50"
             >
-              All Present
-            </Button>
+              <FiCheckCircle className="h-4 w-4 text-emerald-600" />
+              Mark All Present
+            </button>
           </div>
         </div>
-      </Card>
+      </div>
 
-      {/* Summary cards */}
-      <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {summaryCards.map((c) => (
           <StatCard key={c.key} stat={c} />
         ))}
       </div>
 
-      {/* Roster */}
-      <Card padding={false}>
-        <div className="flex items-center justify-between border-b border-hairline p-4">
+      {/* Roster Table Card */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-100 p-4 bg-slate-50">
           <div className="flex items-center gap-2">
-            <FiCalendar className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold text-ink">
-              Today's Roster
+            <FiCalendar className="h-4 w-4 text-blue-600" />
+            <h3 className="text-xs font-bold text-[#17395f]">
+              {classFilter.value} · Division {sectionFilter.value} Student Roll
             </h3>
           </div>
-          <span className="text-xs text-slate-400">
-            {markedCount}/{roster.length} marked
+          <span className="text-xs font-bold text-slate-600">
+            {markedCount} of {roster.length} marked
           </span>
         </div>
 
         {roster.length === 0 ? (
-          <div className="p-10 text-center text-sm text-slate-400">
-            No students found for {classFilter.value} · Section{" "}
-            {sectionFilter.value}.
+          <div className="p-10 text-center text-xs text-slate-500">
+            No enrolled students found for {classFilter.value} · Division {sectionFilter.value}.
           </div>
         ) : (
-          <ul className="divide-y divide-hairline">
+          <ul className="divide-y divide-slate-100">
             {roster.map((s) => {
               const current = marks[s.id];
               return (
                 <li
                   key={s.id}
-                  className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between hover:bg-blue-50/30 transition"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-8 text-center text-xs font-semibold text-slate-400">
-                      {s.roll}
+                    <span className="w-8 text-center text-xs font-bold font-mono text-slate-400">
+                      #{s.roll}
                     </span>
                     <Avatar name={s.name} size="sm" />
                     <div>
-                      <p className="font-medium text-ink">{s.name}</p>
-                      <p className="text-xs text-slate-400">{s.id}</p>
+                      <p className="font-bold text-xs text-[#17395f]">{s.name}</p>
+                      <p className="text-[11px] text-slate-400 font-mono">{s.id}</p>
                     </div>
                   </div>
 
@@ -335,7 +350,7 @@ export default function MarkAttendance() {
                           type="button"
                           onClick={() => setStatus(s.id, opt.value)}
                           className={cn(
-                            "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all",
+                            "inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition-all",
                             active ? tc.active : cn("bg-white", tc.idle),
                           )}
                         >
@@ -350,7 +365,7 @@ export default function MarkAttendance() {
             })}
           </ul>
         )}
-      </Card>
-    </div>
+      </div>
+    </motion.div>
   );
 }

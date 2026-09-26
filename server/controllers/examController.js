@@ -1,8 +1,10 @@
+import mongoose from "mongoose";
 import { Exam } from "../models/Exam.js";
 import { applyQueryFeatures } from "../utils/queryHelper.js";
+import { writeDocToBothDatabases, deleteDocFromBothDatabases } from "../config/dualDbWriter.js";
 
 /**
- * @desc    Create & Save New Exam
+ * @desc    Create & Save New Exam (Instant Dual-Write to Atlas Cloud & Local Compass)
  * @route   POST /api/exams
  */
 export const createExam = async (req, res) => {
@@ -30,7 +32,7 @@ export const createExam = async (req, res) => {
       marks: Number(q.marks) || 1,
     }));
 
-    const exam = await Exam.create({
+    const examPayload = {
       title: title || `${subject} Exam (Class ${classVal})`,
       classVal: String(classVal || "5"),
       subject: subject || "General",
@@ -44,8 +46,13 @@ export const createExam = async (req, res) => {
       status: status === "Draft" ? "Draft" : "Published",
       resultsStatus: "DRAFT",
       questions: cleanedQuestions,
-      createdBy: req.user?._id,
-    });
+      ...(mongoose.isValidObjectId(req.user?._id) ? { createdBy: req.user._id } : {}),
+    };
+
+    const exam = await Exam.create(examPayload);
+
+    // Instant parallel write to MongoDB Atlas Cloud & Local Compass
+    await writeDocToBothDatabases("exams", exam.toObject());
 
     res.status(201).json(exam);
   } catch (error) {
@@ -99,8 +106,54 @@ export const publishExam = async (req, res) => {
     exam.status = "Published";
     await exam.save();
 
+    // Instant dual write to Atlas & Local
+    await writeDocToBothDatabases("exams", exam.toObject());
+
     res.json(exam);
   } catch (error) {
     res.status(500).json({ message: "Server error publishing exam." });
+  }
+};
+
+/**
+ * @desc    Update Exam details or questions
+ * @route   PUT /api/exams/:id
+ */
+export const updateExam = async (req, res) => {
+  try {
+    const exam = await Exam.findById(req.params.id);
+    if (!exam) {
+      return res.status(404).json({ message: "Exam not found." });
+    }
+
+    Object.assign(exam, req.body);
+    await exam.save();
+
+    // Instant dual write to Atlas & Local
+    await writeDocToBothDatabases("exams", exam.toObject());
+
+    res.json(exam);
+  } catch (error) {
+    res.status(500).json({ message: "Server error updating exam." });
+  }
+};
+
+/**
+ * @desc    Delete Exam
+ * @route   DELETE /api/exams/:id
+ */
+export const deleteExam = async (req, res) => {
+  try {
+    const exam = await Exam.findById(req.params.id);
+    if (!exam) {
+      return res.status(404).json({ message: "Exam not found." });
+    }
+
+    await exam.deleteOne();
+    await deleteDocFromBothDatabases("exams", req.params.id);
+
+    res.json({ message: "Exam deleted successfully from all databases." });
+  } catch (error) {
+    res.status(500).json({ message: "Server error deleting exam." });
   }
 };

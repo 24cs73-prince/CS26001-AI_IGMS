@@ -4,6 +4,8 @@ import {
   getExams,
   getExamById,
   publishExam,
+  updateExam,
+  deleteExam,
 } from "../controllers/examController.js";
 import { validateCreateExam } from "../middleware/validateMiddleware.js";
 import { protect, protectRoles } from "../middleware/authMiddleware.js";
@@ -15,7 +17,9 @@ router.route("/")
   .post(protect, protectRoles(["teacher", "principal", "super_admin"]), validateCreateExam, createExam);
 
 router.route("/:id")
-  .get(getExamById);
+  .get(getExamById)
+  .put(protect, protectRoles(["teacher", "principal"]), updateExam)
+  .delete(protect, protectRoles(["teacher", "principal", "super_admin"]), deleteExam);
 
 router.patch("/:id/publish", protect, protectRoles(["teacher", "principal"]), publishExam);
 
