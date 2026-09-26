@@ -140,7 +140,7 @@ export default function AIPaperGenerator() {
 
   const autoSaveToDatabase = async (questionsList) => {
     try {
-      const formattedQuestions = questionsList.map((q, idx) => ({
+      const formattedQuestions = (questionsList || []).map((q, idx) => ({
         id: idx + 1,
         question: q.question || q.questionText || q.q || `Question ${idx + 1}`,
         questionText: q.question || q.questionText || q.q || `Question ${idx + 1}`,
@@ -152,7 +152,7 @@ export default function AIPaperGenerator() {
       const examPayload = {
         title: `Class ${config.cls.value} ${config.sub.label} - ${config.topic ? config.topic.substring(0, 30) : 'Term Exam'}`,
         subject: config.sub.label,
-        classVal: config.cls.value,
+        classVal: String(config.cls.value),
         syllabus: config.topic || "Standard Grade Curriculum",
         duration: `${formattedQuestions.length * 2} minutes`,
         durationMinutes: formattedQuestions.length * 2,
@@ -168,18 +168,40 @@ export default function AIPaperGenerator() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      let res = await fetch("/api/exams", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(examPayload),
-      }).catch(() => null);
+      console.log("💾 Sending exam payload to MongoDB backend...", examPayload.title);
 
-      if (!res || !res.ok) {
-        res = await fetch("http://localhost:5000/api/exams", {
+      let saved = false;
+      try {
+        const res1 = await fetch("/api/exams", {
           method: "POST",
           headers,
           body: JSON.stringify(examPayload),
-        }).catch(() => null);
+        });
+        if (res1.ok) {
+          const json1 = await res1.json();
+          console.log("✅ Auto-saved created exam into MongoDB database via /api/exams:", json1._id);
+          saved = true;
+        }
+      } catch (e1) {
+        console.warn("Primary /api/exams fetch failed, trying direct 5000 port...", e1.message);
+      }
+
+      if (!saved) {
+        try {
+          const res2 = await fetch("http://localhost:5000/api/exams", {
+            method: "POST",
+            headers,
+            body: JSON.stringify(examPayload),
+          });
+          if (res2.ok) {
+            const json2 = await res2.json();
+            console.log("✅ Auto-saved created exam into MongoDB database via port 5000:", json2._id);
+          } else {
+            console.error("❌ Failed to save exam:", res2.status, await res2.text());
+          }
+        } catch (e2) {
+          console.error("❌ Direct port 5000 fetch error:", e2.message);
+        }
       }
 
       // Sync to local storage
@@ -194,8 +216,6 @@ export default function AIPaperGenerator() {
         };
         localStorage.setItem("igms.online_exams", JSON.stringify([newLocalExam, ...existingExams]));
       } catch (e) {}
-
-      console.log("✅ Auto-saved created exam into MongoDB database!");
     } catch (err) {
       console.warn("Auto save error:", err);
     }

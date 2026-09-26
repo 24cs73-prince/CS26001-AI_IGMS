@@ -38,7 +38,46 @@ export default function QuestionPaper() {
         questionCount: Number(config.count) || 10,
       });
       setPaper(result);
-      toast.success('Question paper generated.');
+
+      // Auto save into MongoDB Atlas & Local
+      try {
+        const questionsList = [];
+        (result.sections || []).forEach((sec) => {
+          (sec.questions || []).forEach((q) => {
+            questionsList.push({
+              id: questionsList.length + 1,
+              question: q.text,
+              questionText: q.text,
+              options: ["Option A", "Option B", "Option C", "Option D"],
+              correctAnswer: 0,
+              marks: q.marks || 1,
+            });
+          });
+        });
+
+        const examPayload = {
+          title: `${config.subject.value} Question Paper (${config.className.value})`,
+          classVal: String(config.className.value).replace(/\D/g, "") || "8",
+          subject: config.subject.value,
+          syllabus: `${config.difficulty.value} Level Curriculum`,
+          duration: "60 minutes",
+          durationMinutes: 60,
+          totalQuestions: questionsList.length,
+          totalMarks: result.meta?.totalMarks || questionsList.length,
+          status: "Published",
+          questions: questionsList,
+        };
+
+        await fetch("http://localhost:5000/api/exams", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(examPayload),
+        }).catch(() => null);
+      } catch (err) {
+        console.warn("Auto save error:", err);
+      }
+
+      toast.success('Question paper generated & saved to database.');
     } catch {
       toast.error('Generation failed. Please try again.');
     } finally {

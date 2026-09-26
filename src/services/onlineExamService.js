@@ -315,16 +315,29 @@ export const onlineExamService = {
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      const apiRes = await fetch(`${API_URL}/api/exams`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(examPayload),
-      });
+      let apiRes = null;
+      try {
+        apiRes = await fetch(`${API_URL}/api/exams`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(examPayload),
+        });
+      } catch (e1) {}
 
-      if (apiRes.ok) {
+      if (!apiRes || !apiRes.ok) {
+        try {
+          apiRes = await fetch("http://localhost:5000/api/exams", {
+            method: "POST",
+            headers,
+            body: JSON.stringify(examPayload),
+          });
+        } catch (e2) {}
+      }
+
+      if (apiRes && apiRes.ok) {
         createdExamDoc = await apiRes.json();
-        console.log("✅ Exam saved directly to MongoDB Atlas/Local via API:", createdExamDoc._id);
-      } else {
+        console.log("✅ Exam saved directly to MongoDB Atlas & Local via API:", createdExamDoc._id);
+      } else if (apiRes) {
         const errText = await apiRes.text();
         console.error("❌ API Exam Creation Error:", apiRes.status, errText);
       }
