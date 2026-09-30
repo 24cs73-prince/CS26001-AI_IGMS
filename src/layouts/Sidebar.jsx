@@ -48,9 +48,12 @@ function NavItem({ item, onNavigate }) {
   );
 }
 
+import { useLanguage } from "../context/LanguageContext";
+
 function SidebarContent({ onNavigate }) {
   const { roleKey, user } = useAuth();
-  const navGroups = navForRole(roleKey);
+  const { t } = useLanguage();
+  const navGroups = navForRole(roleKey, t);
 
   return (
     <div className="flex h-full flex-col bg-[#0f2b4d] text-white">
@@ -59,16 +62,16 @@ function SidebarContent({ onNavigate }) {
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 p-1.5 backdrop-blur-xs">
           <img
             src="/images/ashok_stambh.avif"
-            alt="State Emblem of India"
+            alt={t("stateEmblemAlt")}
             className="h-full w-auto object-contain"
           />
         </div>
         <div className="leading-tight min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-wider text-blue-200 truncate">
-            Government of Gujarat
+            {t("govName")}
           </p>
           <p className="text-sm font-extrabold text-white truncate">
-            School Education Dept.
+            {t("deptName")}
           </p>
         </div>
       </div>
@@ -78,10 +81,10 @@ function SidebarContent({ onNavigate }) {
         <FiShield className="h-4 w-4 text-emerald-400 shrink-0" />
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase text-emerald-300 tracking-wider">
-            {roleKey === "super_admin" ? "Super Admin Portal" : user?.role || "Active User"}
+            {t(`roles.${roleKey}`) || user?.role || t("common.active")}
           </p>
           <p className="text-[11px] text-blue-200/80 truncate">
-            {user?.name || "State Official"}
+            {user?.name || t(`roles.${roleKey}_title`)}
           </p>
         </div>
       </div>
@@ -106,12 +109,12 @@ function SidebarContent({ onNavigate }) {
       <div className="p-3 border-t border-white/10">
         <div className="rounded-xl bg-gradient-to-br from-blue-900/50 to-slate-900/80 p-3.5 border border-white/10 text-xs">
           <p className="text-[10px] font-bold uppercase tracking-wider text-blue-300">
-            Directorate System
+            {t("portalTitle")}
           </p>
           <p className="mt-0.5 text-sm font-extrabold text-white">
-            {APP.academicYear}
+            {t("academicYear")}
           </p>
-          <p className="mt-1 text-[10px] text-blue-200/70">{APP.org}</p>
+          <p className="mt-1 text-[10px] text-blue-200/70">{t("govName")}</p>
         </div>
       </div>
     </div>
