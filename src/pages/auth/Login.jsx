@@ -16,6 +16,7 @@ import {
 } from "react-icons/fi";
 
 import { useAuth } from "../../context/AuthContext";
+import { useLanguage } from "../../context/LanguageContext";
 import { useToast } from "../../context/ToastContext";
 import { ROLES, ROLE_ORDER } from "../../constants/app";
 import Button from "../../components/ui/Button";
@@ -25,7 +26,7 @@ import { cn } from "../../utils/cn";
 /**
  * AI-IGMS - Integrated Government School Management System
  * Compact & High-Efficiency Government Portal Sign-In Panel
- * Designed to fit completely within the viewport without requiring vertical scrolling.
+ * Supports complete bilingual switching (English ↔ ગુજરાતી).
  */
 
 const ROLE_ICONS = {
@@ -41,42 +42,44 @@ const ROLE_STYLES = {
     active: "border-[#17395f] bg-[#f0f4f9] text-[#17395f] ring-2 ring-[#17395f]/20 shadow-sm",
     badge: "bg-[#17395f] text-white",
     iconBg: "bg-[#17395f] text-white",
-    tag: "Directorate Level",
+    tagKey: "roles.super_admin_title",
   },
   principal: {
     active: "border-blue-700 bg-blue-50 text-blue-900 ring-2 ring-blue-700/20 shadow-sm",
     badge: "bg-blue-700 text-white",
     iconBg: "bg-blue-700 text-white",
-    tag: "School Admin",
+    tagKey: "roles.principal_title",
   },
   teacher: {
     active: "border-emerald-700 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-700/20 shadow-sm",
     badge: "bg-emerald-700 text-white",
     iconBg: "bg-emerald-700 text-white",
-    tag: "Faculty Portal",
+    tagKey: "roles.teacher_title",
   },
   student: {
     active: "border-orange-600 bg-orange-50 text-orange-900 ring-2 ring-orange-600/20 shadow-sm",
     badge: "bg-orange-600 text-white",
     iconBg: "bg-orange-600 text-white",
-    tag: "Student Portal",
+    tagKey: "roles.student_title",
   },
   parent: {
     active: "border-purple-700 bg-purple-50 text-purple-900 ring-2 ring-purple-700/20 shadow-sm",
     badge: "bg-purple-700 text-white",
     iconBg: "bg-purple-700 text-white",
-    tag: "Guardian Portal",
+    tagKey: "roles.parent_title",
   },
 };
 
 export default function Login() {
   const { login } = useAuth();
+  const { t, language } = useLanguage();
   const toast = useToast();
   const navigate = useNavigate();
 
   const [roleKey, setRoleKey] = useState("super_admin");
   const role = ROLES[roleKey] || ROLES.super_admin;
   const roleStyle = ROLE_STYLES[roleKey] || ROLE_STYLES.super_admin;
+  const localizedRoleLabel = t(`roles.${roleKey}`, role.label);
 
   const [form, setForm] = useState({
     email: role.credentials.email,
@@ -119,15 +122,15 @@ export default function Login() {
     e.preventDefault();
 
     if (!form.email || !form.email.trim()) {
-      setError("Email address is required.");
+      setError(language === "gu" ? "ઇમેઇલ એડ્રેસ જરૂરી છે." : "Email address is required.");
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.email.trim())) {
-      setError("Enter a valid government email address.");
+      setError(language === "gu" ? "માન્ય સરકારી ઇમેઇલ દાખલ કરો." : "Enter a valid government email address.");
       return;
     }
     if (!form.password || !form.password.trim()) {
-      setError("Password is required.");
+      setError(language === "gu" ? "પાસવર્ડ જરૂરી છે." : "Password is required.");
       return;
     }
 
@@ -141,7 +144,7 @@ export default function Login() {
         role: roleKey,
       });
 
-      toast.success(`Welcome back, ${user.name.split(" ")[0]}!`);
+      toast.success(language === "gu" ? `સ્વાગત છે, ${user.name.split(" ")[0]}!` : `Welcome back, ${user.name.split(" ")[0]}!`);
 
       if (user.mustChangePassword) {
         navigate("/change-password", { replace: true });
@@ -149,7 +152,7 @@ export default function Login() {
         navigate(user.home, { replace: true });
       }
     } catch (err) {
-      setError(err.message || "Authentication failed.");
+      setError(err.message || (language === "gu" ? "પ્રમાણીકરણ નિષ્ફળ ગયું." : "Authentication failed."));
     } finally {
       setLoading(false);
     }
@@ -170,7 +173,7 @@ export default function Login() {
           : "Student@123",
     });
     setError("");
-    toast.info(`Filled demo credentials for ${role.label}!`);
+    toast.info(language === "gu" ? `${localizedRoleLabel} ડેમો ઓળખપત્રો ભરાઈ ગયા!` : `Filled demo credentials for ${role.label}!`);
   };
 
   return (
@@ -185,7 +188,7 @@ export default function Login() {
         <div className="flex items-center justify-between">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-[#17395f]/20 bg-[#f0f4f9] px-2.5 py-0.5 text-[10px] font-bold text-[#17395f]">
             <FiShield className="h-3 w-3" />
-            Official Portal Sign In
+            {t("auth.headerBadge")}
           </div>
           <span className="text-[10px] font-semibold text-emerald-600 flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -194,10 +197,10 @@ export default function Login() {
         </div>
 
         <h2 className="mt-2 text-xl font-extrabold text-[#17395f]">
-          Government Education Portal
+          {t("auth.title")}
         </h2>
         <p className="mt-0.5 text-xs text-slate-500">
-          Select authorized role and enter credentials.
+          {t("auth.subtitle")}
         </p>
       </div>
 
@@ -205,10 +208,10 @@ export default function Login() {
       <div className="mb-4">
         <div className="flex items-center justify-between mb-1.5">
           <label className="text-[11px] font-bold uppercase tracking-wider text-[#17395f]">
-            I AM SIGNING IN AS...
+            {t("auth.selectRole")}
           </label>
           <span className="text-[10px] font-bold text-slate-400">
-            Select Role
+            {t("common.status")}
           </span>
         </div>
 
@@ -217,6 +220,7 @@ export default function Login() {
             const Icon = ROLE_ICONS[key];
             const active = roleKey === key;
             const style = ROLE_STYLES[key];
+            const label = t(`roles.${key}`, ROLES[key].label);
 
             return (
               <button
@@ -246,7 +250,7 @@ export default function Login() {
                 </div>
 
                 <span className="text-[11px] font-bold leading-tight truncate max-w-full">
-                  {ROLES[key].label}
+                  {label}
                 </span>
               </button>
             );
@@ -265,15 +269,15 @@ export default function Login() {
           </div>
           <div>
             <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-              Active Scope
+              {t("common.active")}
             </p>
             <p className="text-xs font-bold text-[#17395f]">
-              {role.label} ({roleStyle.tag})
+              {localizedRoleLabel} ({t(roleStyle.tagKey)})
             </p>
           </div>
         </div>
         <span className="rounded bg-white border border-slate-200 px-1.5 py-0.5 text-[9px] font-bold text-slate-600">
-          Ready
+          SSL
         </span>
       </div>
 
@@ -282,12 +286,12 @@ export default function Login() {
         {/* Email Input */}
         <div>
           <Input
-            label="Government Email Address *"
+            label={`${t("auth.emailLabel")} *`}
             type="email"
             name="email"
             value={form.email}
             onChange={handleChange}
-            placeholder="official@school.gov.in"
+            placeholder={t("auth.emailPlaceholder")}
             leadingIcon={FiMail}
             autoComplete="username"
             required
@@ -298,12 +302,12 @@ export default function Login() {
         {/* Password Input with Visibility Toggle */}
         <div className="relative">
           <Input
-            label="Password *"
+            label={`${t("auth.passwordLabel")} *`}
             type={showPassword ? "text" : "password"}
             name="password"
             value={form.password}
             onChange={handleChange}
-            placeholder="••••••••"
+            placeholder={t("auth.passwordPlaceholder")}
             leadingIcon={FiLock}
             error={error}
             autoComplete="current-password"
@@ -329,13 +333,13 @@ export default function Login() {
               defaultChecked
               className="h-3.5 w-3.5 rounded border-slate-300 text-[#17395f] focus:ring-[#17395f]"
             />
-            Remember Login
+            {t("auth.rememberMe")}
           </label>
           <button
             type="button"
             className="font-bold text-[#17395f] hover:underline"
           >
-            Forgot Password?
+            {t("auth.forgotPassword")}
           </button>
         </div>
 
@@ -347,7 +351,7 @@ export default function Login() {
           iconRight={FiArrowRight}
           className="mt-1 w-full !bg-[#17395f] hover:!bg-[#0f2744] text-white font-bold !py-2.5 text-xs shadow-md"
         >
-          Sign In as {role.label}
+          {t("auth.signInBtn")} ({localizedRoleLabel})
         </Button>
       </form>
 
@@ -362,7 +366,7 @@ export default function Login() {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-bold text-blue-900 leading-tight">
-            {role.label} Demo Credentials
+            {localizedRoleLabel} - {t("auth.demoLogins")}
           </p>
           <p className="truncate text-[10px] text-slate-500">
             {role.credentials.email}
@@ -376,7 +380,7 @@ export default function Login() {
       {/* Footer Security Note */}
       <div className="mt-3 flex items-center justify-center gap-1.5 border-t border-slate-100 pt-2 text-[10px] text-slate-400">
         <FiShield className="h-3 w-3 text-emerald-600" />
-        <span>Official Government Network • Authorized Users Only</span>
+        <span>{t("govName")} • {t("deptName")}</span>
       </div>
     </motion.div>
   );

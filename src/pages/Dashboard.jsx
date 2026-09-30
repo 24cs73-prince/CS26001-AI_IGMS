@@ -35,17 +35,20 @@ import {
 import QuickActions from "../components/dashboard/QuickActions";
 import ActivityFeed from "../components/dashboard/ActivityFeed";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 
 /**
  * Government Portal Main Dashboard
  * Customized for Super Admin, Principal, Teacher, Student, Parent roles
+ * Supports complete bilingual switching (English ↔ ગુજરાતી).
  */
 export default function Dashboard() {
   const { user } = useAuth();
+  const { t, language } = useLanguage();
   const isSuperAdmin = user?.roleKey === "super_admin" || user?.roleKey === "admin";
   const { data, loading } = useFetch(() => api.getDashboard(), []);
 
-  if (loading || !data) return <PageLoader label="Loading Government Portal Dashboard…" />;
+  if (loading || !data) return <PageLoader label={t("common.loading")} />;
 
   const { stats, activities, system, trend, notices, exams } = data;
   const upcomingExams = (exams || [])
@@ -75,13 +78,13 @@ export default function Dashboard() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-blue-200 backdrop-blur-xs">
                 <FiShield className="h-4 w-4 text-amber-400" />
-                Directorate of School Education • State Control Center
+                {t("superAdmin.bannerTag")}
               </div>
               <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl">
-                Super Admin State Command Center
+                {t("superAdmin.bannerTitle")}
               </h1>
               <p className="mt-1 text-xs text-blue-200 font-medium">
-                રાજ્ય શિક્ષણાધિકારી વહીવટી અને શાળા નિયામક કચેરી ડેશબોર્ડ
+                {t("superAdmin.bannerSub")}
               </p>
             </div>
 
@@ -90,28 +93,28 @@ export default function Dashboard() {
                 GUJ
               </div>
               <div>
-                <p className="font-bold text-white">Academic Year 2025-26</p>
-                <p className="text-[10px] text-blue-200">Integrated Portal Active</p>
+                <p className="font-bold text-white">{t("academicYear")}</p>
+                <p className="text-[10px] text-blue-200">● {t("verifiedPortal")}</p>
               </div>
             </div>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3 border-t border-white/10 pt-4 sm:grid-cols-4 text-xs">
             <div className="rounded-xl bg-white/5 p-3">
-              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">State Schools</p>
-              <p className="text-lg font-extrabold text-white mt-0.5">12,450+</p>
+              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">{t("superAdmin.stateSchools")}</p>
+              <p className="text-lg font-extrabold text-white mt-0.5">{language === "gu" ? "૧૨,૪૫૦+" : "12,450+"}</p>
             </div>
             <div className="rounded-xl bg-white/5 p-3">
-              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">Total Enrolled</p>
-              <p className="text-lg font-extrabold text-emerald-300 mt-0.5">4.25 Million</p>
+              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">{t("superAdmin.totalEnrolled")}</p>
+              <p className="text-lg font-extrabold text-emerald-300 mt-0.5">{language === "gu" ? "૪૨.૫ લાખ" : "4.25 Million"}</p>
             </div>
             <div className="rounded-xl bg-white/5 p-3">
-              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">Active Faculty</p>
-              <p className="text-lg font-extrabold text-amber-300 mt-0.5">185,200</p>
+              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">{t("superAdmin.activeFaculty")}</p>
+              <p className="text-lg font-extrabold text-amber-300 mt-0.5">{language === "gu" ? "૧,૮૫,૨૦૦" : "185,200"}</p>
             </div>
             <div className="rounded-xl bg-white/5 p-3">
-              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">Avg Attendance</p>
-              <p className="text-lg font-extrabold text-purple-300 mt-0.5">94.8%</p>
+              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">{t("superAdmin.avgAttendance")}</p>
+              <p className="text-lg font-extrabold text-purple-300 mt-0.5">{language === "gu" ? "૯૪.૮%" : "94.8%"}</p>
             </div>
           </div>
         </div>
@@ -124,13 +127,13 @@ export default function Dashboard() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-amber-300 backdrop-blur-xs">
                 <FiShield className="h-4 w-4 text-amber-400" />
-                Office of the Principal • Institutional Administration Desk
+                {t("principal.bannerTag")}
               </div>
               <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl text-white">
-                {user?.schoolName || "Government Higher Secondary School"}
+                {user?.schoolName || (language === "gu" ? "સરકારી ઉચ્ચતર માધ્યમિક શાળા" : "Government Higher Secondary School")}
               </h1>
               <p className="mt-1 text-xs text-blue-200 font-medium">
-                Principal: <span className="font-bold text-white">{user?.name || "Rohan Administrator"}</span> • UDISE Code: 24070100101 • Gandhinagar Division
+                {t("roles.principal")}: <span className="font-bold text-white">{user?.name || "Rohan Administrator"}</span> • UDISE: 24070100101 • {t("principal.bannerSub")}
               </p>
             </div>
 
@@ -139,28 +142,28 @@ export default function Dashboard() {
                 SCH
               </div>
               <div>
-                <p className="font-bold text-white">Academic Year 2025-26</p>
-                <p className="text-[10px] text-emerald-300 font-bold">● Institutional Portal Active</p>
+                <p className="font-bold text-white">{t("academicYear")}</p>
+                <p className="text-[10px] text-emerald-300 font-bold">● {t("verifiedPortal")}</p>
               </div>
             </div>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3 border-t border-white/10 pt-4 sm:grid-cols-4 text-xs">
             <div className="rounded-xl bg-white/5 p-3">
-              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">Enrolled Students</p>
-              <p className="text-lg font-extrabold text-white mt-0.5">420 Students</p>
+              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">{t("principal.enrolledStudents")}</p>
+              <p className="text-lg font-extrabold text-white mt-0.5">{language === "gu" ? "૪૨૦ વિદ્યાર્થીઓ" : "420 Students"}</p>
             </div>
             <div className="rounded-xl bg-white/5 p-3">
-              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">Teaching Faculty</p>
-              <p className="text-lg font-extrabold text-emerald-300 mt-0.5">18 Active Teachers</p>
+              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">{t("principal.teachingFaculty")}</p>
+              <p className="text-lg font-extrabold text-emerald-300 mt-0.5">{language === "gu" ? "૧૮ શિક્ષકો" : "18 Active Teachers"}</p>
             </div>
             <div className="rounded-xl bg-white/5 p-3">
-              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">Today's Attendance</p>
-              <p className="text-lg font-extrabold text-amber-300 mt-0.5">96.4% Present</p>
+              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">{t("principal.todayAttendance")}</p>
+              <p className="text-lg font-extrabold text-amber-300 mt-0.5">{language === "gu" ? "૯૬.૪% હાજર" : "96.4% Present"}</p>
             </div>
             <div className="rounded-xl bg-white/5 p-3">
-              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">Leave Approvals</p>
-              <p className="text-lg font-extrabold text-purple-300 mt-0.5">2 Pending</p>
+              <p className="text-[10px] text-blue-200 uppercase font-bold tracking-wider">{t("principal.leaveApprovals")}</p>
+              <p className="text-lg font-extrabold text-purple-300 mt-0.5">{language === "gu" ? "૨ બાકી" : "2 Pending"}</p>
             </div>
           </div>
         </div>
@@ -169,9 +172,9 @@ export default function Dashboard() {
       {/* Page Header if regular staff/student */}
       {!isSuperAdmin && user?.roleKey !== "principal" && (
         <PageHeader
-          title="School Dashboard"
-          description="Welcome back — here's what's happening across your school today."
-          breadcrumbs={[{ label: "Dashboard" }]}
+          title={t("nav.dashboard")}
+          description={t("parent.welcomeMsg")}
+          breadcrumbs={[{ label: t("nav.dashboard") }]}
         />
       )}
 
@@ -187,10 +190,10 @@ export default function Dashboard() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-bold text-[#0f2b4d]">
-              Principal Administrative Operations
+              {t("principal.adminOperations")}
             </h2>
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Management Tools
+              {t("nav.institutionalDesk")}
             </span>
           </div>
           <div className="grid gap-3 sm:grid-cols-4">
@@ -202,8 +205,8 @@ export default function Dashboard() {
                 <FiUserCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#0f2b4d]">Faculty Roster</p>
-                <p className="text-[11px] text-slate-500">18 Teachers on duty</p>
+                <p className="text-xs font-bold text-[#0f2b4d]">{t("principal.facultyRoster")}</p>
+                <p className="text-[11px] text-slate-500">{t("principal.facultyRosterSub")}</p>
               </div>
             </Link>
 
@@ -215,8 +218,8 @@ export default function Dashboard() {
                 <FiUsers className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#0f2b4d]">Student Enrollment</p>
-                <p className="text-[11px] text-slate-500">Class 1 to 8 directory</p>
+                <p className="text-xs font-bold text-[#0f2b4d]">{t("principal.studentEnrollment")}</p>
+                <p className="text-[11px] text-slate-500">{t("principal.studentEnrollmentSub")}</p>
               </div>
             </Link>
 
@@ -228,8 +231,8 @@ export default function Dashboard() {
                 <FiCalendar className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#0f2b4d]">Leave Approvals</p>
-                <p className="text-[11px] text-amber-700 font-bold">2 Pending Review</p>
+                <p className="text-xs font-bold text-[#0f2b4d]">{t("principal.leaveDesk")}</p>
+                <p className="text-[11px] text-amber-700 font-bold">{t("principal.leaveDeskSub")}</p>
               </div>
             </Link>
 
@@ -241,8 +244,8 @@ export default function Dashboard() {
                 <FiAward className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#0f2b4d]">School Circulars</p>
-                <p className="text-[11px] text-slate-500">Publish school notices</p>
+                <p className="text-xs font-bold text-[#0f2b4d]">{t("principal.schoolCirculars")}</p>
+                <p className="text-[11px] text-slate-500">{t("principal.schoolCircularsSub")}</p>
               </div>
             </Link>
           </div>
@@ -254,7 +257,7 @@ export default function Dashboard() {
         <div className="mt-6">
           <div className="mb-3 flex items-center gap-2">
             <FiZap className="h-4 w-4 text-blue-600" />
-            <h2 className="text-sm font-bold text-[#17395f]">Quick Actions</h2>
+            <h2 className="text-sm font-bold text-[#17395f]">{t("common.actions")}</h2>
           </div>
           <QuickActions />
         </div>
@@ -264,7 +267,7 @@ export default function Dashboard() {
       {isSuperAdmin && (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
           <h2 className="text-sm font-bold text-[#17395f] mb-3">
-            Super Admin State Direct Access
+            {t("superAdmin.directAccess")}
           </h2>
           <div className="grid gap-3 sm:grid-cols-3">
             <Link
@@ -275,8 +278,8 @@ export default function Dashboard() {
                 <FiHome className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#17395f]">School Directory</p>
-                <p className="text-[11px] text-slate-500">Provision & assign schools</p>
+                <p className="text-xs font-bold text-[#17395f]">{t("nav.schools")}</p>
+                <p className="text-[11px] text-slate-500">{language === "gu" ? "શાળાઓની વ્યવસ્થા અને ફાળવણી" : "Provision & assign schools"}</p>
               </div>
             </Link>
 
@@ -288,8 +291,8 @@ export default function Dashboard() {
                 <FiUserCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#17395f]">Principals Roster</p>
-                <p className="text-[11px] text-slate-500">Manage principal accounts</p>
+                <p className="text-xs font-bold text-[#17395f]">{t("nav.principalsRoster")}</p>
+                <p className="text-[11px] text-slate-500">{language === "gu" ? "આચાર્ય એકાઉન્ટ્સ સંચાલન" : "Manage principal accounts"}</p>
               </div>
             </Link>
 
@@ -301,8 +304,8 @@ export default function Dashboard() {
                 <FiUsers className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#17395f]">Students Master</p>
-                <p className="text-[11px] text-slate-500">View enrolled students</p>
+                <p className="text-xs font-bold text-[#17395f]">{t("nav.studentsMaster")}</p>
+                <p className="text-[11px] text-slate-500">{language === "gu" ? "વિદ્યાર્થીઓની માસ્ટર યાદી" : "View enrolled students"}</p>
               </div>
             </Link>
           </div>
