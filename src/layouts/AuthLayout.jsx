@@ -93,9 +93,11 @@ const TRANSLATIONS = {
   },
 };
 
+import { useLanguage } from "../context/LanguageContext";
+
 export default function AuthLayout() {
   const location = useLocation();
-  const [lang, setLang] = useState("en");
+  const { language: lang, setLanguage: setLang } = useLanguage();
   const [fontScale, setFontScale] = useState(1);
   const [screenReaderOpen, setScreenReaderOpen] = useState(false);
   const [userManualOpen, setUserManualOpen] = useState(false);

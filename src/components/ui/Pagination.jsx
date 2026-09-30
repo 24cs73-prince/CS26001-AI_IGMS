@@ -1,11 +1,13 @@
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { cn } from '../../utils/cn';
 import { formatNumber } from '../../utils/format';
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
  * Reusable pagination with page numbers and prev/next.
  */
 export default function Pagination({ page, totalPages, total, pageSize, onPage, className }) {
+  const { t, isGu } = useLanguage();
   if (totalPages <= 1) return null;
 
   const start = (page - 1) * pageSize + 1;
@@ -27,14 +29,17 @@ export default function Pagination({ page, totalPages, total, pageSize, onPage, 
   return (
     <div className={cn('flex flex-wrap items-center justify-between gap-4', className)}>
       <p className="text-xs text-slate-500">
-        Showing {formatNumber(start)}–{formatNumber(end)} of {formatNumber(total)}
+        {isGu
+          ? `કુલ ${formatNumber(total)} માંથી ${formatNumber(start)}–${formatNumber(end)} દર્શાવે છે`
+          : `Showing ${formatNumber(start)}–${formatNumber(end)} of ${formatNumber(total)}`}
       </p>
       <div className="flex items-center gap-1">
         <button
           onClick={() => onPage(page - 1)}
           disabled={page === 1}
           className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          aria-label="Previous page"
+          aria-label={t("common.previous")}
+          title={t("common.previous")}
         >
           <FiChevronLeft className="h-4 w-4" />
         </button>
@@ -60,7 +65,8 @@ export default function Pagination({ page, totalPages, total, pageSize, onPage, 
           onClick={() => onPage(page + 1)}
           disabled={page === totalPages}
           className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          aria-label="Next page"
+          aria-label={t("common.next")}
+          title={t("common.next")}
         >
           <FiChevronRight className="h-4 w-4" />
         </button>

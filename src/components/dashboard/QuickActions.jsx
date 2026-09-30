@@ -1,19 +1,47 @@
 import { useNavigate } from 'react-router-dom';
 import { FiUserPlus, FiCheckSquare, FiFilePlus, FiBell, FiCpu } from 'react-icons/fi';
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
- * Dashboard quick-action shortcuts.
+ * Dashboard quick-action shortcuts with bilingual support.
  */
-const ACTIONS = [
-  { label: 'Add Student', icon: FiUserPlus, to: '/students', tone: 'text-primary bg-primary/10' },
-  { label: 'Mark Attendance', icon: FiCheckSquare, to: '/attendance', tone: 'text-accent bg-accent/10' },
-  { label: 'Create Exam', icon: FiFilePlus, to: '/examination', tone: 'text-secondary bg-secondary/10' },
-  { label: 'Post Notice', icon: FiBell, to: '/notices', tone: 'text-warning bg-warning/10' },
-  { label: 'AI Paper', icon: FiCpu, to: '/ai/question-paper', tone: 'text-danger bg-danger/10' },
-];
-
 export default function QuickActions() {
   const navigate = useNavigate();
+  const { language, isGu } = useLanguage();
+
+  const ACTIONS = [
+    {
+      label: isGu ? 'વિદ્યાર્થી ઉમેરો' : 'Add Student',
+      icon: FiUserPlus,
+      to: '/students',
+      tone: 'text-primary bg-primary/10',
+    },
+    {
+      label: isGu ? 'હાજરી પૂરો' : 'Mark Attendance',
+      icon: FiCheckSquare,
+      to: '/attendance',
+      tone: 'text-accent bg-accent/10',
+    },
+    {
+      label: isGu ? 'પરીક્ષા બનાવો' : 'Create Exam',
+      icon: FiFilePlus,
+      to: '/examination',
+      tone: 'text-secondary bg-secondary/10',
+    },
+    {
+      label: isGu ? 'સૂચના મૂકો' : 'Post Notice',
+      icon: FiBell,
+      to: '/notices',
+      tone: 'text-warning bg-warning/10',
+    },
+    {
+      label: isGu ? 'AI પ્રશ્નપત્ર' : 'AI Paper',
+      icon: FiCpu,
+      to: '/ai/question-paper',
+      tone: 'text-danger bg-danger/10',
+    },
+  ];
+
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       {ACTIONS.map((a) => {
