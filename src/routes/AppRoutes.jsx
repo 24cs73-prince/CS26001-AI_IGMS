@@ -42,6 +42,7 @@ import StudentAttendance from "../pages/StudentAttendance";
 import ParentDashboard from "../pages/ParentDashboard";
 import ParentResults from "../pages/ParentResults";
 import ParentAttendance from "../pages/ParentAttendance";
+import ParentMidDayMeal from "../pages/ParentMidDayMeal";
 
 /** Root URL "/" always opens the Login page */
 function RoleHome() {
@@ -162,6 +163,7 @@ export default function AppRoutes() {
         <Route path="/parent/dashboard" element={page(ParentDashboard, ["parent"])} />
         <Route path="/parent/results" element={page(ParentResults, ["parent"])} />
         <Route path="/parent/attendance" element={page(ParentAttendance, ["parent"])} />
+        <Route path="/parent/mid-day-meal" element={page(ParentMidDayMeal, ["parent"])} />
         <Route path="/parent/notices" element={page(Notices, ["parent"])} />
 
         <Route
