@@ -1,4 +1,6 @@
 import { Mark } from "../models/Mark.js";
+import { Parent } from "../models/Parent.js";
+import { StudentParent } from "../models/StudentParent.js";
 
 /**
  * @desc    Upload / Update Subject Marks
@@ -54,6 +56,24 @@ export const uploadMarks = async (req, res) => {
 export const getMarks = async (req, res) => {
   try {
     const { classVal, subject, examTerm, studentId } = req.query;
+
+    // Strict Parent-Child Access Isolation
+    if (req.user && req.user.roleKey === "parent") {
+      const parent = await Parent.findOne({ userId: req.user._id });
+      let allowedStudentIds = [];
+      if (parent) {
+        const spLinks = await StudentParent.find({ parentId: parent._id });
+        allowedStudentIds = spLinks.map((l) => l.studentId);
+      }
+      if (req.user.childStudentId) {
+        allowedStudentIds.push(req.user.childStudentId);
+      }
+      if (studentId && !allowedStudentIds.includes(studentId)) {
+        return res.status(403).json({
+          message: "Access forbidden. Parents can only view marks for their linked children.",
+        });
+      }
+    }
 
     const filter = {};
     if (classVal) filter.classVal = String(classVal);
