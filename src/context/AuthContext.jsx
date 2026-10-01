@@ -114,61 +114,67 @@ export function AuthProvider({ children }) {
       console.warn("Backend server unreachable. Using fallback local authentication.");
     }
 
-    // Check dynamically created Principal accounts in localStorage
-    try {
-      const createdPrincipals = JSON.parse(localStorage.getItem("igms.created_principals") || "[]");
-      const matchedPrincipal = createdPrincipals.find(
-        (p) => p.email.toLowerCase() === cleanEmail && p.password === password
-      );
+    // Guard development fallback authentication strictly behind DEV mode
+    if (import.meta.env.DEV) {
+      // Check dynamically created Principal accounts in localStorage (development test only)
+      try {
+        const createdPrincipals = JSON.parse(localStorage.getItem("igms.created_principals") || "[]");
+        const matchedPrincipal = createdPrincipals.find(
+          (p) => p.email.toLowerCase() === cleanEmail && p.password === password
+        );
 
-      if (matchedPrincipal) {
-        const nextUser = normalizeUser(matchedPrincipal);
-        setUser(nextUser);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
-        return nextUser;
+        if (matchedPrincipal) {
+          const nextUser = normalizeUser(matchedPrincipal);
+          setUser(nextUser);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
+          return nextUser;
+        }
+      } catch (e) {}
+
+      // Fallback to local mock auth config in development only
+      const config = ROLES[role];
+      if (!config) {
+        throw new Error("Please select a valid role.");
       }
-    } catch (e) {}
 
-    // Fallback to local mock auth config
-    const config = ROLES[role];
-    if (!config) {
-      throw new Error("Please select a valid role.");
+      const expectedEmail = config.credentials?.email?.toLowerCase();
+      const expectedHash = config.credentials?.passwordHash;
+      const suppliedHash = hashPassword(password);
+
+      const ok =
+        expectedEmail && expectedHash && cleanEmail === expectedEmail && suppliedHash === expectedHash;
+
+      if (!ok) {
+        throw new Error(
+          `Invalid ${config.label} credentials. Please verify your email and password.`,
+        );
+      }
+
+      const profile = config.profile || {};
+      if (profile.isActive === false) {
+        throw new Error(
+          "Your account is inactive or suspended. Please contact support.",
+        );
+      }
+
+      const nextUser = normalizeUser({
+        ...profile,
+        email: config.credentials.email,
+        roleKey: config.key,
+        role: profile.role,
+        school_id: profile.school_id ?? null,
+        mustChangePassword: profile.mustChangePassword ?? false,
+        home: config.home,
+        permissions: profile.permissions ?? [],
+      });
+
+      setUser(nextUser);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
+      return nextUser;
     }
 
-    const expectedEmail = config.credentials.email.toLowerCase();
-    const expectedHash = config.credentials.passwordHash;
-    const suppliedHash = hashPassword(password);
-
-    const ok =
-      cleanEmail === expectedEmail && suppliedHash === expectedHash;
-
-    if (!ok) {
-      throw new Error(
-        `Invalid ${config.label} credentials. Please verify your email and password.`,
-      );
-    }
-
-    const profile = config.profile;
-    if (profile.isActive === false) {
-      throw new Error(
-        "Your account is inactive or suspended. Please contact support.",
-      );
-    }
-
-    const nextUser = normalizeUser({
-      ...profile,
-      email: config.credentials.email,
-      roleKey: config.key,
-      role: profile.role,
-      school_id: profile.school_id ?? null,
-      mustChangePassword: profile.mustChangePassword ?? false,
-      home: config.home,
-      permissions: profile.permissions ?? [],
-    });
-
-    setUser(nextUser);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
-    return nextUser;
+    // In production, backend JWT authentication is strictly required
+    throw new Error("Authentication failed. Please verify your credentials or ensure the server is running.");
   }, []);
 
   const logout = useCallback(() => {

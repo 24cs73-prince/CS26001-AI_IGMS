@@ -23,7 +23,7 @@ export default function ParentAttendance() {
         const myRecord = (data.records || []).find((r) => r.id === user?.childStudentId) || (data.records && data.records[0]);
         
         if (myRecord) {
-          setChildName(myRecord.name || "Aarav Sharma");
+          setChildName(user?.childName || user?.studentName || myRecord.name || "Student");
           setRecords([
             { ...myRecord, date: "2026-08-13" },
             { ...myRecord, date: "2026-08-12", status: "Present", inTime: "07:55" },
