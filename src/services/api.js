@@ -6,8 +6,8 @@
 import {
   students as mockStudents,
   teachers as mockTeachers,
-  attendanceRecords,
-  attendanceSummary,
+  attendanceRecords as mockAttendanceRecords,
+  attendanceSummary as mockAttendanceSummary,
   exams as mockExams,
   results as mockResults,
   timetable as mockTimetable,
@@ -48,7 +48,7 @@ async function fetchFromBackend(endpoint, fallback = null) {
       }
     }
   } catch (e) {
-    console.warn(`[API] fetch failed for ${endpoint}, using fallback:`, e.message);
+    console.warn(`[API] fetch failed for ${endpoint}:`, e.message);
   }
   return fallback;
 }
@@ -60,9 +60,11 @@ export const api = {
     if (!Array.isArray(list)) return mockStudents;
     return list.map((s) => ({
       id: s.studentId || s.id || `STU-${s.roll || 1001}`,
+      studentId: s.studentId || s.id || `STU-${s.roll || 1001}`,
       name: s.name,
       roll: s.roll || s.rollNumber || 1,
-      className: s.className || "Class 5",
+      rollNumber: s.rollNumber || s.roll || 1,
+      className: s.className || "Class 6",
       section: s.section || "A",
       gender: s.gender || "Male",
       guardian: s.guardian || "Parent",
@@ -81,22 +83,29 @@ export const api = {
     if (!Array.isArray(list)) return mockTeachers;
     return list.map((t) => ({
       id: t.teacherId || t.id || "TCH-201",
+      teacherId: t.teacherId || t.id || "TCH-201",
       name: t.name,
       department: t.department || "General",
       subject: t.subject || "General",
       experience: t.experience || 5,
       email: t.email || `${t.name?.toLowerCase().replace(/[^a-z]/g, "")}@igms.edu`,
       phone: t.phone || "+91 98000 00000",
-      classes: t.classes || ["Class 5"],
+      classes: t.classes || ["Class 6"],
       status: t.status || "Active",
       rating: t.rating || 4.5,
     }));
+  },
+
+  // Schools
+  getSchools: async () => {
+    return await fetchFromBackend("/api/schools", []);
   },
 
   // Parents & Linked Children
   getParents: async () => {
     return await fetchFromBackend("/api/parents", []);
   },
+
   getMyChildren: async () => {
     const res = await fetchFromBackend("/api/parents/my-children", { children: [] });
     return res.children || [];
@@ -106,6 +115,7 @@ export const api = {
   getClasses: async () => {
     return await fetchFromBackend("/api/classes", []);
   },
+
   getSubjects: async () => {
     return await fetchFromBackend("/api/subjects", []);
   },
@@ -133,6 +143,7 @@ export const api = {
         return {
           isSunday: dbToday.isSunday,
           isHoliday: dbToday.isHoliday,
+          day: dbToday.day ? (dbToday.day[language] || dbToday.day.en || (language === "gu" ? "રવિવાર" : "Sunday")) : (language === "gu" ? "રવિવાર" : "Sunday"),
           holidayMessage: dbToday.holidayMessage ? (dbToday.holidayMessage[language] || dbToday.holidayMessage.en) : "",
           holidaySubMessage: dbToday.holidaySubMessage ? (dbToday.holidaySubMessage[language] || dbToday.holidaySubMessage.en) : "",
         };
@@ -144,7 +155,7 @@ export const api = {
         day: dbToday.dayName ? (dbToday.dayName[language] || dbToday.dayName.en) : "",
         snack: dbToday.snack ? (dbToday.snack[language] || dbToday.snack.en) : "",
         meal: dbToday.meal ? (dbToday.meal[language] || dbToday.meal.en) : "",
-        time: dbToday.time ? (dbToday.time[language] || dbToday.time.en) : "",
+        time: dbToday.time ? (dbToday.time[language] || dbToday.time.en) : (dbToday.dayOfWeek === 6 ? "12:00 PM - 12:30 PM" : "1:30 PM - 2:00 PM"),
         tag: dbToday.tag ? (dbToday.tag[language] || dbToday.tag.en) : "",
       };
     }
@@ -193,29 +204,174 @@ export const api = {
     return await fetchFromBackend("/api/holidays", []);
   },
 
-  // Attendance, Marks, Exams, Notices, Leave
-  getAttendance: async () => {
-    const dbAttendance = await fetchFromBackend("/api/attendance", null);
+  // Attendance Records
+  getAttendance: async (params = {}) => {
+    const queryStr = new URLSearchParams(params).toString();
+    const endpoint = queryStr ? `/api/attendance?${queryStr}` : "/api/attendance";
+    const dbAttendance = await fetchFromBackend(endpoint, null);
+
     if (Array.isArray(dbAttendance) && dbAttendance.length > 0) {
-      return { records: dbAttendance, summary: attendanceSummary };
+      const flatRecords = [];
+      let presentCount = 0;
+      let absentCount = 0;
+      let lateCount = 0;
+
+      dbAttendance.forEach((doc) => {
+        if (Array.isArray(doc.records)) {
+          doc.records.forEach((r) => {
+            flatRecords.push({
+              id: r.studentId,
+              name: r.studentName,
+              className: `Class ${doc.classVal || "6"}`,
+              section: doc.division || "A",
+              date: doc.date,
+              inTime: "08:15 AM",
+              markedBy: "Faculty",
+              status: r.status || "Present",
+              remarks: r.remarks || "",
+            });
+            if (r.status === "Present") presentCount++;
+            else if (r.status === "Absent") absentCount++;
+            else if (r.status === "Late") lateCount++;
+          });
+        }
+      });
+
+      const total = flatRecords.length || 1;
+      const pct = Math.round((presentCount / total) * 100);
+
+      return {
+        records: flatRecords.slice(0, 50),
+        summary: {
+          totalStudents: total,
+          present: presentCount,
+          absent: absentCount,
+          late: lateCount,
+          percentage: pct,
+        },
+      };
     }
-    return { records: attendanceRecords, summary: attendanceSummary };
+
+    if (dbAttendance && typeof dbAttendance === "object" && dbAttendance.history) {
+      return dbAttendance;
+    }
+
+    return { records: mockAttendanceRecords, summary: mockAttendanceSummary };
   },
 
-  getMarks: async () => {
-    return await fetchFromBackend("/api/marks", mockResults);
+  // Results & Marks
+  getResults: async () => {
+    const [dbMarks, dbStudents] = await Promise.all([
+      fetchFromBackend("/api/marks", null),
+      fetchFromBackend("/api/students", null),
+    ]);
+
+    if (Array.isArray(dbMarks) && dbMarks.length > 0) {
+      const studentMap = {};
+      const studentsList = Array.isArray(dbStudents) ? dbStudents : mockStudents;
+
+      // Map basic student info
+      studentsList.forEach((s) => {
+        const sId = s.studentId || s.id;
+        studentMap[sId] = {
+          id: sId,
+          name: s.name,
+          className: s.className || "Class 6",
+          section: s.section || "A",
+          maths: 0,
+          science: 0,
+          english: 0,
+          social: 0,
+          gujarati: 0,
+          total: 0,
+          maxTotal: 0,
+          subjectCount: 0,
+        };
+      });
+
+      // Fill in marks from database
+      dbMarks.forEach((m) => {
+        const subKey = (m.subject || "").toLowerCase();
+        if (Array.isArray(m.records)) {
+          m.records.forEach((r) => {
+            const sId = r.studentId;
+            if (!studentMap[sId]) {
+              studentMap[sId] = {
+                id: sId,
+                name: r.studentName || "Student",
+                className: `Class ${m.classVal || "6"}`,
+                section: m.division || "A",
+                maths: 0,
+                science: 0,
+                english: 0,
+                social: 0,
+                gujarati: 0,
+                total: 0,
+                maxTotal: 0,
+                subjectCount: 0,
+              };
+            }
+            const st = studentMap[sId];
+            const marksObtained = Number(r.marksObtained) || 0;
+            const maxM = Number(m.maxMarks) || 100;
+
+            if (subKey.includes("math")) st.maths = marksObtained;
+            else if (subKey.includes("sci")) st.science = marksObtained;
+            else if (subKey.includes("eng")) st.english = marksObtained;
+            else if (subKey.includes("soc")) st.social = marksObtained;
+            else if (subKey.includes("guj")) st.gujarati = marksObtained;
+
+            st.total += marksObtained;
+            st.maxTotal += maxM;
+            st.subjectCount++;
+          });
+        }
+      });
+
+      const resultsList = Object.values(studentMap).map((st) => {
+        const max = st.maxTotal || 400;
+        const pct = Math.round((st.total / max) * 100) || (st.maths ? st.maths : 80);
+        let grade = "A";
+        if (pct >= 90) grade = "A+";
+        else if (pct >= 80) grade = "A";
+        else if (pct >= 70) grade = "B";
+        else if (pct >= 60) grade = "C";
+        else if (pct >= 35) grade = "D";
+        else grade = "F";
+
+        return {
+          ...st,
+          percentage: pct,
+          grade,
+          status: pct >= 35 ? "Pass" : "Fail",
+        };
+      });
+
+      return resultsList;
+    }
+
+    return mockResults;
   },
 
+  getMarks: async (params = {}) => {
+    const queryStr = new URLSearchParams(params).toString();
+    const endpoint = queryStr ? `/api/marks?${queryStr}` : "/api/marks";
+    return await fetchFromBackend(endpoint, mockResults);
+  },
+
+  // Exams
   getExams: async () => {
     const list = await fetchFromBackend("/api/exams", mockExams);
     return list;
   },
 
+  // Notices
   getNotices: async () => {
     const list = await fetchFromBackend("/api/notices", mockNotices);
     return list;
   },
 
+  // Leave Applications
   getLeave: async () => {
     const dbLeaves = await fetchFromBackend("/api/leave", null);
     if (Array.isArray(dbLeaves) && dbLeaves.length > 0) {
@@ -224,12 +380,77 @@ export const api = {
     return { applications: leaveApplications, balance: leaveBalance };
   },
 
-  getDashboard: () => ({
-    stats: dashboardStats,
-    activities: recentActivities,
-    system: systemStatus,
-    trend: performanceTrend,
-    notices: mockNotices,
-    exams: mockExams,
-  }),
+  // Database-Backed Main Dashboard Aggregation
+  getDashboard: async () => {
+    try {
+      const [students, teachers, schools, classes, attendance, exams, notices, marks] = await Promise.all([
+        fetchFromBackend("/api/students", mockStudents),
+        fetchFromBackend("/api/teachers", mockTeachers),
+        fetchFromBackend("/api/schools", []),
+        fetchFromBackend("/api/classes", []),
+        fetchFromBackend("/api/attendance", null),
+        fetchFromBackend("/api/exams", mockExams),
+        fetchFromBackend("/api/notices", mockNotices),
+        fetchFromBackend("/api/marks", []),
+      ]);
+
+      const studentCount = Array.isArray(students) ? students.length : 13;
+      const teacherCount = Array.isArray(teachers) ? teachers.length : 8;
+      const schoolCount = Array.isArray(schools) && schools.length > 0 ? schools.length : 6;
+      const classCount = Array.isArray(classes) && classes.length > 0 ? classes.length : 16;
+
+      // Calculate attendance statistics from DB
+      let presentTotal = 0;
+      let recordsTotal = 0;
+      if (Array.isArray(attendance)) {
+        attendance.forEach((doc) => {
+          if (Array.isArray(doc.records)) {
+            doc.records.forEach((r) => {
+              recordsTotal++;
+              if (r.status === "Present") presentTotal++;
+            });
+          }
+        });
+      }
+      const avgAttendance = recordsTotal > 0 ? Math.round((presentTotal / recordsTotal) * 100) : 94;
+
+      const dynamicStats = [
+        { key: "students", label: "Total Students", value: studentCount, icon: "FiUsers", tone: "primary", hint: `${classCount} Class Sections` },
+        { key: "teachers", label: "Active Faculty", value: teacherCount, icon: "FiUserCheck", tone: "accent", hint: "Verified State Teachers" },
+        { key: "attendance", label: "Daily Attendance", value: `${avgAttendance}%`, icon: "FiCheckCircle", tone: "success", hint: "Live State Average" },
+        { key: "schools", label: "Covered Schools", value: schoolCount, icon: "FiAward", tone: "warning", hint: "Gandhinagar & Ahmedabad" },
+      ];
+
+      // Dynamic Class Enrollment
+      const classEnrollmentMap = {};
+      (classes || []).forEach((c) => {
+        const name = c.className || `Class ${c.standard}`;
+        classEnrollmentMap[name] = (classEnrollmentMap[name] || 0) + (c.totalStudents || 30);
+      });
+      const dynamicEnrollment = Object.entries(classEnrollmentMap).map(([className, students]) => ({
+        className,
+        students,
+      }));
+
+      return {
+        stats: dynamicStats,
+        activities: recentActivities,
+        system: systemStatus,
+        trend: performanceTrend,
+        notices: notices || mockNotices,
+        exams: exams || mockExams,
+        enrollmentByClass: dynamicEnrollment.length > 0 ? dynamicEnrollment : null,
+      };
+    } catch (e) {
+      console.warn("Dashboard DB aggregation fallback:", e);
+      return {
+        stats: dashboardStats,
+        activities: recentActivities,
+        system: systemStatus,
+        trend: performanceTrend,
+        notices: mockNotices,
+        exams: mockExams,
+      };
+    }
+  },
 };

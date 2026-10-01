@@ -50,18 +50,30 @@ export default function Dashboard() {
 
   if (loading || !data) return <PageLoader label={t("common.loading")} />;
 
-  const { stats, activities, system, trend, notices, exams } = data;
+  const { stats, activities, system, trend, notices, exams, enrollmentByClass: dbEnrollment } = data;
   const upcomingExams = (exams || [])
-    .filter((e) => ["Upcoming", "Scheduled"].includes(e.status))
+    .filter((e) => ["Upcoming", "Scheduled", "Active", "Published"].includes(e.status))
     .slice(0, 4);
   const recentNotices = (notices || []).slice(0, 4);
   const trendData = (trend || []).map((t) => ({
     month: t.month,
     value: t.performance,
   }));
-  const enrollmentData = enrollmentByClass.map((e) => ({
+  const rawEnrollment = dbEnrollment || enrollmentByClass;
+  const enrollmentData = rawEnrollment.map((e) => ({
     className: e.className,
     value: e.students,
+  }));
+
+  const iconMap = {
+    FiUsers,
+    FiUserCheck,
+    FiCheckCircle,
+    FiAward,
+  };
+  const processedStats = (stats || []).map((s) => ({
+    ...s,
+    icon: typeof s.icon === "string" ? iconMap[s.icon] || FiUsers : s.icon,
   }));
 
   return (
@@ -180,7 +192,7 @@ export default function Dashboard() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((s) => (
+        {processedStats.map((s) => (
           <StatCard key={s.key} stat={s} />
         ))}
       </div>
