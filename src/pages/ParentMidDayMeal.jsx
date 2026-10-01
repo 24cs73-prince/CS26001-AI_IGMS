@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   FiClock,
@@ -15,18 +15,37 @@ import PageHeader from "../components/common/PageHeader";
 import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
 import { useLanguage } from "../context/LanguageContext";
-import { getWeeklyMenu, getTodaysMeal } from "../data/midDayMealData";
+import { api } from "../services/api";
+import { getWeeklyMenu as getMockWeeklyMenu, getTodaysMeal as getMockTodaysMeal } from "../data/midDayMealData";
 
 /**
  * Mid-Day Meal Menu Page (મધ્યાહન ભોજન મેનુ)
  * Official Gujarat Government School Nutrition & Mid-Day Meal Schedule.
- * Supports complete bilingual switching (English ↔ ગુજરાતી).
+ * Supports complete bilingual switching (English ↔ ગુજરાતી) and database-backed data.
  */
 export default function ParentMidDayMeal() {
   const { language, t, isGu } = useLanguage();
   const currentDayIndex = new Date().getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-  const todayInfo = useMemo(() => getTodaysMeal(new Date(), language), [language]);
-  const weeklyMenu = useMemo(() => getWeeklyMenu(language), [language]);
+
+  const [weeklyMenu, setWeeklyMenu] = useState(() => getMockWeeklyMenu(language));
+  const [todayInfo, setTodayInfo] = useState(() => getMockTodaysMeal(new Date(), language));
+
+  useEffect(() => {
+    async function loadMealData() {
+      try {
+        const [meals, today] = await Promise.all([
+          api.getMeals(language),
+          api.getTodayMeal(language),
+        ]);
+        if (meals && meals.length > 0) setWeeklyMenu(meals);
+        if (today) setTodayInfo(today);
+      } catch (err) {
+        console.warn("Using fallback meal data:", err);
+      }
+    }
+    loadMealData();
+  }, [language]);
+
 
   return (
     <div className="space-y-6">

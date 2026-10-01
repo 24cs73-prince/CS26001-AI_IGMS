@@ -1,20 +1,18 @@
 /**
- * Mock API service layer.
- * Today this simply resolves the local dummy data with a small artificial
- * delay so the UI can show loaders. When a real backend exists, swap the
- * bodies of these functions for `fetch`/axios calls — component code won't
- * need to change.
+ * API Service Layer for AI-IGMS.
+ * Seamlessly connects React frontend to Express + MongoDB backend,
+ * with resilient local fallbacks for offline development.
  */
 import {
-  students,
-  teachers,
+  students as mockStudents,
+  teachers as mockTeachers,
   attendanceRecords,
   attendanceSummary,
-  exams,
-  results,
-  timetable,
-  notices,
-  reports,
+  exams as mockExams,
+  results as mockResults,
+  timetable as mockTimetable,
+  notices as mockNotices,
+  reports as mockReports,
   dashboardStats,
   recentActivities,
   systemStatus,
@@ -23,36 +21,47 @@ import {
   leaveBalance,
 } from '../data';
 
-const delay = (ms = 400) => new Promise((res) => setTimeout(res, ms));
+import { WEEKLY_MEAL_MENU_EN, WEEKLY_MEAL_MENU_GU, getTodaysMeal as getMockTodaysMeal } from '../data/midDayMealData';
 
-async function resolve(payload, ms) {
-  await delay(ms);
-  // Return a shallow clone to mimic a network boundary
-  return JSON.parse(JSON.stringify(payload));
+const BASE_URL = "http://localhost:5000";
+
+function getAuthHeaders() {
+  const token = localStorage.getItem("igms.token") || localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 }
 
-async function fetchFromBackend(endpoint, fallback) {
+async function fetchFromBackend(endpoint, fallback = null) {
   try {
-    let res = await fetch(endpoint).catch(() => null);
+    const headers = getAuthHeaders();
+    let res = await fetch(endpoint, { headers }).catch(() => null);
     if (!res || !res.ok) {
-      res = await fetch(`http://localhost:5000${endpoint}`).catch(() => null);
+      res = await fetch(`${BASE_URL}${endpoint}`, { headers }).catch(() => null);
     }
     if (res && res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) return data;
-      if (data.value && Array.isArray(data.value) && data.value.length > 0) return data.value;
+      if (data !== undefined && data !== null) {
+        if (Array.isArray(data) && data.length > 0) return data;
+        if (typeof data === "object") return data;
+      }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn(`[API] fetch failed for ${endpoint}, using fallback:`, e.message);
+  }
   return fallback;
 }
 
 export const api = {
+  // Students
   getStudents: async () => {
-    const list = await fetchFromBackend("/api/students", students);
+    const list = await fetchFromBackend("/api/students", mockStudents);
+    if (!Array.isArray(list)) return mockStudents;
     return list.map((s) => ({
       id: s.studentId || s.id || `STU-${s.roll || 1001}`,
       name: s.name,
-      roll: s.roll || 1,
+      roll: s.roll || s.rollNumber || 1,
       className: s.className || "Class 5",
       section: s.section || "A",
       gender: s.gender || "Male",
@@ -65,8 +74,11 @@ export const api = {
       admissionDate: s.admissionDate || "2022-04-10",
     }));
   },
+
+  // Teachers
   getTeachers: async () => {
-    const list = await fetchFromBackend("/api/teachers", teachers);
+    const list = await fetchFromBackend("/api/teachers", mockTeachers);
+    if (!Array.isArray(list)) return mockTeachers;
     return list.map((t) => ({
       id: t.teacherId || t.id || "TCH-201",
       name: t.name,
@@ -80,26 +92,114 @@ export const api = {
       rating: t.rating || 4.5,
     }));
   },
-  getAttendance: () => resolve({ records: attendanceRecords, summary: attendanceSummary }),
+
+  // Parents & Linked Children
+  getParents: async () => {
+    return await fetchFromBackend("/api/parents", []);
+  },
+  getMyChildren: async () => {
+    const res = await fetchFromBackend("/api/parents/my-children", { children: [] });
+    return res.children || [];
+  },
+
+  // Classes & Subjects
+  getClasses: async () => {
+    return await fetchFromBackend("/api/classes", []);
+  },
+  getSubjects: async () => {
+    return await fetchFromBackend("/api/subjects", []);
+  },
+
+  // Mid-Day Meal Menu (Bilingual from DB)
+  getMeals: async (language = "gu") => {
+    const dbMeals = await fetchFromBackend("/api/meals/weekly", null);
+    if (Array.isArray(dbMeals) && dbMeals.length > 0) {
+      return dbMeals.map((m) => ({
+        dayIndex: m.dayOfWeek,
+        day: m.dayName ? (m.dayName[language] || m.dayName.en) : (language === "gu" ? "સોમવાર" : "Monday"),
+        snack: m.snack ? (m.snack[language] || m.snack.en) : "",
+        meal: m.meal ? (m.meal[language] || m.meal.en) : "",
+        time: m.time ? (m.time[language] || m.time.en) : (m.dayOfWeek === 6 ? "12:00 PM - 12:30 PM" : "1:30 PM - 2:00 PM"),
+        tag: m.tag ? (m.tag[language] || m.tag.en) : (language === "gu" ? "પૌષ્ટિક આહાર" : "Nutritious Diet"),
+      }));
+    }
+    return language === "gu" ? WEEKLY_MEAL_MENU_GU : WEEKLY_MEAL_MENU_EN;
+  },
+
+  getTodayMeal: async (language = "gu") => {
+    const dbToday = await fetchFromBackend("/api/meals/today", null);
+    if (dbToday) {
+      if (dbToday.isSunday || dbToday.isHoliday) {
+        return {
+          isSunday: dbToday.isSunday,
+          isHoliday: dbToday.isHoliday,
+          holidayMessage: dbToday.holidayMessage ? (dbToday.holidayMessage[language] || dbToday.holidayMessage.en) : "",
+          holidaySubMessage: dbToday.holidaySubMessage ? (dbToday.holidaySubMessage[language] || dbToday.holidaySubMessage.en) : "",
+        };
+      }
+      return {
+        isSunday: false,
+        isHoliday: false,
+        dayIndex: dbToday.dayOfWeek,
+        day: dbToday.dayName ? (dbToday.dayName[language] || dbToday.dayName.en) : "",
+        snack: dbToday.snack ? (dbToday.snack[language] || dbToday.snack.en) : "",
+        meal: dbToday.meal ? (dbToday.meal[language] || dbToday.meal.en) : "",
+        time: dbToday.time ? (dbToday.time[language] || dbToday.time.en) : "",
+        tag: dbToday.tag ? (dbToday.tag[language] || dbToday.tag.en) : "",
+      };
+    }
+    return getMockTodaysMeal(new Date(), language);
+  },
+
+  // Timetable
+  getTimetable: async (query = {}) => {
+    const dbTimetable = await fetchFromBackend("/api/timetable", null);
+    if (Array.isArray(dbTimetable) && dbTimetable.length > 0) return dbTimetable;
+    return mockTimetable;
+  },
+
+  // Holidays
+  getHolidays: async () => {
+    return await fetchFromBackend("/api/holidays", []);
+  },
+
+  // Attendance, Marks, Exams, Notices, Leave
+  getAttendance: async () => {
+    const dbAttendance = await fetchFromBackend("/api/attendance", null);
+    if (Array.isArray(dbAttendance) && dbAttendance.length > 0) {
+      return { records: dbAttendance, summary: attendanceSummary };
+    }
+    return { records: attendanceRecords, summary: attendanceSummary };
+  },
+
+  getMarks: async () => {
+    return await fetchFromBackend("/api/marks", mockResults);
+  },
+
   getExams: async () => {
-    const list = await fetchFromBackend("/api/exams", exams);
+    const list = await fetchFromBackend("/api/exams", mockExams);
     return list;
   },
-  getResults: () => resolve(results),
-  getTimetable: () => resolve(timetable),
+
   getNotices: async () => {
-    const list = await fetchFromBackend("/api/notices", notices);
+    const list = await fetchFromBackend("/api/notices", mockNotices);
     return list;
   },
-  getReports: () => resolve(reports),
-  getLeave: () => resolve({ applications: leaveApplications, balance: leaveBalance }),
-  getDashboard: () =>
-    resolve({
-      stats: dashboardStats,
-      activities: recentActivities,
-      system: systemStatus,
-      trend: performanceTrend,
-      notices,
-      exams,
-    }),
+
+  getLeave: async () => {
+    const dbLeaves = await fetchFromBackend("/api/leave", null);
+    if (Array.isArray(dbLeaves) && dbLeaves.length > 0) {
+      return { applications: dbLeaves, balance: leaveBalance };
+    }
+    return { applications: leaveApplications, balance: leaveBalance };
+  },
+
+  getDashboard: () => ({
+    stats: dashboardStats,
+    activities: recentActivities,
+    system: systemStatus,
+    trend: performanceTrend,
+    notices: mockNotices,
+    exams: mockExams,
+  }),
 };
