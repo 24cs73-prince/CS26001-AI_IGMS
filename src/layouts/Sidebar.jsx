@@ -5,6 +5,7 @@ import { navForRole } from "../constants/navigation";
 import { APP } from "../constants/app";
 import { useAuth } from "../context/AuthContext";
 import { cn } from "../utils/cn";
+import ashokStambh from "../assets/images/ashok_stambh.avif";
 
 /**
  * Official Government of Gujarat School Portal Sidebar
@@ -61,7 +62,7 @@ function SidebarContent({ onNavigate }) {
       <div className="flex items-center gap-3 border-b border-white/10 px-4 py-5">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 p-1.5 backdrop-blur-xs">
           <img
-            src="/images/ashok_stambh.avif"
+            src={ashokStambh}
             alt={t("stateEmblemAlt")}
             className="h-full w-auto object-contain"
           />

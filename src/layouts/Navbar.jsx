@@ -18,6 +18,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { useLanguage } from "../context/LanguageContext";
 import Avatar from "../components/ui/Avatar";
+import ashokStambh from "../assets/images/ashok_stambh.avif";
 
 /**
  * Government Portal Top Navbar
@@ -113,7 +114,7 @@ export default function Navbar({ onMenuClick }) {
       {/* State Emblem Branding for desktop */}
       <div className="hidden lg:flex items-center gap-3 pr-4 border-r border-slate-200">
         <img
-          src="/images/ashok_stambh.avif"
+          src={ashokStambh}
           alt="State Emblem of India"
           className="h-9 w-auto object-contain"
         />
