@@ -1,4 +1,6 @@
 import { Attendance } from "../models/Attendance.js";
+import { Parent } from "../models/Parent.js";
+import { StudentParent } from "../models/StudentParent.js";
 
 /**
  * @desc    Record / Update Class Attendance
@@ -51,6 +53,24 @@ export const recordAttendance = async (req, res) => {
 export const getAttendance = async (req, res) => {
   try {
     const { classVal, division, date, studentId } = req.query;
+
+    // Strict Parent-Child Access Isolation
+    if (req.user && req.user.roleKey === "parent") {
+      const parent = await Parent.findOne({ userId: req.user._id });
+      let allowedStudentIds = [];
+      if (parent) {
+        const spLinks = await StudentParent.find({ parentId: parent._id });
+        allowedStudentIds = spLinks.map((l) => l.studentId);
+      }
+      if (req.user.childStudentId) {
+        allowedStudentIds.push(req.user.childStudentId);
+      }
+      if (studentId && !allowedStudentIds.includes(studentId)) {
+        return res.status(403).json({
+          message: "Access forbidden. Parents can only view attendance for their linked children.",
+        });
+      }
+    }
 
     const filter = {};
     if (classVal) filter.classVal = String(classVal);

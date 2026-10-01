@@ -154,7 +154,37 @@ export const api = {
   // Timetable
   getTimetable: async (query = {}) => {
     const dbTimetable = await fetchFromBackend("/api/timetable", null);
-    if (Array.isArray(dbTimetable) && dbTimetable.length > 0) return dbTimetable;
+    if (Array.isArray(dbTimetable) && dbTimetable.length > 0) {
+      const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const periods = ["08:00 - 08:45", "08:45 - 09:30", "09:45 - 10:30", "10:30 - 11:15", "11:45 - 12:30", "12:30 - 01:15", "01:15 - 02:00"];
+      const tones = ["primary", "accent", "secondary", "warning", "info", "danger", "muted"];
+
+      const grid = {};
+      days.forEach((d) => {
+        grid[d] = [];
+      });
+
+      days.forEach((dayName) => {
+        for (let p = 1; p <= 7; p++) {
+          const match = dbTimetable.find((t) => (t.dayName?.en === dayName || t.dayName === dayName) && t.period === p);
+          if (match) {
+            grid[dayName].push({
+              subject: match.subjectName,
+              teacher: match.teacherName,
+              tone: tones[(p - 1) % tones.length],
+            });
+          } else {
+            grid[dayName].push({
+              subject: p === 4 ? "Recess Break" : (p === 7 ? "Sports / Library" : "General Studies"),
+              teacher: "",
+              tone: "muted",
+            });
+          }
+        }
+      });
+
+      return { periods, days, grid };
+    }
     return mockTimetable;
   },
 
