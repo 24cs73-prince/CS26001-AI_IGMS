@@ -14,6 +14,7 @@ import { useFetch } from "../../hooks/useFetch";
 import { api } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
+import { buildApiUrl, getAuthHeaders } from "../../utils/apiConfig";
 import { CLASSES, SECTIONS, SUBJECTS, EXAM_TERMS } from "../../constants/app";
 
 import PageHeader from "../../components/common/PageHeader";
@@ -154,23 +155,14 @@ export default function UploadMarks() {
         records,
       };
 
-      const token = getAuthToken();
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const headers = getAuthHeaders();
+      const url = buildApiUrl("/api/marks");
 
-      let res = await fetch("/api/marks", {
+      await fetch(url, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
       }).catch(() => null);
-
-      if (!res || !res.ok) {
-        res = await fetch("http://localhost:5000/api/marks", {
-          method: "POST",
-          headers,
-          body: JSON.stringify(payload),
-        }).catch(() => null);
-      }
 
       // Sync local storage as backup
       try {

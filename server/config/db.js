@@ -1,60 +1,42 @@
 import mongoose from "mongoose";
-import dns from "dns";
-import { startAutoSyncLoop, syncBothDatabases } from "./autoSync.js";
 
-// Ensure Node.js uses Google & Cloudflare public DNS for Atlas SRV record resolution
-try {
-  dns.setServers(["8.8.8.8", "1.1.1.1"]);
-} catch (e) {
-  // Ignore DNS override errors
-}
-
-let secondaryConn = null;
-
+/**
+ * MongoDB Connection Handler
+ * Connects to MongoDB Atlas (Production) or local MongoDB instance (Development)
+ * based on process.env.MONGODB_URI or process.env.MONGO_URI.
+ */
 export const connectDB = async () => {
-  const atlasUri = process.env.MONGODB_ATLAS_URI || process.env.MONGODB_URI;
-  const localUri = process.env.MONGODB_LOCAL_URI || "mongodb://127.0.0.1:27017/ai_igms";
+  const mongoUri =
+    process.env.MONGODB_URI ||
+    process.env.MONGO_URI ||
+    process.env.MONGODB_ATLAS_URI ||
+    "mongodb://127.0.0.1:27017/ai_igms";
 
-  const isValidAtlas = atlasUri && !atlasUri.includes("<db_password>");
-
-  if (isValidAtlas) {
-    try {
-      console.log(`📡 Connecting primary database to MongoDB Atlas Cloud Cluster...`);
-      const conn = await mongoose.connect(atlasUri, {
-        serverSelectionTimeoutMS: 10000,
-      });
-      console.log(`✅ Primary Database (Atlas Cloud) Connected [${conn.connection.name}]: ${conn.connection.host}`);
-
-      // Establish secondary connection to Local MongoDB for instant parallel dual-write
-      try {
-        secondaryConn = await mongoose.createConnection(localUri, {
-          serverSelectionTimeoutMS: 3000,
-        }).asPromise();
-        console.log(`⚡ Secondary Database (Local Compass 127.0.0.1) Connected for parallel dual-write!`);
-      } catch (secErr) {
-        console.warn(`⚠️ Local MongoDB secondary connection failed: ${secErr.message}`);
-      }
-
-      // Initial full 2-way sync on startup
-      await syncBothDatabases();
-
-      // Start continuous background auto-sync loop (every 3 seconds)
-      startAutoSyncLoop(3000);
-      return;
-    } catch (error) {
-      console.warn(`⚠️ Atlas connection failed: ${error.message}. Falling back to local MongoDB...`);
-    }
-  } else {
-    console.log(`ℹ️ MONGODB_ATLAS_URI contains <db_password> placeholder. Using local MongoDB.`);
+  if (!mongoUri || mongoUri.includes("<db_password>")) {
+    console.warn("⚠️ Warning: MONGODB_URI contains placeholder or is empty. Falling back to local MongoDB.");
   }
 
-  // Fallback to local MongoDB
   try {
-    const conn = await mongoose.connect(localUri, {
-      serverSelectionTimeoutMS: 5000,
+    const conn = await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 15000,
     });
-    console.log(`✅ Local MongoDB Connected [Database: ${conn.connection.name}]: ${conn.connection.host}`);
-  } catch (err) {
-    console.error(`❌ MongoDB Connection Error: ${err.message}`);
+    console.log(`✅ MongoDB Connected [Database: ${conn.connection.name}]: ${conn.connection.host}`);
+    return conn;
+  } catch (error) {
+    console.error(`❌ MongoDB Connection Error: ${error.message}`);
+    // If not production and URI failed, attempt local fallback
+    if (process.env.NODE_ENV !== "production" && !mongoUri.includes("127.0.0.1")) {
+      try {
+        console.log("ℹ️ Attempting connection to local MongoDB (127.0.0.1:27017)...");
+        const localConn = await mongoose.connect("mongodb://127.0.0.1:27017/ai_igms", {
+          serverSelectionTimeoutMS: 5000,
+        });
+        console.log(`✅ Local MongoDB Connected: ${localConn.connection.host}/${localConn.connection.name}`);
+        return localConn;
+      } catch (localErr) {
+        console.error(`❌ Local fallback also failed: ${localErr.message}`);
+      }
+    }
+    throw error;
   }
 };

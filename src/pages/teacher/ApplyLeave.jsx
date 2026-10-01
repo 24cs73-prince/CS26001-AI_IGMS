@@ -6,6 +6,7 @@ import { useFetch } from "../../hooks/useFetch";
 import { api } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
+import { buildApiUrl, getAuthHeaders } from "../../utils/apiConfig";
 import { LEAVE_TYPES } from "../../constants/app";
 import { STATUS_TONE } from "../../constants/theme";
 
@@ -87,13 +88,10 @@ export default function ApplyLeave() {
   const fetchLeaveRequests = async () => {
     try {
       setLoading(true);
-      const token = getAuthToken();
-      const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+      const headers = getAuthHeaders();
+      const url = buildApiUrl("/api/leave");
 
-      let res = await fetch("/api/leave", { headers }).catch(() => null);
-      if (!res || !res.ok) {
-        res = await fetch("http://localhost:5000/api/leave", { headers }).catch(() => null);
-      }
+      let res = await fetch(url, { headers }).catch(() => null);
 
       let formatted = [];
       if (res && res.ok) {
@@ -160,23 +158,14 @@ export default function ApplyLeave() {
         reason: reason.trim(),
       };
 
-      const token = getAuthToken();
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const headers = getAuthHeaders();
+      const url = buildApiUrl("/api/leave");
 
-      let res = await fetch("/api/leave", {
+      await fetch(url, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
       }).catch(() => null);
-
-      if (!res || !res.ok) {
-        res = await fetch("http://localhost:5000/api/leave", {
-          method: "POST",
-          headers,
-          body: JSON.stringify(payload),
-        }).catch(() => null);
-      }
 
       const newApp = {
         id: `LV-${Date.now().toString().slice(-4)}`,

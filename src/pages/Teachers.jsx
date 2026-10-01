@@ -16,6 +16,7 @@ import { useDebounce } from "../hooks/useDebounce";
 import { api } from "../services/api";
 import { searchRows } from "../utils/filter";
 import { exportToCSV } from "../utils/exportCsv";
+import { buildApiUrl, getAuthHeaders } from "../utils/apiConfig";
 import { DEPARTMENTS, STANDARDS, SECTIONS, formatStandard } from "../constants/app";
 
 import PageHeader from "../components/common/PageHeader";
@@ -229,23 +230,14 @@ export default function Teachers() {
     };
 
     try {
-      const token = getAuthToken();
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const headers = getAuthHeaders();
+      const url = buildApiUrl("/api/teachers");
 
-      let res = await fetch("/api/teachers", {
+      await fetch(url, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
       }).catch(() => null);
-
-      if (!res || !res.ok) {
-        res = await fetch("http://localhost:5000/api/teachers", {
-          method: "POST",
-          headers,
-          body: JSON.stringify(payload),
-        }).catch(() => null);
-      }
     } catch (err) {
       console.warn("Backend teacher save error, updating local state:", err);
     }

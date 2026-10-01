@@ -9,6 +9,7 @@ import { Button, Badge, Card, SearchBox, Modal, Input } from '../components/ui';
 import { PageLoader } from '../components/ui/Loader';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { buildApiUrl, getAuthHeaders } from '../utils/apiConfig';
 import { cn } from '../utils/cn';
 
 const CATEGORY_TONE = {
@@ -51,13 +52,10 @@ export default function Notices() {
   const fetchNotices = async () => {
     try {
       setLoading(true);
-      const token = getAuthToken();
-      const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+      const headers = getAuthHeaders();
+      const url = buildApiUrl('/api/notices');
 
-      let res = await fetch('/api/notices', { headers }).catch(() => null);
-      if (!res || !res.ok) {
-        res = await fetch("http://localhost:5000/api/notices", { headers }).catch(() => null);
-      }
+      let res = await fetch(url, { headers }).catch(() => null);
 
       let formatted = [];
       if (res && res.ok) {
@@ -105,23 +103,14 @@ export default function Notices() {
         publishedBy: user?.name || 'School Principal',
       };
 
-      const token = getAuthToken();
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const headers = getAuthHeaders();
+      const url = buildApiUrl('/api/notices');
 
-      let res = await fetch('/api/notices', {
+      await fetch(url, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
       }).catch(() => null);
-
-      if (!res || !res.ok) {
-        res = await fetch("http://localhost:5000/api/notices", {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload),
-        }).catch(() => null);
-      }
 
       const newNotice = {
         id: `NTC-${Date.now()}`,

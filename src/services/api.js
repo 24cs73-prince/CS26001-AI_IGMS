@@ -1,26 +1,24 @@
+import { buildApiUrl, getAuthHeaders } from "../utils/apiConfig";
+
 /**
  * API Service Layer for AI-IGMS.
- * Strictly connects React frontend to Express + MongoDB backend (localhost:5000).
+ * Strictly connects React frontend to Express + MongoDB backend.
  * All data is database-driven; no fake mock fallbacks are injected for authenticated portals.
  */
-
-const BASE_URL = "http://localhost:5000";
-
-function getAuthHeaders() {
-  const token = localStorage.getItem("igms.token") || localStorage.getItem("token");
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
 
 async function fetchFromBackend(endpoint, fallback = null) {
   try {
     const headers = getAuthHeaders();
-    let res = await fetch(endpoint, { headers }).catch(() => null);
+    const url = buildApiUrl(endpoint);
+    let res = await fetch(url, { headers }).catch(() => null);
+
+    // Development fallback to localhost:5000 if not running behind a proxy
     if (!res || !res.ok) {
-      res = await fetch(`${BASE_URL}${endpoint}`, { headers }).catch(() => null);
+      if (typeof window !== "undefined" && window.location.hostname === "localhost" && !import.meta.env.VITE_API_URL) {
+        res = await fetch(`http://localhost:5000${endpoint}`, { headers }).catch(() => null);
+      }
     }
+
     if (res && res.ok) {
       const data = await res.json();
       if (data !== undefined && data !== null) {

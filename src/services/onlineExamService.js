@@ -1,26 +1,24 @@
+import { buildApiUrl, getAuthHeaders } from "../utils/apiConfig";
+
 /**
  * Online Examination & AI Assessment Service.
  * Fully backed by Express + MongoDB (/api/exams, /api/exams/:id/submit, /api/exams/:id/submissions, etc.).
  * LocalStorage is used only as a secondary offline cache for temporary UI state.
  */
 
-const BASE_URL = "http://localhost:5000";
-
-function getAuthHeaders() {
-  const token = localStorage.getItem("igms.token") || localStorage.getItem("token") || "";
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
 async function apiFetch(endpoint, options = {}) {
   const headers = { ...getAuthHeaders(), ...(options.headers || {}) };
   try {
-    let res = await fetch(endpoint, { ...options, headers }).catch(() => null);
+    const url = buildApiUrl(endpoint);
+    let res = await fetch(url, { ...options, headers }).catch(() => null);
+
+    // Development fallback to localhost:5000
     if (!res || !res.ok) {
-      res = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers }).catch(() => null);
+      if (typeof window !== "undefined" && window.location.hostname === "localhost" && !import.meta.env.VITE_API_URL) {
+        res = await fetch(`http://localhost:5000${endpoint}`, { ...options, headers }).catch(() => null);
+      }
     }
+
     if (res && res.ok) {
       return await res.json();
     }

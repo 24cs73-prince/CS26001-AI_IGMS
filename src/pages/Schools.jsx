@@ -5,6 +5,7 @@ import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
 import Input from "../components/ui/Input";
 import { useToast } from "../context/ToastContext";
+import { buildApiUrl, getAuthHeaders } from "../utils/apiConfig";
 
 export default function Schools() {
   const toast = useToast();
@@ -22,13 +23,10 @@ export default function Schools() {
   const fetchSchools = async () => {
     try {
       setLoading(true);
-      const token = getAuthToken();
-      const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+      const headers = getAuthHeaders();
+      const url = buildApiUrl("/api/schools");
 
-      let res = await fetch("/api/schools", { headers }).catch(() => null);
-      if (!res || !res.ok) {
-        res = await fetch("http://localhost:5000/api/schools", { headers }).catch(() => null);
-      }
+      let res = await fetch(url, { headers }).catch(() => null);
 
       let formatted = [];
       if (res && res.ok) {
@@ -93,23 +91,14 @@ export default function Schools() {
         principalPassword: form.principalPassword || "Principal@123",
       };
 
-      const token = getAuthToken();
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const headers = getAuthHeaders();
+      const url = buildApiUrl("/api/schools");
 
-      let res = await fetch("/api/schools", {
+      await fetch(url, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
       }).catch(() => null);
-
-      if (!res || !res.ok) {
-        res = await fetch("http://localhost:5000/api/schools", {
-          method: "POST",
-          headers,
-          body: JSON.stringify(payload),
-        }).catch(() => null);
-      }
 
       // Save Principal user account locally to enable immediate offline login
       const createdPrincipalAccount = {
