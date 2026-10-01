@@ -36,13 +36,13 @@ export const recordAttendance = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Attendance recorded successfully.",
       attendance,
     });
   } catch (error) {
     console.error("Record Attendance Error:", error);
-    res.status(500).json({ message: "Server error recording attendance." });
+    return res.status(500).json({ message: "Server error recording attendance.", error: error.message });
   }
 };
 
@@ -56,19 +56,23 @@ export const getAttendance = async (req, res) => {
 
     // Strict Parent-Child Access Isolation
     if (req.user && req.user.roleKey === "parent") {
-      const parent = await Parent.findOne({ userId: req.user._id });
-      let allowedStudentIds = [];
-      if (parent) {
-        const spLinks = await StudentParent.find({ parentId: parent._id });
-        allowedStudentIds = spLinks.map((l) => l.studentId);
-      }
-      if (req.user.childStudentId) {
-        allowedStudentIds.push(req.user.childStudentId);
-      }
-      if (studentId && !allowedStudentIds.includes(studentId)) {
-        return res.status(403).json({
-          message: "Access forbidden. Parents can only view attendance for their linked children.",
-        });
+      try {
+        const parent = await Parent.findOne({ userId: req.user._id });
+        let allowedStudentIds = [];
+        if (parent) {
+          const spLinks = await StudentParent.find({ parentId: parent._id });
+          allowedStudentIds = spLinks.map((l) => l.studentId);
+        }
+        if (req.user.childStudentId) {
+          allowedStudentIds.push(req.user.childStudentId);
+        }
+        if (studentId && !allowedStudentIds.includes(studentId)) {
+          return res.status(403).json({
+            message: "Access forbidden. Parents can only view attendance for their linked children.",
+          });
+        }
+      } catch (parentErr) {
+        console.warn("Parent isolation check warning:", parentErr.message);
       }
     }
 
@@ -80,8 +84,8 @@ export const getAttendance = async (req, res) => {
     const list = await Attendance.find(filter).sort({ date: -1 });
 
     if (studentId) {
-      const studentHistory = list.map((a) => {
-        const rec = a.records.find((r) => r.studentId === studentId);
+      const studentHistory = (list || []).map((a) => {
+        const rec = (a.records || []).find((r) => r.studentId === studentId);
         return {
           date: a.date,
           classVal: a.classVal,
@@ -104,9 +108,10 @@ export const getAttendance = async (req, res) => {
       });
     }
 
-    res.json(list);
+    return res.json(list || []);
   } catch (error) {
     console.error("Get Attendance Error:", error);
-    res.status(500).json({ message: "Server error fetching attendance records." });
+    return res.status(500).json({ message: "Server error fetching attendance records.", error: error.message });
   }
 };
+
