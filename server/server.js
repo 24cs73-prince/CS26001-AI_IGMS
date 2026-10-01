@@ -56,6 +56,13 @@ import markRoutes from "./routes/markRoutes.js";
 import noticeRoutes from "./routes/noticeRoutes.js";
 import leaveRoutes from "./routes/leaveRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import parentRoutes from "./routes/parentRoutes.js";
+import classRoutes from "./routes/classRoutes.js";
+import subjectRoutes from "./routes/subjectRoutes.js";
+import studentParentRoutes from "./routes/studentParentRoutes.js";
+import timetableRoutes from "./routes/timetableRoutes.js";
+import mealRoutes from "./routes/mealRoutes.js";
+import holidayRoutes from "./routes/holidayRoutes.js";
 
 // API Routes
 app.use("/api/auth", authRoutes);
@@ -69,6 +76,14 @@ app.use("/api/leave", leaveRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/teachers", teacherRoutes);
+app.use("/api/parents", parentRoutes);
+app.use("/api/classes", classRoutes);
+app.use("/api/subjects", subjectRoutes);
+app.use("/api/student-parents", studentParentRoutes);
+app.use("/api/timetable", timetableRoutes);
+app.use("/api/meals", mealRoutes);
+app.use("/api/holidays", holidayRoutes);
+
 
 
 
