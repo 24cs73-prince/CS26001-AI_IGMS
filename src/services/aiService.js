@@ -1,18 +1,11 @@
-const BASE_URL = "http://localhost:5000";
-
-function getAuthHeaders() {
-  const token = localStorage.getItem("igms.token") || localStorage.getItem("token");
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+import { buildApiUrl, getAuthHeaders } from "../utils/apiConfig";
 
 /** Generate question paper using backend AI service or structured syllabus templates */
 export async function generateQuestionPaper({ className, subject, difficulty, questionCount = 10 }) {
   try {
     const headers = getAuthHeaders();
-    let res = await fetch("/api/ai/generate-questions", {
+    const url = buildApiUrl("/api/ai/generate-questions");
+    let res = await fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -24,16 +17,18 @@ export async function generateQuestionPaper({ className, subject, difficulty, qu
     }).catch(() => null);
 
     if (!res || !res.ok) {
-      res = await fetch(`${BASE_URL}/api/ai/generate-questions`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          classVal: className?.replace(/\D/g, "") || "6",
-          subject: subject || "Mathematics",
-          syllabus: `Term Syllabus for ${subject}`,
-          count: questionCount,
-        }),
-      }).catch(() => null);
+      if (typeof window !== "undefined" && window.location.hostname === "localhost" && !import.meta.env.VITE_API_URL) {
+        res = await fetch("http://localhost:5000/api/ai/generate-questions", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            classVal: className?.replace(/\D/g, "") || "6",
+            subject: subject || "Mathematics",
+            syllabus: `Term Syllabus for ${subject}`,
+            count: questionCount,
+          }),
+        }).catch(() => null);
+      }
     }
 
     if (res && res.ok) {
@@ -139,7 +134,8 @@ export async function analyzePerformance(student) {
 
   try {
     const headers = getAuthHeaders();
-    let res = await fetch("/api/ai/analyze-performance", {
+    const url = buildApiUrl("/api/ai/analyze-performance");
+    let res = await fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -154,19 +150,21 @@ export async function analyzePerformance(student) {
     }).catch(() => null);
 
     if (!res || !res.ok) {
-      res = await fetch(`${BASE_URL}/api/ai/analyze-performance`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          studentName: name,
-          score: Math.round(avg * 0.8),
-          totalMarks: 80,
-          percentage: Math.round(avg),
-          correctCount: Math.round((avg / 100) * 8),
-          wrongCount: Math.round(((100 - avg) / 100) * 8),
-          subject: "All Subjects Cumulative",
-        }),
-      }).catch(() => null);
+      if (typeof window !== "undefined" && window.location.hostname === "localhost" && !import.meta.env.VITE_API_URL) {
+        res = await fetch("http://localhost:5000/api/ai/analyze-performance", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            studentName: name,
+            score: Math.round(avg * 0.8),
+            totalMarks: 80,
+            percentage: Math.round(avg),
+            correctCount: Math.round((avg / 100) * 8),
+            wrongCount: Math.round(((100 - avg) / 100) * 8),
+            subject: "All Subjects Cumulative",
+          }),
+        }).catch(() => null);
+      }
     }
 
     if (res && res.ok) {

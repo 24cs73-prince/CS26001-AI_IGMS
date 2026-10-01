@@ -5,9 +5,9 @@ import { useNavigate } from "react-router-dom";
 
 import PageHeader from "../../components/common/PageHeader";
 import Card from "../../components/ui/Card";
-import { Button, Input, Dropdown } from "../../components/ui";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
+import { buildApiUrl, getAuthHeaders } from "../../utils/apiConfig";
 
 // Restrict strictly to Class 1 to Class 8
 const CLASSES = Array.from({ length: 8 }, (_, i) => ({
@@ -162,46 +162,23 @@ export default function AIPaperGenerator() {
         questions: formattedQuestions,
       };
 
-      const token = getAuthToken();
-      const headers = { "Content-Type": "application/json" };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
+      const headers = getAuthHeaders();
+      const examUrl = buildApiUrl("/api/exams");
 
       console.log("💾 Sending exam payload to MongoDB backend...", examPayload.title);
 
-      let saved = false;
       try {
-        const res1 = await fetch("/api/exams", {
+        const res1 = await fetch(examUrl, {
           method: "POST",
           headers,
           body: JSON.stringify(examPayload),
         });
         if (res1.ok) {
           const json1 = await res1.json();
-          console.log("✅ Auto-saved created exam into MongoDB database via /api/exams:", json1._id);
-          saved = true;
+          console.log("✅ Auto-saved created exam into MongoDB database:", json1._id);
         }
       } catch (e1) {
-        console.warn("Primary /api/exams fetch failed, trying direct 5000 port...", e1.message);
-      }
-
-      if (!saved) {
-        try {
-          const res2 = await fetch("http://localhost:5000/api/exams", {
-            method: "POST",
-            headers,
-            body: JSON.stringify(examPayload),
-          });
-          if (res2.ok) {
-            const json2 = await res2.json();
-            console.log("✅ Auto-saved created exam into MongoDB database via port 5000:", json2._id);
-          } else {
-            console.error("❌ Failed to save exam:", res2.status, await res2.text());
-          }
-        } catch (e2) {
-          console.error("❌ Direct port 5000 fetch error:", e2.message);
-        }
+        console.warn("Exam save fetch failed:", e1.message);
       }
 
       // Sync to local storage
@@ -235,25 +212,14 @@ export default function AIPaperGenerator() {
         totalQuestions: countVal,
       };
 
-      const token = getAuthToken();
-      const headers = { "Content-Type": "application/json" };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
+      const headers = getAuthHeaders();
+      const aiUrl = buildApiUrl("/api/ai/generate-questions");
 
-      let res = await fetch("/api/ai/generate-questions", {
+      let res = await fetch(aiUrl, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
       }).catch(() => null);
-
-      if (!res || !res.ok) {
-        res = await fetch("http://localhost:5000/api/ai/generate-questions", {
-          method: "POST",
-          headers,
-          body: JSON.stringify(payload),
-        }).catch(() => null);
-      }
 
       let questions = [];
       if (res && res.ok) {

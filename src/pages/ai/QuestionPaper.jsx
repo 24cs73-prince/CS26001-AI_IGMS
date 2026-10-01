@@ -12,6 +12,7 @@ import Loader from '../../components/ui/Loader';
 import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../context/ToastContext';
 import { formatDate } from '../../utils/format';
+import { buildApiUrl, getAuthHeaders } from '../../utils/apiConfig';
 
 /**
  * AI Question Paper Generator.
@@ -77,7 +78,10 @@ export default function QuestionPaper() {
           questions: questionsList,
         };
 
-        await fetch("http://localhost:5000/api/exams", {
+        const examUrl = buildApiUrl("/api/exams");
+        const headers = getAuthHeaders();
+
+        await fetch(examUrl, {
           method: "POST",
           headers,
           body: JSON.stringify(examPayload),

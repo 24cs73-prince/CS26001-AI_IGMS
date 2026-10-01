@@ -1,8 +1,21 @@
+# Dependencies
 node_modules
+server/node_modules
+
+# Production Build
 dist
 dist-ssr
-*.local
-.DS_Store
-.env
 .vite
-server/node_modules
+
+# Environment and Secrets (CRITICAL)
+.env
+.env*.local
+server/.env
+server/.env*.local
+*.env
+!*.env.example
+
+# OS and IDE files
+.DS_Store
+*.local
+Thumbs.db

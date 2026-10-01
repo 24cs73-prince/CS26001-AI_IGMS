@@ -6,6 +6,7 @@ import {
   useMemo,
 } from "react";
 import { ROLES } from "../constants/app";
+import { buildApiUrl } from "../utils/apiConfig";
 
 /**
  * AuthContext supporting both Backend API JWT Auth and local demo auth fallback.
@@ -84,9 +85,9 @@ export function AuthProvider({ children }) {
 
     // Try real backend Express API first
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || "";
+      const loginUrl = buildApiUrl("/api/auth/login");
 
-      const response = await fetch(`${baseUrl}/api/auth/login`, {
+      const response = await fetch(loginUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: cleanEmail, password, role }),

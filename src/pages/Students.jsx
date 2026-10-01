@@ -15,6 +15,7 @@ import { usePagination } from "../hooks/usePagination";
 import { api } from "../services/api";
 import { searchRows } from "../utils/filter";
 import { exportToCSV } from "../utils/exportCsv";
+import { buildApiUrl, getAuthHeaders } from "../utils/apiConfig";
 import { STATUS_TONE } from "../constants/theme";
 import { STANDARDS, SECTIONS, formatStandard } from "../constants/app";
 
@@ -394,23 +395,14 @@ export default function Students() {
     };
 
     try {
-      const token = getAuthToken();
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const headers = getAuthHeaders();
+      const url = buildApiUrl("/api/students");
 
-      let res = await fetch("/api/students", {
+      await fetch(url, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
       }).catch(() => null);
-
-      if (!res || !res.ok) {
-        res = await fetch("http://localhost:5000/api/students", {
-          method: "POST",
-          headers,
-          body: JSON.stringify(payload),
-        }).catch(() => null);
-      }
     } catch (err) {
       console.warn("Backend POST error, continuing with local state update:", err);
     }
