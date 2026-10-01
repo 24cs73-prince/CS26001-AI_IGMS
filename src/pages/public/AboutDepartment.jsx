@@ -11,6 +11,10 @@ import {
   FiFeather,
 } from "react-icons/fi";
 
+import modiImg from "../../assets/images/PM-modi.png";
+import bhupendraImg from "../../assets/images/Cm-bhupendra.jpg";
+import kuberImg from "../../assets/images/kuber-dindor.jpg";
+
 /**
  * About Department Public Page - School Education Department, Government of Gujarat
  */
@@ -20,21 +24,21 @@ export default function AboutDepartment() {
       name: "Shri Narendra Modi",
       title: "Hon'ble Prime Minister of India",
       role: "National Educational Visionary",
-      image: "/images/pm-modi.png",
+      image: modiImg,
       quote: "Transforming education into a foundation for nation-building through technology and inclusive learning.",
     },
     {
       name: "Shri Bhupendra Patel",
       title: "Hon'ble Chief Minister of Gujarat",
       role: "State Executive Leadership",
-      image: "/images/Cm-bhupendra.jpg",
+      image: bhupendraImg,
       quote: "Ensuring high-quality primary and secondary education for every child in every village of Gujarat.",
     },
     {
       name: "Dr. Kuberbhai Dindor",
       title: "Hon'ble Minister of Primary, Secondary & Adult Education",
       role: "Department Ministerial Leadership",
-      image: "/images/kuber-dindor.jpg",
+      image: kuberImg,
       quote: "Empowering teachers and modernizing school infrastructure through AI-driven governance.",
     },
   ];

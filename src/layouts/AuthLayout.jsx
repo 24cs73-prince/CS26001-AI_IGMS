@@ -26,6 +26,12 @@ import {
 } from "react-icons/fi";
 import { APP } from "../constants/app";
 
+import ashokStambh from "../assets/images/ashok_stambh.avif";
+import modiImg from "../assets/images/PM-modi.png";
+import bhupendraImg from "../assets/images/Cm-bhupendra.jpg";
+import kuberImg from "../assets/images/kuber-dindor.jpg";
+import govtSchoolImg from "../assets/images/government-school.png";
+
 /**
  * Government of Gujarat School Education Department Portal Layout
  * Features:
@@ -246,7 +252,7 @@ Official Portal: Directorate of School Education, Gandhinagar, Gujarat.
         <div
           className="absolute inset-0 bg-cover bg-center opacity-[0.035]"
           style={{
-            backgroundImage: "url('/images/ashok_stambh.avif')",
+            backgroundImage: `url(${ashokStambh})`,
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-white via-white/95 to-[#f5f9ff]" />
@@ -359,7 +365,7 @@ Official Portal: Directorate of School Education, Gandhinagar, Gujarat.
             <div className="flex items-center gap-4">
               <div className="flex h-[84px] w-[88px] items-center justify-center border-r border-slate-200 pr-5">
                 <img
-                  src="/images/ashok_stambh.avif"
+                  src={ashokStambh}
                   alt="State Emblem of India"
                   className="h-[78px] w-auto object-contain"
                 />
@@ -518,17 +524,17 @@ Official Portal: Directorate of School Education, Gandhinagar, Gujarat.
 
                       <div className="grid max-w-[850px] grid-cols-1 gap-3 sm:grid-cols-3">
                         <LeaderCard
-                          image="/images/pm-modi.png"
+                          image={modiImg}
                           name="Shri Narendra Modi"
                           position="Hon'ble Prime Minister of India"
                         />
                         <LeaderCard
-                          image="/images/Cm-bhupendra.jpg"
+                          image={bhupendraImg}
                           name="Shri Bhupendra Patel"
                           position="Hon'ble Chief Minister of Gujarat"
                         />
                         <LeaderCard
-                          image="/images/kuber-dindor.jpg"
+                          image={kuberImg}
                           name="Dr. Kuberbhai Dindor"
                           position="Education Leadership, Gujarat"
                         />
@@ -602,7 +608,7 @@ Official Portal: Directorate of School Education, Gandhinagar, Gujarat.
                     >
                       <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl">
                         <img
-                          src="/images/government-school.png"
+                          src={govtSchoolImg}
                           alt="Government school campus"
                           className="h-[390px] w-full object-cover"
                         />
