@@ -1,12 +1,81 @@
-/**
- * Mock AI service. Returns canned/dummy AI output after a short delay to
- * simulate model latency. No real model is called — this is UI-only.
- */
-const delay = (ms = 1200) => new Promise((res) => setTimeout(res, ms));
+const BASE_URL = "http://localhost:5000";
 
-/** Generate a dummy question paper for the given config. */
+function getAuthHeaders() {
+  const token = localStorage.getItem("igms.token") || localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+/** Generate question paper using backend AI service or structured syllabus templates */
 export async function generateQuestionPaper({ className, subject, difficulty, questionCount = 10 }) {
-  await delay();
+  try {
+    const headers = getAuthHeaders();
+    let res = await fetch("/api/ai/generate-questions", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        classVal: className?.replace(/\D/g, "") || "6",
+        subject: subject || "Mathematics",
+        syllabus: `Term Syllabus for ${subject}`,
+        count: questionCount,
+      }),
+    }).catch(() => null);
+
+    if (!res || !res.ok) {
+      res = await fetch(`${BASE_URL}/api/ai/generate-questions`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          classVal: className?.replace(/\D/g, "") || "6",
+          subject: subject || "Mathematics",
+          syllabus: `Term Syllabus for ${subject}`,
+          count: questionCount,
+        }),
+      }).catch(() => null);
+    }
+
+    if (res && res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.questions) && data.questions.length > 0) {
+        const sections = [
+          { title: 'Section A — Objective (1 mark each)', count: Math.ceil(data.questions.length * 0.4) },
+          { title: 'Section B — Short Answer (3 marks each)', count: Math.ceil(data.questions.length * 0.35) },
+          { title: 'Section C — Long Answer (5 marks each)', count: Math.floor(data.questions.length * 0.25) },
+        ];
+
+        let cursor = 0;
+        return {
+          meta: {
+            className,
+            subject,
+            difficulty,
+            totalMarks: data.questions.length * 2,
+            duration: '3 hours',
+            generatedAt: new Date().toISOString(),
+            source: data.source || "Grok-AI",
+          },
+          sections: sections.map((s, i) => {
+            const qs = data.questions.slice(cursor, cursor + s.count);
+            cursor += s.count;
+            return {
+              title: s.title,
+              questions: qs.map((q, qIdx) => ({
+                no: qIdx + 1,
+                text: q.question || q.text || `Question ${qIdx + 1}`,
+                marks: [1, 3, 5][i] || 1,
+              })),
+            };
+          }),
+        };
+      }
+    }
+  } catch (err) {
+    console.warn("Backend AI Question Generator unavailable:", err);
+  }
+
+  // Structured syllabus fallback templates (Clearly labeled template-based generation)
   const sections = [
     { title: 'Section A — Objective (1 mark each)', count: Math.ceil(questionCount * 0.4) },
     { title: 'Section B — Short Answer (3 marks each)', count: Math.ceil(questionCount * 0.35) },
@@ -47,12 +116,10 @@ export async function generateQuestionPaper({ className, subject, difficulty, qu
       className,
       subject,
       difficulty,
-      totalMarks: sections.reduce(
-        (sum, s, i) => sum + s.count * [1, 3, 5][i],
-        0
-      ),
+      totalMarks: sections.reduce((sum, s, i) => sum + s.count * [1, 3, 5][i], 0),
       duration: '3 hours',
       generatedAt: new Date().toISOString(),
+      source: 'Curriculum-Template',
     },
     sections: sections.map((s, i) => ({
       title: s.title,
@@ -65,27 +132,85 @@ export async function generateQuestionPaper({ className, subject, difficulty, qu
   };
 }
 
-/** Return a dummy performance analysis for a student. */
+/** Return AI performance analysis for a student or deterministic diagnosis */
 export async function analyzePerformance(student) {
-  await delay(900);
-  const avg = student?.average ?? 74;
-  const predicted = Math.min(99, Math.round(avg + (Math.random() * 8 - 2)));
+  const avg = Number(student?.average) || 74;
+  const name = student?.name || "Student";
+
+  try {
+    const headers = getAuthHeaders();
+    let res = await fetch("/api/ai/analyze-performance", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        studentName: name,
+        score: Math.round(avg * 0.8),
+        totalMarks: 80,
+        percentage: Math.round(avg),
+        correctCount: Math.round((avg / 100) * 8),
+        wrongCount: Math.round(((100 - avg) / 100) * 8),
+        subject: "All Subjects Cumulative",
+      }),
+    }).catch(() => null);
+
+    if (!res || !res.ok) {
+      res = await fetch(`${BASE_URL}/api/ai/analyze-performance`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          studentName: name,
+          score: Math.round(avg * 0.8),
+          totalMarks: 80,
+          percentage: Math.round(avg),
+          correctCount: Math.round((avg / 100) * 8),
+          wrongCount: Math.round(((100 - avg) / 100) * 8),
+          subject: "All Subjects Cumulative",
+        }),
+      }).catch(() => null);
+    }
+
+    if (res && res.ok) {
+      const data = await res.json();
+      if (data && data.analysis) {
+        const analysis = data.analysis;
+        return {
+          band: analysis.overallPerformance || (avg >= 85 ? "Excellent" : avg >= 70 ? "Good" : avg >= 50 ? "Average" : "Needs Attention"),
+          strengths: [analysis.strengths || "Consistent performance across terms"],
+          weaknesses: [analysis.areasForImprovement || "Focus on higher-order questions"],
+          recommendations: [analysis.recommendation || "Maintain daily study schedule"],
+          prediction: {
+            nextTermScore: Math.min(100, Math.round(avg)),
+            confidence: 85,
+            riskLevel: avg < 50 ? "High" : avg < 70 ? "Moderate" : "Low",
+          },
+        };
+      }
+    }
+  } catch (err) {
+    console.warn("Backend AI Performance Analysis unavailable:", err);
+  }
+
+  // Deterministic curriculum-based assessment (no random numbers)
   const band =
-    avg >= 85 ? 'Excellent' : avg >= 70 ? 'Good' : avg >= 50 ? 'Average' : 'Needs Attention';
+    avg >= 85 ? "Excellent" : avg >= 70 ? "Good" : avg >= 50 ? "Average" : "Needs Attention";
 
   return {
     band,
-    strengths: ['Consistent attendance', 'Strong in conceptual questions', 'Timely submissions'],
-    weaknesses: ['Application-based problems', 'Time management in exams'],
+    strengths: avg >= 75
+      ? ["Strong foundation in primary concepts", "Consistent attendance records", "Active class participation"]
+      : ["Good submission consistency", "Responsive in class discussions"],
+    weaknesses: avg < 70
+      ? ["Application-based problem solving", "Time management during term assessments"]
+      : ["Advanced analytical synthesis"],
     recommendations: [
-      'Allocate 30 minutes daily to practice application questions.',
-      'Attempt two timed mock tests before the term exam.',
-      'Revise formula sheets weekly with peer study groups.',
+      "Allocate 30 minutes daily to practice application questions.",
+      "Attempt timed mock quizzes before the term exam.",
+      "Revise formula sheets weekly with peer study groups.",
     ],
     prediction: {
-      nextTermScore: predicted,
-      confidence: 82,
-      riskLevel: avg < 50 ? 'High' : avg < 70 ? 'Moderate' : 'Low',
+      nextTermScore: Math.min(100, Math.round(avg)),
+      confidence: 80,
+      riskLevel: avg < 50 ? "High" : avg < 70 ? "Moderate" : "Low",
     },
   };
 }

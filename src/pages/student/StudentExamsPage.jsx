@@ -15,16 +15,18 @@ import PageHeader from "../../components/common/PageHeader";
 import Card from "../../components/ui/Card";
 import { Button, Badge } from "../../components/ui";
 import { PageLoader } from "../../components/ui/Loader";
+import { useAuth } from "../../context/AuthContext";
 import { onlineExamService } from "../../services/onlineExamService";
 
 export default function StudentExamsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [exams, setExams] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const studentId = "ST001"; // Mock student Rahul Patel
+  const studentId = user?.studentId || user?.id || (user?._id ? String(user._id) : "STU-1001");
 
   useEffect(() => {
     async function loadData() {
@@ -37,20 +39,22 @@ export default function StudentExamsPage() {
         const studentSubs = [];
         for (const ex of allExams) {
           const subs = await onlineExamService.getSubmissions(ex.id);
-          const found = subs.find((s) => s.studentId === studentId);
+          const found = subs.find(
+            (s) => s.studentId === studentId || s.studentName === user?.name
+          );
           if (found) {
             studentSubs.push({ ...found, examId: ex.id, examTitle: ex.title, exam: ex });
           }
         }
         setSubmissions(studentSubs);
       } catch (err) {
-        console.error(err);
+        console.error("Failed to load student exams:", err);
       } finally {
         setLoading(false);
       }
     }
     loadData();
-  }, []);
+  }, [studentId, user]);
 
   if (loading) {
     return <PageLoader label="Loading student examinations..." />;

@@ -22,7 +22,7 @@ export default function ParentResults() {
         const myResult = (results || []).find((r) => r.id === user?.childStudentId) || (results && results[0]);
         setResult(myResult);
         if (myResult) {
-          setChildName(myResult.name || "Aarav Sharma");
+          setChildName(user?.childName || user?.studentName || myResult.name || "Student");
         }
       } catch (error) {
         console.error("Failed to fetch results", error);

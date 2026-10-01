@@ -15,22 +15,24 @@ import PageHeader from "../../components/common/PageHeader";
 import Card from "../../components/ui/Card";
 import { Button } from "../../components/ui";
 import { PageLoader } from "../../components/ui/Loader";
+import { useAuth } from "../../context/AuthContext";
 import { onlineExamService } from "../../services/onlineExamService";
 
 export default function StudentExamStartPage() {
   const { examId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [exam, setExam] = useState(null);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState("instructions"); // "instructions" -> "details"
 
-  // Mock Student details
+  // Authenticated Student details
   const student = {
-    name: "Rahul Patel",
-    studentId: "ST001",
-    classVal: "10",
-    division: "A",
+    name: user?.name || "Student",
+    studentId: user?.studentId || user?.id || (user?._id ? String(user._id) : "STU-1001"),
+    classVal: user?.classVal || user?.className?.replace(/\D/g, "") || "6",
+    division: user?.division || user?.section || "A",
   };
 
   useEffect(() => {

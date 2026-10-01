@@ -25,7 +25,7 @@ export default function StudentResults() {
   const [studentSubmissions, setStudentSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const studentId = "ST001"; // Rahul Patel
+  const studentId = user?.studentId || user?.id || (user?._id ? String(user._id) : "STU-1001");
 
   useEffect(() => {
     async function fetchResult() {
@@ -34,7 +34,14 @@ export default function StudentResults() {
 
         // Fetch traditional term results
         const results = await api.getResults();
-        const myResult = results.find((r) => r.id === "STU-1001") || results[0];
+        const myResult =
+          (Array.isArray(results) ? results : []).find(
+            (r) =>
+              r.id === studentId ||
+              r.studentId === studentId ||
+              (user?.name && r.name?.toLowerCase().includes(user.name.toLowerCase()))
+          ) || (results && results[0]) || null;
+
         setResult(myResult);
 
         // Fetch online exams & student submissions
@@ -44,7 +51,9 @@ export default function StudentResults() {
         const subs = [];
         for (const ex of exams) {
           const examSubs = await onlineExamService.getSubmissions(ex.id);
-          const sub = examSubs.find((s) => s.studentId === studentId);
+          const sub = examSubs.find(
+            (s) => s.studentId === studentId || (user?.name && s.studentName === user.name)
+          );
           if (sub) {
             subs.push({ ...sub, examId: ex.id, exam: ex });
           }
@@ -57,7 +66,7 @@ export default function StudentResults() {
       }
     }
     fetchResult();
-  }, [user]);
+  }, [user, studentId]);
 
   if (loading) return <PageLoader label="Loading student results..." />;
 
