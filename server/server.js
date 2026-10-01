@@ -35,36 +35,36 @@ const PORT = process.env.PORT || 5000;
 // --------------------
 app.use(express.json());
 
-const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.trim().replace(/\/$/, "") : "";
+const clientUrl = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.trim().replace(/\/$/, "")
+  : "";
+
 const allowedOrigins = [
   clientUrl,
   "http://localhost:3000",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
-  "http://localhost:5000",
 ].filter(Boolean);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, server-to-server) or local dev
-      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
-        callback(null, true);
-      } else {
-        // Allow deployed Vercel previews or configured client domain
-        if (clientUrl && (origin === clientUrl || origin.endsWith(".vercel.app"))) {
-          callback(null, true);
-        } else {
-          callback(new Error(`Origin ${origin} not allowed by CORS`));
-        }
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-app.options("*", cors());
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests without an Origin header
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
 
 // --------------------
 // Health Check Route
