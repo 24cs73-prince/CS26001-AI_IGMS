@@ -45,7 +45,7 @@ import { useToast } from "../context/ToastContext";
  * - Filtered CSV export capability
  */
 export default function Parents() {
-  const { data: rawStudents, loading } = useFetch(() => api.getStudents(), []);
+  const { data: rawStudents, loading, refetch } = useFetch(() => api.getStudents(), []);
   const toast = useToast();
 
   // Local additions for parents created in current session
@@ -77,6 +77,7 @@ export default function Parents() {
     guardian: "",
     phone: "",
     email: "",
+    password: "Parent@123",
     studentName: "",
     studentId: "",
     className: "Std 5",
@@ -212,7 +213,7 @@ export default function Parents() {
   /*
    * Handle Create Parent with validation
    */
-  const handleCreateParent = () => {
+  const handleCreateParent = async () => {
     if (!newParent.guardian.trim()) {
       toast.warning("Please enter Parent / Guardian Name.");
       return;
@@ -222,22 +223,59 @@ export default function Parents() {
       return;
     }
 
+    const parentEmail =
+      newParent.email.trim() ||
+      `${newParent.guardian.toLowerCase().replace(/[^a-z0-9]/g, "")}@igms.edu`;
+    const parentPassword = newParent.password.trim() || "Parent@123";
+    const linkedStudentId = newParent.studentId.trim() || `STU-${1000 + parentsList.length + 1}`;
+
     const payload = {
       guardian: newParent.guardian.trim(),
       phone: newParent.phone.trim() || "+91 98000 00000",
-      email:
-        newParent.email.trim() ||
-        `${newParent.guardian.toLowerCase().replace(/[^a-z]/g, "")}@igms.edu`,
+      email: parentEmail,
+      password: parentPassword,
       studentName: newParent.studentName.trim(),
-      studentId: newParent.studentId.trim() || `STU-${1000 + parentsList.length + 1}`,
+      studentId: linkedStudentId,
       className: newParent.className,
       section: newParent.section.toUpperCase(),
       status: newParent.status || "Active",
     };
 
-    // Update local state live without hard page reload
-    setAddedParents((prev) => [payload, ...prev]);
-    toast.success(`Parent record for ${payload.guardian} added successfully!`);
+    // 1. Call Backend API
+    const created = await api.createParent(payload);
+
+    // 2. Also save to local fallback array in localStorage for offline DEV auth
+    try {
+      const existing = JSON.parse(localStorage.getItem("igms.created_parents") || "[]");
+      const fallbackUser = {
+        name: payload.guardian,
+        email: parentEmail,
+        password: parentPassword,
+        roleKey: "parent",
+        role: "Parent",
+        org: "Govt. Higher Secondary School · School A",
+        school_id: "SCH-001",
+        schoolName: "PM Shri Government Higher Secondary School - Gandhinagar",
+        childStudentId: linkedStudentId,
+        home: "/parent/dashboard",
+        permissions: ["parent.profile", "student.results", "student.attendance"],
+      };
+      localStorage.setItem("igms.created_parents", JSON.stringify([fallbackUser, ...existing]));
+    } catch (e) {}
+
+    // 3. Refresh data from Database
+    if (created) {
+      await refetch();
+      toast.success(
+        `Parent record for ${payload.guardian} created! Can log in as Parent with Email: ${parentEmail} and Password: ${parentPassword}`
+      );
+    } else {
+      setAddedParents((prev) => [payload, ...prev]);
+      toast.success(
+        `Parent record for ${payload.guardian} added! Login Email: ${parentEmail}, Password: ${parentPassword}`
+      );
+    }
+
     setAddOpen(false);
   };
 
@@ -600,7 +638,15 @@ export default function Parents() {
             onChange={(e) =>
               setNewParent({ ...newParent, email: e.target.value })
             }
-            className="sm:col-span-2"
+          />
+          <Input
+            label="Parent Login Password *"
+            type="text"
+            placeholder="e.g. Parent@123"
+            value={newParent.password}
+            onChange={(e) =>
+              setNewParent({ ...newParent, password: e.target.value })
+            }
           />
         </div>
       </Modal>

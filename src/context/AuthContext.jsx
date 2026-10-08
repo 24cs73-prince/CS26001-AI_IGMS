@@ -117,15 +117,24 @@ export function AuthProvider({ children }) {
 
     // Guard development fallback authentication strictly behind DEV mode
     if (import.meta.env.DEV) {
-      // Check dynamically created Principal accounts in localStorage (development test only)
+      // Check dynamically created accounts in localStorage (fallback test)
       try {
         const createdPrincipals = JSON.parse(localStorage.getItem("igms.created_principals") || "[]");
-        const matchedPrincipal = createdPrincipals.find(
-          (p) => p.email.toLowerCase() === cleanEmail && p.password === password
+        const createdStudents = JSON.parse(localStorage.getItem("igms.created_students") || "[]");
+        const createdTeachers = JSON.parse(localStorage.getItem("igms.created_teachers") || "[]");
+        const createdParents = JSON.parse(localStorage.getItem("igms.created_parents") || "[]");
+        const allCreated = [...createdPrincipals, ...createdStudents, ...createdTeachers, ...createdParents];
+        
+        const matched = allCreated.find(
+          (u) => u.email?.toLowerCase() === cleanEmail && u.password === password
         );
 
-        if (matchedPrincipal) {
-          const nextUser = normalizeUser(matchedPrincipal);
+        if (matched) {
+          const nextUser = normalizeUser({
+            roleKey: matched.roleKey || role,
+            role: matched.role || role,
+            ...matched,
+          });
           setUser(nextUser);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
           return nextUser;

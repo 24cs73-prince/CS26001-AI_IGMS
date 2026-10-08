@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
- * Minimal data-fetching hook for the mock service layer.
+ * Minimal data-fetching hook for the service layer.
  * @param {() => Promise<any>} fetcher - async function returning data
  * @param {Array} deps - dependency array to re-run the fetch
  */
@@ -12,7 +12,7 @@ export function useFetch(fetcher, deps = []) {
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
-  useEffect(() => {
+  const execute = useCallback(() => {
     let alive = true;
     setLoading(true);
     setError(null);
@@ -24,8 +24,12 @@ export function useFetch(fetcher, deps = []) {
     return () => {
       alive = false;
     };
+  }, []);
+
+  useEffect(() => {
+    return execute();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
-  return { data, loading, error };
+  return { data, loading, error, refetch: execute, setData };
 }

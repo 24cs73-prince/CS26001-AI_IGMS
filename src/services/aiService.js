@@ -5,15 +5,18 @@ export async function generateQuestionPaper({ className, subject, difficulty, qu
   try {
     const headers = getAuthHeaders();
     const url = buildApiUrl("/api/ai/generate-questions");
+    const payload = {
+      classVal: className?.replace(/\D/g, "") || "6",
+      subject: subject || "Mathematics",
+      syllabus: `Curriculum syllabus for Class ${className || "6"} ${subject || "Mathematics"}`,
+      difficulty: difficulty || "Medium",
+      count: questionCount,
+    };
+
     let res = await fetch(url, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        classVal: className?.replace(/\D/g, "") || "6",
-        subject: subject || "Mathematics",
-        syllabus: `Term Syllabus for ${subject}`,
-        count: questionCount,
-      }),
+      body: JSON.stringify(payload),
     }).catch(() => null);
 
     if (!res || !res.ok) {
@@ -21,12 +24,7 @@ export async function generateQuestionPaper({ className, subject, difficulty, qu
         res = await fetch("http://localhost:5000/api/ai/generate-questions", {
           method: "POST",
           headers,
-          body: JSON.stringify({
-            classVal: className?.replace(/\D/g, "") || "6",
-            subject: subject || "Mathematics",
-            syllabus: `Term Syllabus for ${subject}`,
-            count: questionCount,
-          }),
+          body: JSON.stringify(payload),
         }).catch(() => null);
       }
     }

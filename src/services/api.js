@@ -55,6 +55,35 @@ export const api = {
     }));
   },
 
+  createStudent: async (payload) => {
+    try {
+      const headers = getAuthHeaders();
+      const url = buildApiUrl("/api/students");
+      let res = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+
+      if (!res || !res.ok) {
+        if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+          res = await fetch("http://localhost:5000/api/students", {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload),
+          }).catch(() => null);
+        }
+      }
+
+      if (res && res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.warn("[API] createStudent failed:", e);
+    }
+    return null;
+  },
+
   // Teachers
   getTeachers: async () => {
     const list = await fetchFromBackend("/api/teachers", []);
@@ -74,14 +103,121 @@ export const api = {
     }));
   },
 
-  // Schools
+  createTeacher: async (payload) => {
+    try {
+      const headers = getAuthHeaders();
+      const url = buildApiUrl("/api/teachers");
+      let res = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+
+      if (!res || !res.ok) {
+        if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+          res = await fetch("http://localhost:5000/api/teachers", {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload),
+          }).catch(() => null);
+        }
+      }
+
+      if (res && res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.warn("[API] createTeacher failed:", e);
+    }
+    return null;
+  },
+
+  // Schools & Principals
   getSchools: async () => {
     return await fetchFromBackend("/api/schools", []);
+  },
+
+  getPrincipals: async () => {
+    const list = await fetchFromBackend("/api/principals", []);
+    if (!Array.isArray(list)) return [];
+    return list.map((p) => ({
+      id: p.principalId || p.id || (p._id ? String(p._id) : "PRN-101"),
+      principalId: p.principalId || p.id || (p._id ? String(p._id) : "PRN-101"),
+      name: p.name,
+      schoolName: p.schoolName || "Government Higher Secondary School",
+      district: p.district || "Gandhinagar",
+      email: p.email,
+      phone: p.phone || "+91 98765 43210",
+      udise: p.udise || "24070100101",
+      status: p.status || "Active",
+      appointedDate: p.appointedDate || "2024-06-15",
+      studentsCount: p.studentsCount || 420,
+      teachersCount: p.teachersCount || 18,
+      _id: p._id,
+    }));
+  },
+
+  createPrincipal: async (payload) => {
+    try {
+      const headers = getAuthHeaders();
+      const url = buildApiUrl("/api/principals");
+      let res = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+
+      if (!res || !res.ok) {
+        if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+          res = await fetch("http://localhost:5000/api/principals", {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload),
+          }).catch(() => null);
+        }
+      }
+
+      if (res && res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.warn("[API] createPrincipal failed:", e);
+    }
+    return null;
   },
 
   // Parents & Linked Children
   getParents: async () => {
     return await fetchFromBackend("/api/parents", []);
+  },
+
+  createParent: async (payload) => {
+    try {
+      const headers = getAuthHeaders();
+      const url = buildApiUrl("/api/parents");
+      let res = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+
+      if (!res || !res.ok) {
+        if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+          res = await fetch("http://localhost:5000/api/parents", {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload),
+          }).catch(() => null);
+        }
+      }
+
+      if (res && res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.warn("[API] createParent failed:", e);
+    }
+    return null;
   },
 
   getMyChildren: async () => {

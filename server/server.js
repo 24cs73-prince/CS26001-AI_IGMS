@@ -10,6 +10,7 @@ import submissionRoutes from "./routes/submissionRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
 import teacherRoutes from "./routes/teacherRoutes.js";
 import schoolRoutes from "./routes/schoolRoutes.js";
+import principalRoutes from "./routes/principalRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
 import markRoutes from "./routes/markRoutes.js";
 import noticeRoutes from "./routes/noticeRoutes.js";
@@ -88,6 +89,7 @@ app.use("/api/schools", schoolRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/teachers", teacherRoutes);
 app.use("/api/parents", parentRoutes);
+app.use("/api/principals", principalRoutes);
 
 app.use("/api/classes", classRoutes);
 app.use("/api/subjects", subjectRoutes);

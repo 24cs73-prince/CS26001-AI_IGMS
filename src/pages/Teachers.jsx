@@ -34,7 +34,7 @@ import { PageLoader } from "../components/ui/Loader";
 import { useToast } from "../context/ToastContext";
 
 export default function Teachers() {
-  const { data: rawTeachers, loading } = useFetch(() => api.getTeachers(), []);
+  const { data: rawTeachers, loading, refetch } = useFetch(() => api.getTeachers(), []);
   const toast = useToast();
 
   // Local state for additions so UI updates live without hard page reload
@@ -72,6 +72,7 @@ export default function Teachers() {
     assignedDivision: "A",
     phone: "",
     email: "",
+    password: "Teacher@123",
     status: "Active",
   };
 
@@ -213,6 +214,10 @@ export default function Teachers() {
     }
 
     const assignedCls = `${newTeacher.assignedStandard} - ${newTeacher.assignedDivision}`;
+    const teacherEmail =
+      newTeacher.email.trim() ||
+      `${newTeacher.name.toLowerCase().replace(/[^a-z0-9]/g, "")}@igms.edu`;
+    const teacherPassword = newTeacher.password.trim() || "Teacher@123";
 
     const payload = {
       teacherId: teacherIdInput,
@@ -221,30 +226,47 @@ export default function Teachers() {
       subject: newTeacher.subject.trim(),
       experience: Number(newTeacher.experience) || 5,
       phone: newTeacher.phone.trim() || "+91 98000 00000",
-      email:
-        newTeacher.email.trim() ||
-        `${newTeacher.name.toLowerCase().replace(/[^a-z]/g, "")}@igms.edu`,
+      email: teacherEmail,
+      password: teacherPassword,
       classes: [assignedCls],
       status: newTeacher.status || "Active",
       rating: 4.8,
     };
 
-    try {
-      const headers = getAuthHeaders();
-      const url = buildApiUrl("/api/teachers");
+    // 1. Call Backend API
+    const created = await api.createTeacher(payload);
 
-      await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      }).catch(() => null);
-    } catch (err) {
-      console.warn("Backend teacher save error, updating local state:", err);
+    // 2. Also save to local fallback array in localStorage for offline DEV auth
+    try {
+      const existing = JSON.parse(localStorage.getItem("igms.created_teachers") || "[]");
+      const fallbackUser = {
+        name: payload.name,
+        email: teacherEmail,
+        password: teacherPassword,
+        roleKey: "teacher",
+        role: "Teacher",
+        org: "Govt. Higher Secondary School · School A",
+        school_id: "SCH-001",
+        schoolName: "PM Shri Government Higher Secondary School - Gandhinagar",
+        home: "/teacher/dashboard",
+        permissions: ["attendance.manage", "marks.manage", "leave.apply", "teacher.dashboard"],
+      };
+      localStorage.setItem("igms.created_teachers", JSON.stringify([fallbackUser, ...existing]));
+    } catch (e) {}
+
+    // 3. Refresh data from Database
+    if (created) {
+      await refetch();
+      toast.success(
+        `Teacher ${payload.name} created! Can log in as Teacher with Email: ${teacherEmail} and Password: ${teacherPassword}`
+      );
+    } else {
+      setAddedTeachers((prev) => [payload, ...prev]);
+      toast.success(
+        `Teacher ${payload.name} added! Login Email: ${teacherEmail}, Password: ${teacherPassword}`
+      );
     }
 
-    // Update local state dynamically (NO hard page reload)
-    setAddedTeachers((prev) => [payload, ...prev]);
-    toast.success(`Teacher ${payload.name} added successfully!`);
     setAddOpen(false);
   };
 
@@ -556,7 +578,16 @@ export default function Teachers() {
             onChange={(e) =>
               setNewTeacher({ ...newTeacher, email: e.target.value })
             }
-            className="sm:col-span-2"
+          />
+
+          <Input
+            label="Teacher Login Password *"
+            type="text"
+            placeholder="e.g. Teacher@123"
+            value={newTeacher.password}
+            onChange={(e) =>
+              setNewTeacher({ ...newTeacher, password: e.target.value })
+            }
           />
         </div>
       </Modal>

@@ -48,7 +48,7 @@ import { useToast } from "../context/ToastContext";
  * - Filtered CSV export capability
  */
 export default function Students() {
-  const { data: rawStudents, loading } = useFetch(
+  const { data: rawStudents, loading, refetch } = useFetch(
     () => api.getStudents(),
     []
   );
@@ -98,6 +98,7 @@ export default function Students() {
     guardian: "",
     phone: "",
     email: "",
+    password: "Student@123",
     dob: "2015-05-15",
     admissionDate: new Date().toISOString().split("T")[0],
     status: "Active",
@@ -375,6 +376,11 @@ export default function Students() {
       return;
     }
 
+    const studentEmail =
+      newStudent.email.trim() ||
+      `${newStudent.name.toLowerCase().replace(/[^a-z0-9]/g, "")}@igms.edu`;
+    const studentPassword = newStudent.password.trim() || "Student@123";
+
     const payload = {
       studentId: studentIdInput,
       name: newStudent.name.trim(),
@@ -384,9 +390,8 @@ export default function Students() {
       gender: newStudent.gender,
       guardian: newStudent.guardian.trim(),
       phone: newStudent.phone.trim() || "+91 98000 00000",
-      email:
-        newStudent.email.trim() ||
-        `${newStudent.name.toLowerCase().replace(/[^a-z]/g, "")}@igms.edu`,
+      email: studentEmail,
+      password: studentPassword,
       dob: newStudent.dob || "2015-05-15",
       admissionDate: newStudent.admissionDate || new Date().toISOString().split("T")[0],
       status: newStudent.status || "Active",
@@ -394,22 +399,44 @@ export default function Students() {
       average: 84,
     };
 
-    try {
-      const headers = getAuthHeaders();
-      const url = buildApiUrl("/api/students");
+    // 1. Call Backend API
+    const created = await api.createStudent(payload);
 
-      await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      }).catch(() => null);
-    } catch (err) {
-      console.warn("Backend POST error, continuing with local state update:", err);
+    // 2. Also save to local fallback array in localStorage for offline DEV auth
+    try {
+      const existing = JSON.parse(localStorage.getItem("igms.created_students") || "[]");
+      const fallbackUser = {
+        name: payload.name,
+        email: studentEmail,
+        password: studentPassword,
+        roleKey: "student",
+        role: "Student",
+        org: `${payload.className} · Section ${payload.section}`,
+        school_id: "SCH-001",
+        schoolName: "PM Shri Government Higher Secondary School - Gandhinagar",
+        classVal: String(payload.className).replace(/[^0-9]/g, "") || "5",
+        division: payload.section,
+        studentId: studentIdInput,
+        home: "/student/home",
+        permissions: ["student.profile", "student.results", "student.attendance"],
+      };
+      localStorage.setItem("igms.created_students", JSON.stringify([fallbackUser, ...existing]));
+    } catch (e) {}
+
+    // 3. Refresh data from Database
+    if (created) {
+      await refetch();
+      toast.success(
+        `Student ${payload.name} created! Can log in as Student with Email: ${studentEmail} and Password: ${studentPassword}`
+      );
+    } else {
+      // Add to local state dynamically if offline
+      setAddedStudents((prev) => [payload, ...prev]);
+      toast.success(
+        `Student ${payload.name} added! Login Email: ${studentEmail}, Password: ${studentPassword}`
+      );
     }
 
-    // Add to local state dynamically (NO hard window.location.reload())
-    setAddedStudents((prev) => [payload, ...prev]);
-    toast.success(`Student ${payload.name} added successfully!`);
     setAddOpen(false);
   };
 
@@ -778,6 +805,17 @@ export default function Students() {
             value={newStudent.email}
             onChange={(e) =>
               setNewStudent({ ...newStudent, email: e.target.value })
+            }
+          />
+
+          {/* Student Login Password */}
+          <Input
+            label="Student Login Password *"
+            type="text"
+            placeholder="e.g. Student@123"
+            value={newStudent.password}
+            onChange={(e) =>
+              setNewStudent({ ...newStudent, password: e.target.value })
             }
           />
 

@@ -17,9 +17,8 @@ import {
   FiX,
   FiRefreshCw,
 } from "react-icons/fi";
-import PageHeader from "../components/common/PageHeader";
-import { Button, Card, Badge, Input, Dropdown } from "../components/ui";
-import { useToast } from "../context/ToastContext";
+import { useFetch } from "../hooks/useFetch";
+import { api } from "../services/api";
 
 const INITIAL_PRINCIPALS = [
   {
@@ -48,32 +47,6 @@ const INITIAL_PRINCIPALS = [
     studentsCount: 580,
     teachersCount: 24,
   },
-  {
-    id: "PRN-103",
-    name: "Smt. Shailaja Mehta",
-    schoolName: "Model Residential Kanya Shala",
-    district: "Vadodara",
-    email: "principal@mrks.vadodara.igms.gov.in",
-    phone: "+91 97123 45678",
-    udise: "24190100303",
-    status: "Active",
-    appointedDate: "2024-01-10",
-    studentsCount: 310,
-    teachersCount: 14,
-  },
-  {
-    id: "PRN-104",
-    name: "Shri Dharmendra Trivedi",
-    schoolName: "Navchetan Primary & Secondary School",
-    district: "Rajkot",
-    email: "principal@navchetan.rajkot.igms.gov.in",
-    phone: "+91 99012 34567",
-    udise: "24090100404",
-    status: "Active",
-    appointedDate: "2024-04-05",
-    studentsCount: 390,
-    teachersCount: 16,
-  },
 ];
 
 const DISTRICTS = [
@@ -88,8 +61,9 @@ const DISTRICTS = [
 
 export default function Principals() {
   const toast = useToast();
-  const [principals, setPrincipals] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: dbPrincipals, loading, refetch } = useFetch(() => api.getPrincipals(), []);
+  const [addedPrincipals, setAddedPrincipals] = useState([]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("All Districts");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -105,93 +79,62 @@ export default function Principals() {
     udise: "",
   });
 
-  const loadPrincipals = () => {
-    try {
-      const stored = localStorage.getItem("igms.principals_roster");
-      if (stored) {
-        setPrincipals(JSON.parse(stored));
-      } else {
-        localStorage.setItem(
-          "igms.principals_roster",
-          JSON.stringify(INITIAL_PRINCIPALS)
-        );
-        setPrincipals(INITIAL_PRINCIPALS);
-      }
-    } catch (e) {
-      setPrincipals(INITIAL_PRINCIPALS);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const principals = (dbPrincipals && dbPrincipals.length > 0)
+    ? [...addedPrincipals, ...dbPrincipals]
+    : [...addedPrincipals, ...INITIAL_PRINCIPALS];
 
-  useEffect(() => {
-    loadPrincipals();
-  }, []);
-
-  const handleSavePrincipal = (e) => {
+  const handleSavePrincipal = async (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.schoolName.trim() || !form.email.trim()) {
       toast.error("Please fill in Principal Name, School, and Official Email.");
       return;
     }
 
-    if (editingPrincipal) {
-      const updated = principals.map((p) =>
-        p.id === editingPrincipal.id
-          ? {
-              ...p,
-              name: form.name,
-              schoolName: form.schoolName,
-              district: form.district,
-              email: form.email,
-              phone: form.phone || p.phone,
-              udise: form.udise || p.udise,
-            }
-          : p
-      );
-      setPrincipals(updated);
-      localStorage.setItem("igms.principals_roster", JSON.stringify(updated));
-      toast.success(`Principal '${form.name}' updated successfully!`);
-    } else {
-      const newPrincipal = {
-        id: `PRN-${Math.floor(100 + Math.random() * 900)}`,
-        name: form.name,
-        schoolName: form.schoolName,
-        district: form.district,
-        email: form.email,
-        phone: form.phone || "+91 98765 00000",
-        udise: form.udise || `2407${Math.floor(1000000 + Math.random() * 9000000)}`,
-        status: "Active",
-        appointedDate: new Date().toISOString().split("T")[0],
-        studentsCount: 350,
-        teachersCount: 15,
+    const principalEmail = form.email.trim().toLowerCase();
+    const principalPassword = form.password.trim() || "Principal@123";
+
+    const payload = {
+      principalId: `PRN-${Math.floor(100 + Math.random() * 900)}`,
+      name: form.name.trim(),
+      schoolName: form.schoolName.trim(),
+      district: form.district,
+      email: principalEmail,
+      phone: form.phone.trim() || "+91 98765 00000",
+      password: principalPassword,
+      udise: form.udise.trim() || "24070100101",
+    };
+
+    // 1. Save to MongoDB via backend API
+    const created = await api.createPrincipal(payload);
+
+    // 2. Also save to local fallback array in localStorage
+    try {
+      const existing = JSON.parse(localStorage.getItem("igms.created_principals") || "[]");
+      const fallbackUser = {
+        name: payload.name,
+        email: principalEmail,
+        password: principalPassword,
+        roleKey: "principal",
+        role: "Principal",
+        org: `${payload.schoolName} · ${payload.district}`,
+        school_id: "SCH-001",
+        schoolName: payload.schoolName,
+        home: "/dashboard",
+        permissions: ["school.view", "student.manage", "teacher.manage", "parent.manage", "dashboard.view"],
       };
+      localStorage.setItem("igms.created_principals", JSON.stringify([fallbackUser, ...existing]));
+    } catch (err) {}
 
-      const updated = [newPrincipal, ...principals];
-      setPrincipals(updated);
-      localStorage.setItem("igms.principals_roster", JSON.stringify(updated));
-
-      // Also register credential account
-      try {
-        const existingAccounts = JSON.parse(
-          localStorage.getItem("igms.created_principals") || "[]"
-        );
-        const newAccount = {
-          email: form.email.toLowerCase(),
-          password: form.password,
-          name: form.name,
-          roleKey: "principal",
-          role: "Principal",
-          schoolName: form.schoolName,
-        };
-        localStorage.setItem(
-          "igms.created_principals",
-          JSON.stringify([newAccount, ...existingAccounts])
-        );
-      } catch (err) {}
-
+    // 3. Refresh from DB
+    if (created) {
+      await refetch();
       toast.success(
-        `Principal account created for '${form.name}'! Credentials active.`
+        `Principal '${payload.name}' created in DB! Login Email: ${principalEmail}, Password: ${principalPassword}`
+      );
+    } else {
+      setAddedPrincipals((prev) => [payload, ...prev]);
+      toast.success(
+        `Principal '${payload.name}' added! Login Email: ${principalEmail}, Password: ${principalPassword}`
       );
     }
 

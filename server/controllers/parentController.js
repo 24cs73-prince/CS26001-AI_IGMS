@@ -74,40 +74,91 @@ export const getMyChildren = async (req, res) => {
   }
 };
 
+import bcrypt from "bcryptjs";
+
 /**
- * Create a new parent profile
+ * Create a new parent profile & Register User Login Account
  */
 export const createParent = async (req, res) => {
   try {
-    const { userId, firstName, middleName, lastName, phone, email, address, occupation, studentIds } = req.body;
-    
-    const parent = new Parent({
-      userId,
+    const {
+      guardian,
+      name,
       firstName,
       middleName,
       lastName,
       phone,
       email,
+      password,
       address,
       occupation,
+      studentId,
+      studentIds,
+    } = req.body;
+
+    const parentName = guardian || name || `${firstName || "Parent"} ${lastName || ""}`.trim() || "Guardian";
+    const cleanEmail = (email && email.trim())
+      ? email.trim().toLowerCase()
+      : `${parentName.toLowerCase().replace(/[^a-z0-9]/g, "")}@igms.edu`;
+    const userPassword = (password && password.trim()) ? password.trim() : "Parent@123";
+
+    // 1. Create or update User account in MongoDB for Parent Login
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(userPassword, salt);
+
+    const userDoc = await User.findOneAndUpdate(
+      { email: cleanEmail },
+      {
+        name: parentName,
+        email: cleanEmail,
+        passwordHash,
+        roleKey: "parent",
+        role: "Parent",
+        org: "Govt. Higher Secondary School · School A",
+        school_id: "SCH-001",
+        schoolName: "PM Shri Government Higher Secondary School - Gandhinagar",
+        childStudentId: studentId || (Array.isArray(studentIds) ? studentIds[0] : "STU-1001"),
+        home: "/parent/dashboard",
+        permissions: ["parent.profile", "student.results", "student.attendance"],
+        mustChangePassword: false,
+      },
+      { upsert: true, new: true }
+    );
+
+    // 2. Create Parent profile document in MongoDB
+    const parent = new Parent({
+      userId: userDoc._id,
+      firstName: firstName || parentName.split(" ")[0] || "Guardian",
+      middleName: middleName || "",
+      lastName: lastName || parentName.split(" ")[1] || "",
+      phone: phone || "+91 98000 00000",
+      email: cleanEmail,
+      address: address || "Gandhinagar, Gujarat",
+      occupation: occupation || "Government / Business",
     });
 
     await parent.save();
 
-    // If studentIds provided, link them
-    if (Array.isArray(studentIds) && studentIds.length > 0) {
-      for (const sId of studentIds) {
+    // 3. Link students if studentId or studentIds provided
+    const allStudentIds = studentIds || (studentId ? [studentId] : []);
+    if (Array.isArray(allStudentIds) && allStudentIds.length > 0) {
+      for (const sId of allStudentIds) {
         await StudentParent.create({
           studentId: sId,
           parentId: parent._id,
-          parentUserId: userId,
+          parentUserId: userDoc._id,
           relationship: "Guardian",
         });
       }
     }
 
-    res.status(201).json(parent);
+    res.status(201).json({
+      ...parent.toObject(),
+      loginEmail: cleanEmail,
+      loginPassword: userPassword,
+    });
   } catch (error) {
+    console.error("Create Parent Error:", error);
     res.status(500).json({ message: "Failed to create parent", error: error.message });
   }
 };

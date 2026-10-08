@@ -208,6 +208,7 @@ export default function AIPaperGenerator() {
         classVal: config.cls.value,
         subject: config.sub.label,
         syllabus: config.topic || "Standard Grade Curriculum",
+        difficulty: config.diff.value || "Medium",
         count: countVal,
         totalQuestions: countVal,
       };

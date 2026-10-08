@@ -2,6 +2,7 @@ import { User } from "../models/User.js";
 import { School } from "../models/School.js";
 import { Student } from "../models/Student.js";
 import { Teacher } from "../models/Teacher.js";
+import { Principal } from "../models/Principal.js";
 import { Exam } from "../models/Exam.js";
 import { Notice } from "../models/Notice.js";
 import { Attendance } from "../models/Attendance.js";
@@ -288,7 +289,41 @@ export const seedAllData = async () => {
       console.log("✅ Seeded 2 Notices into MongoDB");
     }
 
-    console.log("🚀 Complete 17-Collection MongoDB Database population ready!");
+    // 17. SEED PRINCIPALS
+    const principalCount = await Principal.countDocuments();
+    if (principalCount === 0) {
+      await Principal.insertMany([
+        {
+          principalId: "PRN-101",
+          name: "Rohan Administrator",
+          schoolName: "Government Higher Secondary School",
+          district: "Gandhinagar",
+          email: "principal@ghss.gandhinagar.igms.gov.in",
+          phone: "+91 98765 43210",
+          udise: "24070100101",
+          status: "Active",
+          appointedDate: "2024-06-15",
+          studentsCount: 420,
+          teachersCount: 18,
+        },
+        {
+          principalId: "PRN-102",
+          name: "Dr. Arvind Bhatt",
+          schoolName: "Shri Sardar Patel Vidyalaya",
+          district: "Ahmedabad",
+          email: "principal@sardarpatel.ahmedabad.igms.gov.in",
+          phone: "+91 98234 56789",
+          udise: "24070200202",
+          status: "Active",
+          appointedDate: "2023-11-20",
+          studentsCount: 580,
+          teachersCount: 24,
+        },
+      ]);
+      console.log("✅ Seeded 2 Principals into MongoDB");
+    }
+
+    console.log("🚀 Complete 18-Collection MongoDB Database population ready!");
   } catch (error) {
     console.error("Error seeding MongoDB database:", error);
   }

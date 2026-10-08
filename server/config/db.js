@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { seedAllData } from "./seedAllData.js";
 
 /**
  * MongoDB Connection Handler
@@ -21,6 +22,11 @@ export const connectDB = async () => {
       serverSelectionTimeoutMS: 15000,
     });
     console.log(`✅ MongoDB Connected [Database: ${conn.connection.name}]: ${conn.connection.host}`);
+    try {
+      await seedAllData();
+    } catch (seedErr) {
+      console.warn("⚠️ Auto-seed notice:", seedErr.message);
+    }
     return conn;
   } catch (error) {
     console.error(`❌ MongoDB Connection Error: ${error.message}`);

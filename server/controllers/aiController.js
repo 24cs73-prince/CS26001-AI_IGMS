@@ -6,19 +6,20 @@ import { generateMCQPaperWithGrok, analyzePerformanceWithGrok } from "../utils/g
  */
 export const generateQuestions = async (req, res) => {
   try {
-    const { classVal, subject, syllabus, totalQuestions, count } = req.body;
+    const { classVal, standard, subject, syllabus, topic, difficulty, diff, totalQuestions, count } = req.body;
     const numQuestions = Number(count || totalQuestions) || 5;
 
     const questions = await generateMCQPaperWithGrok({
-      classVal: String(classVal || "5"),
+      classVal: String(classVal || standard || "5"),
       subject: subject || "Science",
-      syllabus: syllabus || "",
+      syllabus: syllabus || topic || "",
+      difficulty: difficulty || diff || "Medium",
       count: numQuestions,
     });
 
     res.json({
       status: "success",
-      source: process.env.GROK_API_KEY && process.env.GROK_API_KEY !== "your_xai_grok_api_key_here" ? "Grok-AI" : "Smart-Fallback-AI",
+      source: (process.env.GROK_API_KEY || process.env.GROQ_API_KEY) ? "Groq-AI (openai/gpt-oss-120b)" : "Smart-Fallback-AI",
       totalQuestions: questions.length,
       questions,
     });
