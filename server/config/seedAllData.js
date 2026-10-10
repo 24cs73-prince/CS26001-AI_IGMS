@@ -252,17 +252,62 @@ export const seedAllData = async () => {
 
     // 9. SEED TIMETABLE
     const timetableCount = await Timetable.countDocuments();
-    if (timetableCount === 0) {
-      const sampleTimetable = [
-        { schoolId: "SCH-001", className: "Class 6", section: "A", dayOfWeek: 1, period: 1, subjectName: "Mathematics", teacherName: "Dr. Meenakshi Iyer", startTime: "08:00 AM", endTime: "08:45 AM", room: "Room 101" },
-        { schoolId: "SCH-001", className: "Class 6", section: "A", dayOfWeek: 1, period: 2, subjectName: "Gujarati", teacherName: "Sushmita Roy", startTime: "08:45 AM", endTime: "09:30 AM", room: "Room 101" },
-        { schoolId: "SCH-001", className: "Class 6", section: "A", dayOfWeek: 1, period: 3, subjectName: "Science", teacherName: "Rakesh Menon", startTime: "09:45 AM", endTime: "10:30 AM", room: "Room 101" },
-        { schoolId: "SCH-001", className: "Class 6", section: "A", dayOfWeek: 1, period: 4, subjectName: "English", teacherName: "Sushmita Roy", startTime: "10:30 AM", endTime: "11:15 AM", room: "Room 101" },
-        { schoolId: "SCH-001", className: "Class 6", section: "A", dayOfWeek: 1, period: 5, subjectName: "Social Science", teacherName: "Arvind Nair", startTime: "11:45 AM", endTime: "12:30 PM", room: "Room 101" },
-        { schoolId: "SCH-001", className: "Class 6", section: "A", dayOfWeek: 1, period: 6, subjectName: "Computer", teacherName: "Pooja Deshmukh", startTime: "12:30 PM", endTime: "01:15 PM", room: "Computer Lab" },
+    if (timetableCount < 20) {
+      if (timetableCount > 0) {
+        await Timetable.deleteMany({});
+      }
+      const days = [
+        { num: 1, en: "Monday", gu: "સોમવાર" },
+        { num: 2, en: "Tuesday", gu: "મંગળવાર" },
+        { num: 3, en: "Wednesday", gu: "બુધવાર" },
+        { num: 4, en: "Thursday", gu: "ગુરુવાર" },
+        { num: 5, en: "Friday", gu: "શુક્રવાર" },
+        { num: 6, en: "Saturday", gu: "શનિવાર" },
       ];
-      await Timetable.insertMany(sampleTimetable);
-      console.log("✅ Seeded Class 6 Timetable into MongoDB");
+
+      const classConfigs = [
+        { className: "Class 8", section: "A" },
+        { className: "Class 8", section: "B" },
+        { className: "Class 7", section: "A" },
+        { className: "Class 7", section: "B" },
+        { className: "Class 6", section: "A" },
+        { className: "Class 6", section: "B" },
+        { className: "Class 5", section: "A" },
+      ];
+
+      const periodTemplates = [
+        { period: 1, subjectName: "Mathematics", teacherName: "Dr. Meenakshi Iyer", startTime: "08:00 AM", endTime: "08:45 AM", room: "Room 101" },
+        { period: 2, subjectName: "Gujarati", teacherName: "Sushmita Roy", startTime: "08:45 AM", endTime: "09:30 AM", room: "Room 101" },
+        { period: 3, subjectName: "Science", teacherName: "Rakesh Menon", startTime: "09:45 AM", endTime: "10:30 AM", room: "Room 101" },
+        { period: 4, subjectName: "Recess (Lunch)", teacherName: "Mid-Day Meal Staff", startTime: "10:30 AM", endTime: "11:15 AM", room: "Dining Hall" },
+        { period: 5, subjectName: "Social Science", teacherName: "Arvind Nair", startTime: "11:45 AM", endTime: "12:30 PM", room: "Room 101" },
+        { period: 6, subjectName: "English", teacherName: "Sushmita Roy", startTime: "12:30 PM", endTime: "01:15 PM", room: "Room 101" },
+        { period: 7, subjectName: "Computer Studies", teacherName: "Pooja Deshmukh", startTime: "01:15 PM", endTime: "02:00 PM", room: "Computer Lab" },
+      ];
+
+      const fullTimetable = [];
+      for (const cls of classConfigs) {
+        for (const day of days) {
+          for (const pt of periodTemplates) {
+            fullTimetable.push({
+              schoolId: "SCH-001",
+              className: cls.className,
+              section: cls.section,
+              dayOfWeek: day.num,
+              dayName: { en: day.en, gu: day.gu },
+              period: pt.period,
+              subjectName: pt.subjectName,
+              teacherName: pt.teacherName,
+              startTime: pt.startTime,
+              endTime: pt.endTime,
+              room: pt.room,
+              academicYear: "2025-26",
+            });
+          }
+        }
+      }
+      await Timetable.insertMany(fullTimetable);
+      console.log(`✅ Seeded ${fullTimetable.length} Timetable slots across all primary classes into MongoDB`);
     }
 
     // 10. SEED NOTICES

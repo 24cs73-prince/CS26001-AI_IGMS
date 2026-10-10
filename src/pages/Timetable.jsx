@@ -16,20 +16,33 @@ const TONE_CLASS = {
   warning: 'bg-warning/10 text-warning-700 border-warning/20',
   info: 'bg-sky-50 text-sky-700 border-sky-200',
   danger: 'bg-danger/10 text-danger-600 border-danger/20',
-  muted: 'bg-slate-50 text-slate-400 border-slate-200',
+  muted: 'bg-slate-50 text-slate-500 border-slate-200',
 };
 
 export default function Timetable() {
-  const { data: tt, loading } = useFetch(() => api.getTimetable(), []);
-  const [section, setSection] = useState({ value: '8A', label: 'Class 8 · Section A' });
+  const [section, setSection] = useState({ value: '8A', label: 'Class 8 · Section A', className: 'Class 8', sec: 'A' });
+
+  const { data: tt, loading } = useFetch(
+    () => api.getTimetable({ className: section.className || `Class ${section.value[0]}`, section: section.sec || section.value.slice(1) }),
+    [section.value]
+  );
+
+  const sectionOptions = [
+    { value: '8A', label: 'Class 8 · Section A', className: 'Class 8', sec: 'A' },
+    { value: '8B', label: 'Class 8 · Section B', className: 'Class 8', sec: 'B' },
+    { value: '7A', label: 'Class 7 · Section A', className: 'Class 7', sec: 'A' },
+    { value: '7B', label: 'Class 7 · Section B', className: 'Class 7', sec: 'B' },
+    { value: '6A', label: 'Class 6 · Section A', className: 'Class 6', sec: 'A' },
+    { value: '6B', label: 'Class 6 · Section B', className: 'Class 6', sec: 'B' },
+    { value: '5A', label: 'Class 5 · Section A', className: 'Class 5', sec: 'A' },
+    { value: '5B', label: 'Class 5 · Section B', className: 'Class 5', sec: 'B' },
+  ];
 
   if (loading || !tt) return <PageLoader label="Loading timetable…" />;
 
-  const sectionOptions = [
-    { value: '8A', label: 'Class 8 · Section A' },
-    { value: '8B', label: 'Class 8 · Section B' },
-    { value: '7A', label: 'Class 7 · Section A' },
-  ];
+  const periods = tt.periods || ["08:00 - 08:45", "08:45 - 09:30", "09:45 - 10:30", "10:30 - 11:15", "11:45 - 12:30", "12:30 - 01:15", "01:15 - 02:00"];
+  const days = tt.days || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const grid = tt.grid || {};
 
   return (
     <div>
@@ -46,18 +59,18 @@ export default function Timetable() {
             {/* Header row: period times */}
             <div className="grid grid-cols-[120px_repeat(7,1fr)] border-b border-hairline bg-canvas/60">
               <div className="p-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Day / Time</div>
-              {tt.periods.map((p) => (
+              {periods.map((p) => (
                 <div key={p} className="border-l border-hairline p-3 text-center text-[11px] font-medium text-slate-500">{p}</div>
               ))}
             </div>
 
             {/* Day rows */}
-            {tt.days.map((day) => (
+            {days.map((day) => (
               <div key={day} className="grid grid-cols-[120px_repeat(7,1fr)] border-b border-hairline last:border-b-0">
                 <div className="flex items-center bg-canvas/40 p-3 text-sm font-semibold text-ink">{day}</div>
-                {tt.grid[day].map((cell, idx) => (
+                {(grid[day] || []).map((cell, idx) => (
                   <div key={idx} className="border-l border-hairline p-2">
-                    <div className={cn('flex h-full min-h-[64px] flex-col justify-center rounded-lg border px-2.5 py-1.5 transition-transform hover:scale-[1.02]', TONE_CLASS[cell.tone])}>
+                    <div className={cn('flex h-full min-h-[64px] flex-col justify-center rounded-lg border px-2.5 py-1.5 transition-transform hover:scale-[1.02]', TONE_CLASS[cell.tone] || TONE_CLASS.primary)}>
                       <p className="text-[12px] font-semibold leading-tight">{cell.subject}</p>
                       {cell.teacher && <p className="text-[10px] opacity-75">{cell.teacher}</p>}
                     </div>
@@ -81,3 +94,4 @@ export default function Timetable() {
     </div>
   );
 }
+

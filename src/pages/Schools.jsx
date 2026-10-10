@@ -31,7 +31,7 @@ export default function Schools() {
       let formatted = [];
       if (res && res.ok) {
         const data = await res.json();
-        const list = Array.isArray(data) ? data : (data.value || []);
+        const list = Array.isArray(data) ? data : (data.value || data.data || []);
         formatted = list.map((s) => ({
           id: s._id || s.school_id,
           schoolName: s.name,
@@ -43,7 +43,30 @@ export default function Schools() {
       }
 
       const stored = JSON.parse(localStorage.getItem("igms.schools") || "[]");
-      setSchools(formatted.length > 0 ? [...formatted, ...stored] : stored);
+      const DEFAULT_SCHOOLS = [
+        {
+          id: "SCH-101",
+          schoolName: "Government Higher Secondary School",
+          district: "Gandhinagar",
+          principal: "Rohan Administrator",
+          principalEmail: "principal@ghss.gandhinagar.igms.gov.in",
+          status: "Active",
+        },
+        {
+          id: "SCH-102",
+          schoolName: "Shri Sardar Patel Vidyalaya",
+          district: "Ahmedabad",
+          principal: "Dr. Arvind Bhatt",
+          principalEmail: "principal@sardarpatel.ahmedabad.igms.gov.in",
+          status: "Active",
+        },
+      ];
+
+      const combined = formatted.length > 0
+        ? [...formatted, ...stored]
+        : (stored.length > 0 ? stored : DEFAULT_SCHOOLS);
+
+      setSchools(combined);
     } catch (err) {
       console.error("Failed to fetch schools:", err);
     } finally {

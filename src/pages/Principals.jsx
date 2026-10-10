@@ -17,6 +17,9 @@ import {
   FiX,
   FiRefreshCw,
 } from "react-icons/fi";
+import PageHeader from "../components/common/PageHeader";
+import { Button, Badge } from "../components/ui";
+import { useToast } from "../context/ToastContext";
 import { useFetch } from "../hooks/useFetch";
 import { api } from "../services/api";
 
@@ -199,7 +202,7 @@ export default function Principals() {
               size="sm"
               variant="outline"
               icon={FiRefreshCw}
-              onClick={loadPrincipals}
+              onClick={refetch}
             >
               Refresh
             </Button>

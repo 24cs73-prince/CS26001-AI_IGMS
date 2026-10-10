@@ -31,12 +31,33 @@ async function fetchFromBackend(endpoint, fallback = null) {
   return fallback;
 }
 
+const DEFAULT_STUDENTS = [
+  { studentId: "STU-1001", name: "Aarav Sharma", roll: 1, rollNumber: 1, className: "Class 6", section: "A", gender: "Male", guardian: "Rajesh Sharma", phone: "+91 98110 22331", email: "aarav.s@igms.edu", attendance: 96, average: 88, status: "Active", admissionDate: "2021-04-12" },
+  { studentId: "STU-1002", name: "Diya Patel", roll: 2, rollNumber: 2, className: "Class 6", section: "A", gender: "Female", guardian: "Nikhil Patel", phone: "+91 98220 11445", email: "diya.p@igms.edu", attendance: 92, average: 91, status: "Active", admissionDate: "2021-04-12" },
+  { studentId: "STU-1003", name: "Vivaan Gupta", roll: 3, rollNumber: 3, className: "Class 6", section: "A", gender: "Male", guardian: "Sunita Gupta", phone: "+91 99530 88210", email: "vivaan.g@igms.edu", attendance: 78, average: 64, status: "Active", admissionDate: "2021-04-15" },
+  { studentId: "STU-1004", name: "Ananya Singh", roll: 4, rollNumber: 4, className: "Class 5", section: "B", gender: "Female", guardian: "Manoj Singh", phone: "+91 98730 55129", email: "ananya.s@igms.edu", attendance: 88, average: 79, status: "Active", admissionDate: "2022-04-10" },
+  { studentId: "STU-1005", name: "Reyansh Kumar", roll: 5, rollNumber: 5, className: "Class 5", section: "B", gender: "Male", guardian: "Anil Kumar", phone: "+91 90045 33921", email: "reyansh.k@igms.edu", attendance: 71, average: 58, status: "Active", admissionDate: "2022-04-10" },
+  { studentId: "STU-1006", name: "Ishita Reddy", roll: 6, rollNumber: 6, className: "Class 8", section: "A", gender: "Female", guardian: "Prasad Reddy", phone: "+91 91000 77820", email: "ishita.r@igms.edu", attendance: 94, average: 93, status: "Active", admissionDate: "2019-04-08" },
+  { studentId: "STU-1007", name: "Kabir Mehta", roll: 7, rollNumber: 7, className: "Class 8", section: "A", gender: "Male", guardian: "Farah Mehta", phone: "+91 93150 66412", email: "kabir.m@igms.edu", attendance: 83, average: 72, status: "Active", admissionDate: "2019-04-08" },
+  { studentId: "STU-1008", name: "Saanvi Nair", roll: 8, rollNumber: 8, className: "Class 8", section: "C", gender: "Female", guardian: "Deepa Nair", phone: "+91 97440 12093", email: "saanvi.n@igms.edu", attendance: 90, average: 85, status: "Active", admissionDate: "2023-04-11" },
+  { studentId: "STU-1009", name: "Arjun Verma", roll: 9, rollNumber: 9, className: "Class 8", section: "C", gender: "Male", guardian: "Ravi Verma", phone: "+91 98800 45673", email: "arjun.v@igms.edu", attendance: 65, average: 49, status: "Inactive", admissionDate: "2023-04-11" },
+  { studentId: "STU-1010", name: "Myra Joshi", roll: 10, rollNumber: 10, className: "Class 7", section: "A", gender: "Female", guardian: "Kiran Joshi", phone: "+91 99900 34512", email: "myra.j@igms.edu", attendance: 97, average: 95, status: "Active", admissionDate: "2020-04-09" },
+];
+
+const DEFAULT_TEACHERS = [
+  { teacherId: "TCH-201", name: "Dr. Meenakshi Iyer", department: "Mathematics", subject: "Mathematics", experience: 14, email: "meenakshi.i@igms.edu", phone: "+91 98110 20001", classes: ["Class 6", "Class 8"], status: "Active", rating: 4.8 },
+  { teacherId: "TCH-202", name: "Rakesh Menon", department: "Science", subject: "Physics", experience: 11, email: "rakesh.m@igms.edu", phone: "+91 98220 20002", classes: ["Class 7", "Class 8"], status: "Active", rating: 4.6 },
+  { teacherId: "TCH-203", name: "Sushmita Roy", department: "Languages", subject: "English", experience: 9, email: "sushmita.r@igms.edu", phone: "+91 99530 20003", classes: ["Class 8", "Class 5"], status: "Active", rating: 4.7 },
+  { teacherId: "TCH-204", name: "Arvind Nair", department: "Social Science", subject: "History", experience: 16, email: "arvind.n@igms.edu", phone: "+91 98730 20004", classes: ["Class 5", "Class 6"], status: "On Leave", rating: 4.4 },
+  { teacherId: "TCH-205", name: "Pooja Deshmukh", department: "Science", subject: "Chemistry", experience: 8, email: "pooja.d@igms.edu", phone: "+91 90045 20005", classes: ["Class 7", "Class 8"], status: "Active", rating: 4.5 },
+];
+
 export const api = {
   // Students
   getStudents: async () => {
     const list = await fetchFromBackend("/api/students", []);
-    if (!Array.isArray(list)) return [];
-    return list.map((s) => ({
+    const sourceList = (Array.isArray(list) && list.length > 0) ? list : DEFAULT_STUDENTS;
+    return sourceList.map((s) => ({
       id: s.studentId || s.id || (s._id ? String(s._id) : `STU-${s.roll || 1001}`),
       studentId: s.studentId || s.id || (s._id ? String(s._id) : `STU-${s.roll || 1001}`),
       name: s.name,
@@ -87,8 +108,8 @@ export const api = {
   // Teachers
   getTeachers: async () => {
     const list = await fetchFromBackend("/api/teachers", []);
-    if (!Array.isArray(list)) return [];
-    return list.map((t) => ({
+    const sourceList = (Array.isArray(list) && list.length > 0) ? list : DEFAULT_TEACHERS;
+    return sourceList.map((t) => ({
       id: t.teacherId || t.id || (t._id ? String(t._id) : "TCH-201"),
       teacherId: t.teacherId || t.id || (t._id ? String(t._id) : "TCH-201"),
       name: t.name,
@@ -278,39 +299,56 @@ export const api = {
 
   // Timetable
   getTimetable: async (query = {}) => {
-    const dbTimetable = await fetchFromBackend("/api/timetable", []);
-    if (Array.isArray(dbTimetable) && dbTimetable.length > 0) {
-      const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-      const periods = ["08:00 - 08:45", "08:45 - 09:30", "09:45 - 10:30", "10:30 - 11:15", "11:45 - 12:30", "12:30 - 01:15", "01:15 - 02:00"];
-      const tones = ["primary", "accent", "secondary", "warning", "info", "danger", "muted"];
-
-      const grid = {};
-      days.forEach((d) => {
-        grid[d] = [];
-      });
-
-      days.forEach((dayName) => {
-        for (let p = 1; p <= 7; p++) {
-          const match = dbTimetable.find((t) => (t.dayName?.en === dayName || t.dayName === dayName) && t.period === p);
-          if (match) {
-            grid[dayName].push({
-              subject: match.subjectName,
-              teacher: match.teacherName,
-              tone: tones[(p - 1) % tones.length],
-            });
-          } else {
-            grid[dayName].push({
-              subject: p === 4 ? "Recess Break" : (p === 7 ? "Sports / Library" : "General Studies"),
-              teacher: "",
-              tone: "muted",
-            });
-          }
-        }
-      });
-
-      return { periods, days, grid };
+    let endpoint = "/api/timetable";
+    if (typeof query === "string") {
+      endpoint += `?section=${query}`;
+    } else if (query && (query.section || query.className)) {
+      const params = new URLSearchParams(query);
+      endpoint += `?${params.toString()}`;
     }
-    return { periods: [], days: [], grid: {} };
+
+    const dbTimetable = await fetchFromBackend(endpoint, []);
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const periods = ["08:00 - 08:45", "08:45 - 09:30", "09:45 - 10:30", "10:30 - 11:15", "11:45 - 12:30", "12:30 - 01:15", "01:15 - 02:00"];
+    const tones = ["primary", "accent", "secondary", "warning", "info", "danger", "muted"];
+
+    // Default period schedules per class if DB doesn't have an explicit entry
+    const defaultPeriodSchedule = {
+      1: { subject: "Mathematics", teacher: "Dr. Meenakshi Iyer", tone: "primary" },
+      2: { subject: "Gujarati Language", teacher: "Sushmita Roy", tone: "secondary" },
+      3: { subject: "Science / EVS", teacher: "Rakesh Menon", tone: "accent" },
+      4: { subject: "Recess (MDM Lunch)", teacher: "Mid-Day Meal", tone: "warning" },
+      5: { subject: "Social Science", teacher: "Arvind Nair", tone: "danger" },
+      6: { subject: "English Literature", teacher: "Sushmita Roy", tone: "primary" },
+      7: { subject: "Computer & Sports", teacher: "Pooja Deshmukh", tone: "info" },
+    };
+
+    const grid = {};
+    days.forEach((dayName) => {
+      grid[dayName] = [];
+      for (let p = 1; p <= 7; p++) {
+        let match = null;
+        if (Array.isArray(dbTimetable) && dbTimetable.length > 0) {
+          match = dbTimetable.find((t) => (t.dayName?.en === dayName || t.dayName === dayName || t.dayName?.gu === dayName) && t.period === p);
+        }
+        if (match) {
+          grid[dayName].push({
+            subject: match.subjectName,
+            teacher: match.teacherName,
+            tone: tones[(p - 1) % tones.length],
+          });
+        } else {
+          const fallback = defaultPeriodSchedule[p];
+          grid[dayName].push({
+            subject: fallback.subject,
+            teacher: fallback.teacher,
+            tone: fallback.tone,
+          });
+        }
+      }
+    });
+
+    return { periods, days, grid };
   },
 
   // Holidays
