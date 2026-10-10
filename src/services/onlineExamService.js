@@ -29,12 +29,39 @@ async function apiFetch(endpoint, options = {}) {
 }
 
 export const onlineExamService = {
-  /** Fetch all online exams directly from MongoDB with intelligent fallbacks */
+  /** Fetch all online exams directly from MongoDB + local cache with fallbacks */
   async getExams() {
     const data = await apiFetch("/api/exams");
-    const list = Array.isArray(data) ? data : (data?.data || []);
-    if (Array.isArray(list) && list.length > 0) {
-      return list.map((e) => ({
+    const dbList = Array.isArray(data) ? data : (data?.data || []);
+
+    let localList = [];
+    try {
+      localList = JSON.parse(localStorage.getItem("igms.online_exams") || "[]");
+    } catch (e) {}
+
+    const combined = [];
+    const seen = new Set();
+
+    // Prepend newly created local exams first
+    localList.forEach((e) => {
+      const key = String(e._id || e.id || e.title);
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        combined.push(e);
+      }
+    });
+
+    // Append MongoDB database exams
+    dbList.forEach((e) => {
+      const key = String(e._id || e.id || e.title);
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        combined.push(e);
+      }
+    });
+
+    if (combined.length > 0) {
+      return combined.map((e) => ({
         ...e,
         id: String(e._id || e.id || ""),
         class: String(e.classVal || e.class || "6"),
@@ -148,10 +175,18 @@ export const onlineExamService = {
         questions: Array.isArray(e.questions) ? e.questions : [],
       };
     }
+
+    // Check local cache
+    try {
+      const localList = JSON.parse(localStorage.getItem("igms.online_exams") || "[]");
+      const match = localList.find((x) => String(x._id || x.id) === String(examId));
+      if (match) return match;
+    } catch (err) {}
+
     return null;
   },
 
-  /** Create a new online exam using AI */
+  /** Create a new online exam using AI and persist to MongoDB + Cache */
   async createExam(payload) {
     const classVal = payload.class || payload.classVal || "6";
     const subject = payload.subject || "Science";
@@ -206,7 +241,19 @@ export const onlineExamService = {
       body: JSON.stringify(examPayload),
     });
 
-    return created || { id: `exam_${Date.now()}`, ...examPayload };
+    const finalExam = created || { id: `exam_${Date.now()}`, ...examPayload };
+
+    // Instantly save to local storage cache so it appears immediately in UI
+    try {
+      const existing = JSON.parse(localStorage.getItem("igms.online_exams") || "[]");
+      const updatedList = [
+        finalExam,
+        ...existing.filter((x) => String(x._id || x.id) !== String(finalExam._id || finalExam.id)),
+      ];
+      localStorage.setItem("igms.online_exams", JSON.stringify(updatedList));
+    } catch (e) {}
+
+    return finalExam;
   },
 
   /** Publish an existing exam */
