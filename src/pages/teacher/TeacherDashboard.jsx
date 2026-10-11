@@ -37,13 +37,10 @@ export default function TeacherDashboard() {
     async function fetchDashboardData() {
       try {
         const students = await api.getStudents();
-        const myStudents = students.filter(
-          (s) => s.className === "Class 6" && s.section === "A"
-        );
-        if (myStudents.length > 0) {
+        if (students && students.length > 0) {
           setStats((prev) => ({
             ...prev,
-            totalStudents: myStudents.length,
+            totalStudents: students.length,
           }));
         }
       } catch (error) {

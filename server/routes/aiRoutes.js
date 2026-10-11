@@ -4,7 +4,15 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/generate-questions", protect, generateQuestions);
-router.post("/analyze-performance", protect, analyzePerformance);
+// Allow AI generation for both authenticated sessions and demo logins
+const optionalAuth = (req, res, next) => {
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+    return protect(req, res, next);
+  }
+  next();
+};
+
+router.post("/generate-questions", optionalAuth, generateQuestions);
+router.post("/analyze-performance", optionalAuth, analyzePerformance);
 
 export default router;

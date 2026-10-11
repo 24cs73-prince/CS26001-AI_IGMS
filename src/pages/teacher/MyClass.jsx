@@ -13,10 +13,11 @@ export default function MyClass() {
   const { user } = useAuth();
   const { data: students, loading } = useFetch(() => api.getStudents(), []);
 
-  // Filter students to only show "Class 6, Section A" (Mocking teacher's assigned class)
+  // Filter students to show teacher's class or all enrolled students if single section
   const myStudents = useMemo(() => {
     if (!students) return [];
-    return students.filter((s) => s.className === "Class 6" && s.section === "A");
+    const matched = students.filter((s) => (s.className === "Class 6" || s.className === "Std 1") && s.section === "A");
+    return matched.length > 0 ? matched : students;
   }, [students]);
 
   if (loading) return <PageLoader label="Loading class roster..." />;

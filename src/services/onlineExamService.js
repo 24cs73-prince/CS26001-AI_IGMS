@@ -29,39 +29,12 @@ async function apiFetch(endpoint, options = {}) {
 }
 
 export const onlineExamService = {
-  /** Fetch all online exams directly from MongoDB + local cache with fallbacks */
+  /** Fetch all online exams directly from MongoDB database */
   async getExams() {
     const data = await apiFetch("/api/exams");
-    const dbList = Array.isArray(data) ? data : (data?.data || []);
-
-    let localList = [];
-    try {
-      localList = JSON.parse(localStorage.getItem("igms.online_exams") || "[]");
-    } catch (e) {}
-
-    const combined = [];
-    const seen = new Set();
-
-    // Prepend newly created local exams first
-    localList.forEach((e) => {
-      const key = String(e._id || e.id || e.title);
-      if (key && !seen.has(key)) {
-        seen.add(key);
-        combined.push(e);
-      }
-    });
-
-    // Append MongoDB database exams
-    dbList.forEach((e) => {
-      const key = String(e._id || e.id || e.title);
-      if (key && !seen.has(key)) {
-        seen.add(key);
-        combined.push(e);
-      }
-    });
-
-    if (combined.length > 0) {
-      return combined.map((e) => ({
+    const list = Array.isArray(data) ? data : (data?.data || []);
+    if (Array.isArray(list) && list.length > 0) {
+      return list.map((e) => ({
         ...e,
         id: String(e._id || e.id || ""),
         class: String(e.classVal || e.class || "6"),
@@ -77,90 +50,7 @@ export const onlineExamService = {
         questions: Array.isArray(e.questions) ? e.questions : [],
       }));
     }
-
-    // Default fallback exam list for full UI readiness
-    return [
-      {
-        id: "exam_101",
-        title: "Class 8 Science - Photosynthesis & Ecosystems Unit Exam",
-        subject: "Science",
-        class: "8",
-        classVal: "8",
-        status: "Published",
-        duration: "30 minutes",
-        totalQuestions: 10,
-        totalMarks: 10,
-        submissionsCount: 28,
-        totalStudents: 40,
-        questions: Array.from({ length: 10 }, (_, i) => ({
-          id: i + 1,
-          question: `Q${i + 1}. Which process is responsible for energy conversion in plant cells?`,
-          options: ["Photosynthesis", "Respiration", "Transpiration", "Fermentation"],
-          correctAnswer: 0,
-          marks: 1
-        }))
-      },
-      {
-        id: "exam_102",
-        title: "Class 7 Mathematics - Algebraic Expressions Mid-Term",
-        subject: "Mathematics",
-        class: "7",
-        classVal: "7",
-        status: "Published",
-        duration: "45 minutes",
-        totalQuestions: 10,
-        totalMarks: 10,
-        submissionsCount: 35,
-        totalStudents: 40,
-        questions: Array.from({ length: 10 }, (_, i) => ({
-          id: i + 1,
-          question: `Q${i + 1}. Solve for x: 2x + 5 = 15`,
-          options: ["x = 5", "x = 10", "x = 7", "x = 3"],
-          correctAnswer: 0,
-          marks: 1
-        }))
-      },
-      {
-        id: "exam_103",
-        title: "Class 6 Gujarati - વ્યાકરણ અને સાહિત્ય મૂલ્યાંકન",
-        subject: "Gujarati",
-        class: "6",
-        classVal: "6",
-        status: "Published",
-        duration: "30 minutes",
-        totalQuestions: 10,
-        totalMarks: 10,
-        submissionsCount: 32,
-        totalStudents: 40,
-        questions: Array.from({ length: 10 }, (_, i) => ({
-          id: i + 1,
-          question: `Q${i + 1}. આપેલા શબ્દમાંથી સાચી જોડણી શોધો.`,
-          options: ["ગુજરાતી", "ગુજ રાતી", "ગૂજરાતી", "ગુજરતી"],
-          correctAnswer: 0,
-          marks: 1
-        }))
-      },
-      {
-        id: "exam_104",
-        title: "Class 8 Social Science - Indian Constitution & Democracy",
-        subject: "Social Science",
-        class: "8",
-        classVal: "8",
-        status: "Draft",
-        duration: "30 minutes",
-        totalQuestions: 10,
-        totalMarks: 10,
-        submissionsCount: 0,
-        totalStudents: 40,
-        questions: Array.from({ length: 10 }, (_, i) => ({
-          id: i + 1,
-          question: `Q${i + 1}. Who is known as the father of the Indian Constitution?`,
-          options: ["Dr. B. R. Ambedkar", "Mahatma Gandhi", "Jawaharlal Nehru", "Sardar Patel"],
-          correctAnswer: 0,
-          marks: 1
-        }))
-      }
-    ];
+    return [];
   },
 
   /** Fetch single exam by ID */

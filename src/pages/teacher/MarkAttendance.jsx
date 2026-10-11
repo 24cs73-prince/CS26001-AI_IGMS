@@ -15,7 +15,7 @@ import { api } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { buildApiUrl, getAuthHeaders } from "../../utils/apiConfig";
-import { CLASSES, SECTIONS } from "../../constants/app";
+import { CLASSES, SECTIONS, formatStandard } from "../../constants/app";
 
 import PageHeader from "../../components/common/PageHeader";
 import StatCard from "../../components/common/StatCard";
@@ -61,8 +61,8 @@ export default function MarkAttendance() {
   const toast = useToast();
 
   const [classFilter, setClassFilter] = useState({
-    value: "Class 6",
-    label: "Class 6",
+    value: CLASSES[0] || "Std 1",
+    label: CLASSES[0] || "Std 1",
   });
   const [sectionFilter, setSectionFilter] = useState({
     value: "A",
@@ -76,11 +76,13 @@ export default function MarkAttendance() {
   const roster = useMemo(() => {
     if (!students) return [];
     return students
-      .filter(
-        (s) =>
-          s.className === classFilter.value &&
-          s.section === sectionFilter.value,
-      )
+      .filter((s) => {
+        const studentClass = formatStandard(s.className);
+        const filterClass = formatStandard(classFilter.value);
+        const studentSec = (s.section || "").replace(/^Div\s*/i, "").trim().toUpperCase();
+        const filterSec = (sectionFilter.value || "").replace(/^Div\s*/i, "").trim().toUpperCase();
+        return studentClass === filterClass && studentSec === filterSec;
+      })
       .sort((a, b) => a.roll - b.roll);
   }, [students, classFilter, sectionFilter]);
 

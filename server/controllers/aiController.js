@@ -6,7 +6,7 @@ import { generateMCQPaperWithGrok, analyzePerformanceWithGrok } from "../utils/g
  */
 export const generateQuestions = async (req, res) => {
   try {
-    const { classVal, standard, subject, syllabus, topic, difficulty, diff, totalQuestions, count } = req.body;
+    const { classVal, standard, subject, syllabus, topic, difficulty, diff, totalQuestions, count, language, lang } = req.body;
     const numQuestions = Number(count || totalQuestions) || 5;
 
     const questions = await generateMCQPaperWithGrok({
@@ -15,12 +15,14 @@ export const generateQuestions = async (req, res) => {
       syllabus: syllabus || topic || "",
       difficulty: difficulty || diff || "Medium",
       count: numQuestions,
+      language: language || lang || "English",
     });
 
     res.json({
       status: "success",
       source: (process.env.GROK_API_KEY || process.env.GROQ_API_KEY) ? "Groq-AI (openai/gpt-oss-120b)" : "Smart-Fallback-AI",
       totalQuestions: questions.length,
+      language: language || lang || "English",
       questions,
     });
   } catch (error) {

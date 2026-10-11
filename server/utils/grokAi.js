@@ -1,7 +1,13 @@
-/**
- * Grok / Groq AI Integration Service Module
- * Handles automated MCQ generation and student performance diagnosis using AI.
- */
+import dotenv from "dotenv";
+import path from "path";
+import fs from "fs";
+
+// Load environment variables from server/.env if available
+const serverEnvPath = path.resolve(process.cwd(), "server", ".env");
+if (fs.existsSync(serverEnvPath)) {
+  dotenv.config({ path: serverEnvPath });
+}
+dotenv.config();
 
 const GROK_API_URL = "https://api.x.ai/v1/chat/completions";
 
@@ -15,6 +21,7 @@ export async function generateMCQPaperWithGrok({
   syllabus = "",
   difficulty = "Medium",
   count = 10,
+  language = "English",
 }) {
   const apiKey = process.env.GROK_API_KEY || process.env.GROQ_API_KEY;
   const numQuestions = Math.max(1, parseInt(count, 10) || 10);
@@ -22,45 +29,67 @@ export async function generateMCQPaperWithGrok({
   const std = (classVal || "5").trim();
   const sub = (subject || "General").trim();
   const topicText = (syllabus || "").trim();
+  const langStr = (language || "English").trim();
 
-  const prompt = `You are a master educational examination question creator for Indian Government Schools (NCERT & Gujarat State Board Curriculum).
+  let langDirective = "";
+  if (langStr.toLowerCase() === "gujarati") {
+    langDirective = `CRITICAL MANDATORY REQUIREMENT: The ENTIRE exam paper, including ALL question text, ALL 4 option choices (A, B, C, D), and instructions MUST BE 100% WRITTEN IN GUJARATI LANGUAGE ONLY (ગુજરાતી લીપી)! Do NOT output any English or Hindi words.`;
+  } else if (langStr.toLowerCase() === "hindi") {
+    langDirective = `CRITICAL MANDATORY REQUIREMENT: The ENTIRE exam paper, including ALL question text, ALL 4 option choices (A, B, C, D), and instructions MUST BE 100% WRITTEN IN HINDI LANGUAGE ONLY (हिंदी देवनागरी)! Do NOT output any English or Gujarati words.`;
+  } else {
+    langDirective = `CRITICAL MANDATORY REQUIREMENT: The ENTIRE exam paper, including ALL question text and ALL 4 option choices (A, B, C, D) MUST BE 100% WRITTEN IN ENGLISH LANGUAGE ONLY!`;
+  }
 
-Task: Generate ${numQuestions} multiple-choice questions (MCQs) for Class ${std} (Standard ${std}) students in subject "${sub}".
+  const prompt = `You are an expert examination paper creator for Class ${std} (Standard ${std}) ${sub} under Indian NCERT & State Curriculum.
+
+Task: Generate EXACTLY ${numQuestions} BRAND NEW, UNIQUE multiple-choice questions (MCQs).
 
 EXAM SPECIFICATIONS:
-- Grade Level / Standard: Class ${std} (Std ${std})
+- Standard: Class ${std}
 - Subject: ${sub}
-- Target Difficulty Level: ${diff}
-- Syllabus Topics / Chapter Content: "${topicText || `Class ${std} ${sub} Standard NCERT Curriculum`}"
+- Target Difficulty: ${diff}
+- Target Paper Language: ${langStr}
+- Specific Syllabus Topics: "${topicText || `Class ${std} ${sub} Standard NCERT Curriculum Topics`}"
 
-STRICT QUALITY RULES:
-1. Every question MUST be strictly tailored to Class ${std} difficulty level in ${sub}.
-2. If specific syllabus topics or user text is provided above ("${topicText}"), ALL questions MUST directly test concepts, formulas, definitions, processes, or examples from THAT specific topic!
-3. DIFFICULTY CALIBRATION (${diff}):
-   - "Easy": Fundamental definitions, direct facts, basic identification suitable for Std ${std}.
-   - "Medium": Conceptual application, multi-step problem solving or reasoning suitable for Std ${std}.
-   - "Hard": Critical thinking, multi-concept analysis, advanced problem solving appropriate for Std ${std}.
-   - "Mixed": 30% Easy, 50% Medium, and 20% Hard questions.
-4. Provide EXACTLY 4 distinct, plausible options for each question.
-5. Do NOT write meta-phrases like "According to the text provided..." inside the question statement. Formulate clean exam questions!
-6. Return ONLY a valid raw JSON array of objects without markdown backticks or extra commentary.
+${langDirective}
 
-Each object MUST match this schema:
-- "id": number (1 to ${numQuestions})
-- "question": string (clean, professional question statement)
-- "options": array of 4 string choices
-- "correctAnswer": number (0-indexed integer: 0 for 1st option, 1 for 2nd option, 2 for 3rd option, 3 for 4th option)
-- "marks": 1
-- "difficulty": "${diff}"
+STRICT RULES FOR GENERATION:
+1. EVERY question MUST specifically test concepts, vocabulary, definitions, grammar rules, principles, or problems relevant to Class ${std} ${sub}.
+2. If syllabus topics are provided ("${topicText}"), ALL questions MUST directly test THAT specific topic!
+3. Provide EXACTLY 4 distinct option choices per question in ${langStr}.
+4. Return ONLY raw valid JSON containing a "questions" array of question objects without markdown backticks.
+
+SCHEMA FORMAT:
+{
+  "questions": [
+    {
+      "id": 1,
+      "question": "Question text written 100% in ${langStr}",
+      "options": ["Choice A in ${langStr}", "Choice B in ${langStr}", "Choice C in ${langStr}", "Choice D in ${langStr}"],
+      "correctAnswer": 0,
+      "marks": 1,
+      "difficulty": "${diff}"
+    }
+  ]
+}
 `;
 
   if (apiKey && apiKey !== "your_xai_grok_api_key_here") {
     try {
       const isGroq = apiKey.startsWith("gsk_");
       const apiUrl = isGroq ? "https://api.groq.com/openai/v1/chat/completions" : GROK_API_URL;
-      const model = isGroq ? "openai/gpt-oss-120b" : "grok-2-latest";
+      const primaryModel = isGroq ? "openai/gpt-oss-120b" : "grok-2-latest";
 
-      console.log(`🤖 Requesting AI MCQ generation via ${isGroq ? "Groq Cloud (openai/gpt-oss-120b)" : "xAI Grok"} for Std ${std} ${sub} (${diff})...`);
+      let systemPrompt = "";
+      if (langStr.toLowerCase() === "gujarati") {
+        systemPrompt = "તમે શાળા શિક્ષણ માટેના નિષ્ણાત પરીક્ષા પ્રશ્નપત્ર નિર્માતા છો. તમારે તમામ પ્રશ્નો અને તમામ ૪ વિકલ્પો (A, B, C, D) 100% ગુજરાતી ભાષામાં જ લખવાના છે. ફક્ત RAW VALID JSON જ આપો.";
+      } else if (langStr.toLowerCase() === "hindi") {
+        systemPrompt = "आप स्कूली शिक्षा के लिए एक विशेषज्ञ परीक्षा प्रश्न पत्र निर्माता हैं। आपको सभी प्रश्न और चारों विकल्प (A, B, C, D) 100% केवल हिंदी भाषा में ही लिखने हैं। केवल RAW VALID JSON ही प्रदान करें।";
+      } else {
+        systemPrompt = "You are an expert examination question generator for school education. Generate all questions in English. Respond ONLY with raw valid JSON.";
+      }
+
+      console.log(`🤖 Requesting live AI MCQ generation via Groq Cloud (${primaryModel}) for Std ${std} ${sub} (${diff}) in ${langStr}...`);
 
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -69,12 +98,13 @@ Each object MUST match this schema:
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model,
+          model: primaryModel,
           messages: [
-            { role: "system", content: "You are a JSON-only API assistant for educational exam creation." },
+            { role: "system", content: systemPrompt },
             { role: "user", content: prompt },
           ],
           temperature: 0.3,
+          max_tokens: 1200,
         }),
       });
 
@@ -82,26 +112,57 @@ Each object MUST match this schema:
         const data = await response.json();
         const rawContent = data.choices?.[0]?.message?.content || "";
         const cleanJson = rawContent.replace(/```json/g, "").replace(/```/g, "").trim();
-        const parsed = JSON.parse(cleanJson);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          console.log(`✅ AI Engine successfully generated ${parsed.length} MCQs for Class ${std} ${sub} (${diff})`);
-          return parsed.map((item, idx) => ({
-            id: idx + 1,
-            question: item.question || item.questionText || item.q || `Question ${idx + 1}`,
-            options: Array.isArray(item.options) && item.options.length === 4 ? item.options : (item.options || ["Option A", "Option B", "Option C", "Option D"]),
-            correctAnswer: Number(item.correctAnswer) >= 0 && Number(item.correctAnswer) <= 3 ? Number(item.correctAnswer) : 0,
-            marks: Number(item.marks) || 1,
-            difficulty: item.difficulty || diff,
-          }));
+        let parsedData = null;
+        try {
+          parsedData = JSON.parse(cleanJson);
+        } catch (e) {
+          const match = cleanJson.match(/\[.*\]|\{.*\}/s);
+          if (match) {
+            try { parsedData = JSON.parse(match[0]); } catch (e2) {}
+          }
+        }
+
+        const rawList = Array.isArray(parsedData)
+          ? parsedData
+          : (parsedData?.questions || parsedData?.data || parsedData?.mcqs || []);
+
+        if (Array.isArray(rawList) && rawList.length > 0) {
+          console.log(`✅ Live Groq AI Engine generated ${rawList.length} unique MCQs for Class ${std} ${sub} (${diff})`);
+          return rawList.slice(0, numQuestions).map((item, idx) => {
+            const opts = Array.isArray(item.options) && item.options.length >= 2
+              ? item.options
+              : ["Option A", "Option B", "Option C", "Option D"];
+
+            let cIdx = 0;
+            if (typeof item.correctAnswer === "number" && item.correctAnswer >= 0 && item.correctAnswer < opts.length) {
+              cIdx = item.correctAnswer;
+            } else if (typeof item.answer === "number" && item.answer >= 0 && item.answer < opts.length) {
+              cIdx = item.answer;
+            } else if (typeof item.answer === "string") {
+              const matched = opts.findIndex(o => String(o).trim().toLowerCase() === item.answer.trim().toLowerCase());
+              cIdx = matched >= 0 ? matched : 0;
+            } else {
+              cIdx = idx % opts.length;
+            }
+
+            return {
+              id: idx + 1,
+              question: item.question || item.questionText || item.q || `Question ${idx + 1}`,
+              options: opts,
+              correctAnswer: cIdx,
+              marks: Number(item.marks) || 1,
+              difficulty: item.difficulty || diff,
+            };
+          });
         }
       } else {
         const errText = await response.text();
-        console.warn("⚠️ AI API returned error status:", response.status, errText);
+        console.warn("⚠️ AI Primary API status:", response.status, errText);
 
-        // Fallback to secondary Groq model if gpt-oss-120b returned error
+        // Fallback retry with qwen/qwen3.8-27b model if primary returned error
         if (isGroq) {
           try {
-            console.log("ℹ️ Retrying with Groq secondary model (openai/gpt-oss-20b)...");
+            console.log("ℹ️ Retrying with Groq secondary model (qwen/qwen3.8-27b)...");
             const retryRes = await fetch(apiUrl, {
               method: "POST",
               headers: {
@@ -109,12 +170,12 @@ Each object MUST match this schema:
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                model: "openai/gpt-oss-20b",
+                model: "qwen/qwen3.8-27b",
                 messages: [
-                  { role: "system", content: "You are a JSON-only API assistant for educational exam creation." },
+                  { role: "system", content: "You are a JSON-only API assistant for educational exam paper generation." },
                   { role: "user", content: prompt },
                 ],
-                temperature: 0.3,
+                temperature: 0.7,
               }),
             });
 
@@ -122,26 +183,50 @@ Each object MUST match this schema:
               const retryData = await retryRes.json();
               const rawContent = retryData.choices?.[0]?.message?.content || "";
               const cleanJson = rawContent.replace(/```json/g, "").replace(/```/g, "").trim();
-              const parsed = JSON.parse(cleanJson);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                console.log(`✅ AI Secondary Engine generated ${parsed.length} MCQs`);
-                return parsed.map((item, idx) => ({
-                  id: idx + 1,
-                  question: item.question || item.questionText || item.q || `Question ${idx + 1}`,
-                  options: Array.isArray(item.options) && item.options.length === 4 ? item.options : (item.options || ["Option A", "Option B", "Option C", "Option D"]),
-                  correctAnswer: Number(item.correctAnswer) >= 0 && Number(item.correctAnswer) <= 3 ? Number(item.correctAnswer) : 0,
-                  marks: Number(item.marks) || 1,
-                  difficulty: item.difficulty || diff,
-                }));
+              let parsedData = null;
+              try {
+                parsedData = JSON.parse(cleanJson);
+              } catch (e) {
+                const match = cleanJson.match(/\[.*\]|\{.*\}/s);
+                if (match) parsedData = JSON.parse(match[0]);
+              }
+
+              const rawList = Array.isArray(parsedData)
+                ? parsedData
+                : (parsedData?.questions || parsedData?.data || []);
+
+              if (Array.isArray(rawList) && rawList.length > 0) {
+                console.log(`✅ Groq Secondary Engine generated ${rawList.length} MCQs`);
+                return rawList.slice(0, numQuestions).map((item, idx) => {
+                  const opts = Array.isArray(item.options) && item.options.length >= 2
+                    ? item.options
+                    : ["Option A", "Option B", "Option C", "Option D"];
+
+                  let cIdx = 0;
+                  if (typeof item.correctAnswer === "number") cIdx = item.correctAnswer;
+                  else if (typeof item.answer === "string") {
+                    const m = opts.findIndex(o => String(o).trim().toLowerCase() === item.answer.trim().toLowerCase());
+                    if (m >= 0) cIdx = m;
+                  }
+
+                  return {
+                    id: idx + 1,
+                    question: item.question || item.questionText || item.q || `Question ${idx + 1}`,
+                    options: opts,
+                    correctAnswer: cIdx,
+                    marks: Number(item.marks) || 1,
+                    difficulty: item.difficulty || diff,
+                  };
+                });
               }
             }
           } catch (retryErr) {
-            console.warn("⚠️ Groq secondary model retry failed:", retryErr.message);
+            console.warn("⚠️ Groq secondary retry exception:", retryErr.message);
           }
         }
       }
     } catch (error) {
-      console.warn("⚠️ AI API Connection Exception:", error.message);
+      console.warn("⚠️ Groq AI Connection Exception:", error.message);
     }
   }
 

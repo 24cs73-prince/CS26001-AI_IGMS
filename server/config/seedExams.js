@@ -119,15 +119,6 @@ const DEFAULT_EXAMS = [
 ];
 
 export async function seedExamsIfEmpty() {
-  try {
-    for (const item of DEFAULT_EXAMS) {
-      const exists = await Exam.findOne({ title: item.title });
-      if (!exists) {
-        await Exam.create(item);
-        console.log(`🌱 Seeded exam into MongoDB: ${item.title}`);
-      }
-    }
-  } catch (err) {
-    console.error("Error seeding default exams to MongoDB:", err.message);
-  }
+  // Disabled auto-seeding so Online Exams collection remains clean for manual/AI exam creation testing.
+  return;
 }
