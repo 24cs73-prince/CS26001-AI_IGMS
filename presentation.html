@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI-IGMS · SGP Review 2 Presentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy: #0B132B;
+      --slate-deep: #0F172A;
+      --slate-dark: #1E293B;
+      --blue: #2563EB;
+      --cyan: #06B6D4;
+      --emerald: #10B981;
+      --coral: #EF4444;
+      --amber: #F59E0B;
+      --purple: #8B5CF6;
+      --bg-slate: #F1F5F9;
+      --bg-mint: #F0FDF4;
+      --bg-blue: #EFF6FF;
+      --bg-purple: #F5F3FF;
+      --bg-cyan: #F0F9FF;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background: #020617;
+      color: #0F172A;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Deck viewport container */
+    .deck-viewport {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* 16:9 Slide Aspect Ratio Card */
+    .slide {
+      width: 100%;
+      max-width: 1380px;
+      height: 100%;
+      max-height: 776px;
+      aspect-ratio: 16 / 9;
+      position: absolute;
+      border-radius: 18px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.45);
+      padding: 36px 48px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(60px) scale(0.98);
+      transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0) scale(1);
+      z-index: 10;
+    }
+
+    .slide.prev {
+      transform: translateX(-60px) scale(0.98);
+    }
+
+    /* Slide Headers */
+    .slide-header {
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      padding-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .dark-slide .slide-header {
+      border-bottom-color: rgba(255,255,255,0.12);
+    }
+
+    .header-category {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .header-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #0F172A;
+    }
+
+    .dark-slide .header-title {
+      color: #FFFFFF;
+    }
+
+    .header-pill {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: rgba(37,99,235,0.1);
+      color: #2563EB;
+    }
+
+    /* Bottom Control Bar */
+    .controls {
+      height: 56px;
+      background: #0B132B;
+      border-top: 1px solid #1E293B;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      z-index: 20;
+    }
+
+    .nav-btn {
+      background: #1E293B;
+      color: #FFFFFF;
+      border: 1px solid #334155;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+      background: #2563EB;
+      border-color: #2563EB;
+    }
+
+    .slide-counter {
+      color: #94A3B8;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .slide-counter span {
+      color: #38BDF8;
+      font-weight: 800;
+    }
+
+    /* Common Card Styles */
+    .card {
+      background: #FFFFFF;
+      border-radius: 12px;
+      border: 1px solid #E2E8F0;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    .dark-card {
+      background: #1A2639;
+      border: 1px solid #334155;
+      color: #FFFFFF;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .img-preview-box {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #CBD5E1;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      background: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .img-preview-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #F8FAFC;
+    }
+
+    .img-preview-header {
+      padding: 8px 14px;
+      background: #F8FAFC;
+      border-bottom: 1px solid #E2E8F0;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Slide 1 Hero */
+    .hero-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(6, 182, 212, 0.15);
+      border: 1px solid #06B6D4;
+      color: #38BDF8;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .hero-title {
+      font-size: 48px;
+      font-weight: 900;
+      color: #FFFFFF;
+      letter-spacing: -1px;
+      line-height: 1.1;
+    }
+
+    .hero-subtitle {
+      font-size: 22px;
+      font-weight: 700;
+      color: #93C5FD;
+      margin-top: 8px;
+    }
+
+    .hero-tagline {
+      font-size: 14px;
+      color: #94A3B8;
+      margin-top: 10px;
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      flex: 1;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      flex: 1;
+    }
+
+    .grid-split {
+      display: grid;
+      grid-template-columns: 46% 54%;
+      gap: 24px;
+      flex: 1;
+      height: calc(100% - 60px);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="deck-viewport">
+
+    <!-- ========================================== -->
+    <!-- SLIDE 1: HERO TITLE (Dark Midnight #0A192F) -->
+    <!-- ========================================== -->
+    <div class="slide dark-slide active" id="slide-1" style="background: radial-gradient(circle at 80% 20%, #172A45 0%, #0A192F 100%);">
+      <div>
+        <div class="hero-badge">CHARUSAT CSE · SGP 5 · REVIEW 2 EVALUATION</div>
+        <h1 class="hero-title">AI-IGMS</h1>
+        <div class="hero-subtitle">AI-Enabled Integrated Government School Management System</div>
+        <div class="hero-tagline">A Multilingual 5-Role Digital Academic Platform Powered by Live LLM & MongoDB</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: auto; padding-top: 30px;">
+        <div class="dark-card" style="border-top: 4px solid #2563EB;">
+          <div style="font-size: 11px; font-weight: 700; color: #38BDF8; letter-spacing: 1px;">STUDENT PRESENTER</div>
+          <div style="font-size: 20px; font-weight: 800; color: #FFFFFF; margin-top: 6px;">Prince Patel</div>
+          <div style="font-size: 12px; color: #94A3B8; margin-top: 8px; line-height: 1.5;">
+            <strong>Student ID:</strong> 24CS073<br>
+            B.Tech Computer Science & Engg<br>
+            Semester 5 · 2025–26
+          </div>
+        </div>
+
+        <div class="dark-card" style="border-top: 4px solid #10B981;">
+          <div style="font-size: 11px; font-weight: 700; color: #34D399; letter-spacing: 1px;">DEPARTMENT & GUIDE</div>
+          <div style="font-size: 20px; font-weight: 800; color: #FFFFFF; margin-top: 6px;">CHARUSAT University</div>
+          <div style="font-size: 12px; color: #94A3B8; margin-top: 8px; line-height: 1.5;">
+            CSPIT · Dept. of Computer Science<br>
+            Project Review Committee<br>
+            SGP Review 2 Examination
+          </div>
+        </div>
+
+        <div class="dark-card" style="border-top: 4px solid #F59E0B;">
+          <div style="font-size: 11px; font-weight: 700; color: #FBBF24; letter-spacing: 1px;">SYSTEM HIGHLIGHTS</div>
+          <div style="font-size: 20px; font-weight: 800; color: #FFFFFF; margin-top: 6px;">100% Live Architecture</div>
+          <div style="font-size: 12px; color: #94A3B8; margin-top: 8px; line-height: 1.5;">
+            • 5 Distinct Portals with RBAC<br>
+            • Multilingual AI Exam Generator<br>
+            • 18 Indexed MongoDB Collections<br>
+            • 0-Second Auto-Grading Engine
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 2: PROBLEM STATEMENT (Light Slate)  -->
+    <!-- ========================================== -->
+    <div class="slide" id="slide-2" style="background: #F1F5F9;">
+      <div class="slide-header">
+        <div>
+          <div class="header-category" style="color: #EF4444;">01 | Background & Motivation</div>
+          <div class="header-title">Critical Bottlenecks in Traditional School Administration</div>
+        </div>
+        <div class="header-pill" style="background: #FEE2E2; color: #DC2626;">Operational Gaps</div>
+      </div>
+
+      <div class="grid-3" style="margin-bottom: 20px;">
+        <div class="card" style="background: #FEF2F2; border: 1.5px solid #EF4444;">
+          <div style="font-size: 11px; font-weight: 800; color: #DC2626;">CHALLENGE 01</div>
+          <div style="font-size: 16px; font-weight: 800; color: #0F172A; margin: 8px 0 10px;">Manual Paper Registers</div>
+          <p style="font-size: 12px; color: #475569; line-height: 1.6;">
+            Teachers lose over 45 minutes daily hand-recording paper attendance registers and calculating monthly percentages. Records suffer from wear, physical loss, tampering, and zero instantaneous reporting to headmasters.
+          </p>
+        </div>
+
+        <div class="card" style="background: #FFFBEB; border: 1.5px solid #F59E0B;">
+          <div style="font-size: 11px; font-weight: 800; color: #D97706;">CHALLENGE 02</div>
+          <div style="font-size: 16px; font-weight: 800; color: #0F172A; margin: 8px 0 10px;">Examination Setting Fatigue</div>
+          <p style="font-size: 12px; color: #475569; line-height: 1.6;">
+            Formulating syllabus-aligned question papers across Class 1–12 places huge cognitive burdens on teachers. Hand-evaluating 40+ answer sheets per class takes days, causing severe grading lag and human subjectivity.
+          </p>
+        </div>
+
+        <div class="card" style="background: #F5F3FF; border: 1.5px solid #8B5CF6;">
+          <div style="font-size: 11px; font-weight: 800; color: #7C3AED;">CHALLENGE 03</div>
+          <div style="font-size: 16px; font-weight: 800; color: #0F172A; margin: 8px 0 10px;">Rural Parental Disconnect</div>
+          <p style="font-size: 12px; color: #475569; line-height: 1.6;">
+            Parents in rural public schools have zero transparency into whether their child attended school or how they scored in periodic tests, leading to undetected student absenteeism and rising dropout numbers.
+          </p>
+        </div>
+      </div>
+
+      <div class="card" style="background: #0F172A; border: none; color: #FFFFFF; display: flex; align-items: center; justify-content: space-around; padding: 16px;">
+        <div style="text-align: center;"><strong style="font-size: 20px; color: #EF4444;">78%</strong><div style="font-size: 11px; color: #94A3B8;">Manual Time Drain</div></div>
+        <div style="width: 1px; height: 32px; background: #334155;"></div>
+        <div style="text-align: center;"><strong style="font-size: 20px; color: #F59E0B;">0 Sync</strong><div style="font-size: 11px; color: #94A3B8;">Real-Time Updates</div></div>
+        <div style="width: 1px; height: 32px; background: #334155;"></div>
+        <div style="text-align: center;"><strong style="font-size: 20px; color: #38BDF8;">3+ Days</strong><div style="font-size: 11px; color: #94A3B8;">Evaluation Delay</div></div>
+        <div style="width: 1px; height: 32px; background: #334155;"></div>
+        <div style="text-align: center;"><strong style="font-size: 20px; color: #34D399;">Zero AI</strong><div style="font-size: 11px; color: #94A3B8;">Multilingual Tooling</div></div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 3: PROPOSED SOLUTION (Light Mint)   -->
+    <!-- ========================================== -->
+    <div class="slide" id="slide-3" style="background: #F0FDF4;">
+      <div class="slide-header">
+        <div>
+          <div class="header-category" style="color: #10B981;">02 | Objectives & Value Proposition</div>
+          <div class="header-title">AI-IGMS: The 4-Pillar Modernized School Ecosystem</div>
+        </div>
+        <div class="header-pill" style="background: #DCFCE7; color: #15803D;">Core Architecture</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card" style="background: #EFF6FF; border: 1.5px solid #2563EB;">
+          <div style="font-size: 11px; font-weight: 800; color: #2563EB;">PILLAR 1</div>
+          <div style="font-size: 17px; font-weight: 800; color: #0F172A; margin: 6px 0 10px;">Unified 5-Role Digital Hub</div>
+          <p style="font-size: 12px; color: #475569; line-height: 1.6;">
+            Dedicated, isolated portals for Super Admin, Principal, Teacher, Student, and Parent. Strictly guarded by JWT authentication and role-based permissions.
+          </p>
+        </div>
+
+        <div class="card" style="background: #F0FDF4; border: 1.5px solid #10B981;">
+          <div style="font-size: 11px; font-weight: 800; color: #059669;">PILLAR 2</div>
+          <div style="font-size: 17px; font-weight: 800; color: #0F172A; margin: 6px 0 10px;">Live Multilingual AI Paper Engine</div>
+          <p style="font-size: 12px; color: #475569; line-height: 1.6;">
+            Groq Cloud LLM automatically synthesizes high-quality, syllabus-aligned question papers in English, Gujarati, and Hindi in sub-2s inference time.
+          </p>
+        </div>
+
+        <div class="card" style="background: #F5F3FF; border: 1.5px solid #8B5CF6;">
+          <div style="font-size: 11px; font-weight: 800; color: #7C3AED;">PILLAR 3</div>
+          <div style="font-size: 17px; font-weight: 800; color: #0F172A; margin: 6px 0 10px;">Online Exam & 0s Auto-Grading</div>
+          <p style="font-size: 12px; color: #475569; line-height: 1.6;">
+            Direct one-click conversion of generated papers into live, timed online student tests with automated scoring and instant feedback report cards.
+          </p>
+        </div>
+
+        <div class="card" style="background: #FFFBEB; border: 1.5px solid #F59E0B;">
+          <div style="font-size: 11px; font-weight: 800; color: #D97706;">PILLAR 4</div>
+          <div style="font-size: 17px; font-weight: 800; color: #0F172A; margin: 6px 0 10px;">Transparent Academic Operations</div>
+          <p style="font-size: 12px; color: #475569; line-height: 1.6;">
+            Real-time daily attendance rosters, marks upload with automatic percentile and grade calculations (A+–F), and conflict-free 6-period weekly timetables.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 4: 3-TIER ARCHITECTURE (Midnight Dark)-->
+    <!-- ========================================== -->
+    <div class="slide dark-slide" id="slide-4" style="background: #0F172A;">
+      <div class="slide-header">
+        <div>
+          <div class="header-category" style="color: #38BDF8;">03 | Technical Architecture</div>
+          <div class="header-title">3-Tier System Architecture & Communication Pipeline</div>
+        </div>
+        <div class="header-pill" style="background: rgba(56,189,248,0.15); color: #38BDF8;">System Flow</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 16px; flex: 1; justify-content: center;">
+        <div class="dark-card" style="border-left: 6px solid #38BDF8; display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: center;">
+          <div>
+            <div style="font-size: 11px; font-weight: 800; color: #38BDF8;">TIER 1 · PRESENTATION LAYER</div>
+            <div style="font-size: 16px; font-weight: 800; color: #FFFFFF; margin-top: 4px;">React 18 · Vite 5 · Tailwind</div>
+          </div>
+          <div style="font-size: 12px; color: #CBD5E1; line-height: 1.5;">
+            Responsive Single Page Application (SPA), role-isolated views, client-side route guards, Axios HTTP client with JWT Bearer interceptors, Lucide iconography.
+          </div>
+        </div>
+
+        <div class="dark-card" style="border-left: 6px solid #10B981; display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: center;">
+          <div>
+            <div style="font-size: 11px; font-weight: 800; color: #34D399;">TIER 2 · APPLICATION LAYER</div>
+            <div style="font-size: 16px; font-weight: 800; color: #FFFFFF; margin-top: 4px;">Node.js · Express.js REST API</div>
+          </div>
+          <div style="font-size: 12px; color: #CBD5E1; line-height: 1.5;">
+            Stateless REST API architecture, JWT token issuance & signature validation, Bcrypt 10-round password salting, Groq Cloud bridge with strict schema validation.
+          </div>
+        </div>
+
+        <div class="dark-card" style="border-left: 6px solid #F59E0B; display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: center;">
+          <div>
+            <div style="font-size: 11px; font-weight: 800; color: #FBBF24;">TIER 3 · PERSISTENCE & AI</div>
+            <div style="font-size: 16px; font-weight: 800; color: #FFFFFF; margin-top: 4px;">MongoDB Atlas & Groq LPU</div>
+          </div>
+          <div style="font-size: 12px; color: #CBD5E1; line-height: 1.5;">
+            18 normalized collections, multi-tenant schoolId partitioning, indexed query execution, Groq LPU Llama-3.3-70b/8b engine with 2.5s fallback circuit breaker.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 5: DATABASE ARCHITECTURE (Split + Compass Screenshot) -->
+    <!-- ========================================== -->
+    <div class="slide" id="slide-5" style="background: #F8FAFC;">
+      <div class="slide-header">
+        <div>
+          <div class="header-category" style="color: #10B981;">04 | Persistence & Data Model</div>
+          <div class="header-title">MongoDB Database Architecture: 18 Indexed Collections</div>
+        </div>
+        <div class="header-pill" style="background: #DCFCE7; color: #15803D;">Atlas + Compass Live</div>
+      </div>
+
+      <div class="grid-split">
+        <div class="card" style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="font-size: 11px; font-weight: 800; color: #059669;">18 COLLECTIONS STRUCTURED BY FUNCTION</div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">🔑 Auth & System:</strong>
+            <span style="font-size: 12px; color: #2563EB; font-weight: 700;">Users, Schools, Audits</span>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Role claims, institution profile, and system transaction logs.</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">👥 Stakeholder Master:</strong>
+            <span style="font-size: 12px; color: #059669; font-weight: 700;">Students, Teachers, Parents</span>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Profiles linked through unique IDs (teacherId, studentId, schoolId).</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">🧠 Exams & AI Storage:</strong>
+            <span style="font-size: 12px; color: #7C3AED; font-weight: 700;">Exams, Submissions, Results</span>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">MCQ question arrays with verified answer keys and submission scores.</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">📋 Academic Operations:</strong>
+            <span style="font-size: 12px; color: #D97706; font-weight: 700;">Attendance, Timetables, Leaves, Notices</span>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Daily roll-call date indexing and 6-period weekly schedule grids.</p>
+          </div>
+        </div>
+
+        <div class="img-preview-box">
+          <div class="img-preview-header">
+            <span style="color: #059669;">LIVE MONGODB COMPASS INSPECTION</span>
+            <span style="color: #64748B;">ai_igms > teachers</span>
+          </div>
+          <img src="presentation_assets/media_1791476719428.png" alt="MongoDB Compass Screenshot">
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 6: 5 ROLE PORTALS (Split + Super Admin Screenshot) -->
+    <!-- ========================================== -->
+    <div class="slide" id="slide-6" style="background: #EFF6FF;">
+      <div class="slide-header">
+        <div>
+          <div class="header-category" style="color: #2563EB;">05 | Role-Based Access Control</div>
+          <div class="header-title">5 Dedicated Portals with Granular RBAC Security</div>
+        </div>
+        <div class="header-pill" style="background: #DBEAFE; color: #1D4ED8;">Live Portals</div>
+      </div>
+
+      <div class="grid-split">
+        <div class="card" style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-size: 11px; font-weight: 800; color: #2563EB;">ROLE GOVERNANCE MATRIX</div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">👑 Super Admin:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">State Directorate command center, onboard new schools, oversee state statistics.</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">🏫 Principal:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Faculty allocations, student approvals, notice circulars, attendance metrics.</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">👨‍🏫 Teacher:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Live AI question generator, publish exams, mark roll call, upload marks, view timetable.</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">🎓 Student:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Attempt timed online exams, view immediate report cards, check timetable.</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">👨‍👩‍👦 Parent:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Real-time attendance tracking of child, exam report cards, direct school circulars.</p>
+          </div>
+        </div>
+
+        <div class="img-preview-box">
+          <div class="img-preview-header">
+            <span style="color: #2563EB;">LIVE SUPER ADMIN STATE COMMAND CENTER</span>
+            <span style="color: #64748B;">Govt of Gujarat Portal</span>
+          </div>
+          <img src="presentation_assets/media_1791474270915.png" alt="Super Admin Screenshot">
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 7: LIVE MULTILINGUAL AI GENERATOR (Split + Gujarati Screenshot) -->
+    <!-- ========================================== -->
+    <div class="slide" id="slide-7" style="background: #F5F3FF;">
+      <div class="slide-header">
+        <div>
+          <div class="header-category" style="color: #7C3AED;">06 | Live Artificial Intelligence Engine</div>
+          <div class="header-title">Multilingual Live AI Paper Generator (Groq Cloud LLM)</div>
+        </div>
+        <div class="header-pill" style="background: #EDE9FE; color: #6D28D9;">Groq LPU Acceleration</div>
+      </div>
+
+      <div class="grid-split">
+        <div class="card" style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-size: 11px; font-weight: 800; color: #7C3AED;">HIGH-SPEED LLM INFERENCE SPECS</div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">🌐 Multilingual Support:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">English, Gujarati (ગુજરાતી), and Hindi (हिन्दी) generated with 100% native script fidelity.</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">⚡ Sub-2.0 Second Latency:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Powered by Groq LPU Llama-3.3 hardware tensor acceleration, avoiding the 30s delays of standard LLMs.</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">🎯 Grade & Difficulty Calibration:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Calibrated across Standard Grades 1 to 12 with customizable Easy, Medium, or Hard difficulty settings.</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">🔒 Rigid JSON Schema Enforcement:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Guarantees valid JSON output containing question text, 4 distinct options, and correct answer key.</p>
+          </div>
+        </div>
+
+        <div class="img-preview-box">
+          <div class="img-preview-header">
+            <span style="color: #7C3AED;">LIVE GUJARATI AI PAPER GENERATED IN TEACHER PORTAL</span>
+            <span style="color: #64748B;">Class 5 Science MCQs</span>
+          </div>
+          <img src="presentation_assets/media_1791657269059.png" alt="Gujarati Paper Screenshot">
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 8: EXAM ENGINE & AUTO-GRADING (Split + Published Exam Screenshot) -->
+    <!-- ========================================== -->
+    <div class="slide" id="slide-8" style="background: #F0F9FF;">
+      <div class="slide-header">
+        <div>
+          <div class="header-category" style="color: #0284C7;">07 | Assessment & Auto-Grading Engine</div>
+          <div class="header-title">Automated Online Examination & Zero-Latency Scoring</div>
+        </div>
+        <div class="header-pill" style="background: #E0F2FE; color: #0369A1;">Instant Results</div>
+      </div>
+
+      <div class="grid-split">
+        <div class="card" style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-size: 11px; font-weight: 800; color: #0284C7;">EXAMINATION PIPELINE</div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">1️⃣ One-Click Publishing:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">AI-generated question papers are saved directly to MongoDB with status 'Published' and linked to target classes.</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">2️⃣ Anti-Cheat Student Exam Interface:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Clean, fullscreen-focused test environment with active countdown timer and randomized option presentation.</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">3️⃣ Instant 0-Second Auto-Grading:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Student selections are evaluated instantly against server answer keys upon submission without teacher effort.</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">4️⃣ Instant Score Analytics:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Immediate report card generation displaying overall score, accuracy percentage, and answer breakdown.</p>
+          </div>
+        </div>
+
+        <div class="img-preview-box">
+          <div class="img-preview-header">
+            <span style="color: #0284C7;">LIVE EXAM PUBLISHED TO MONGODB DATABASE</span>
+            <span style="color: #64748B;">Govt Higher Secondary School</span>
+          </div>
+          <img src="presentation_assets/media_1791654171228.png" alt="Published Exam Screenshot">
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 9: ACADEMIC OPERATIONS (Split + Attendance Screenshot) -->
+    <!-- ========================================== -->
+    <div class="slide" id="slide-9" style="background: #F8FAFC;">
+      <div class="slide-header">
+        <div>
+          <div class="header-category" style="color: #10B981;">08 | Core Academic Modules</div>
+          <div class="header-title">Daily Attendance, Marksheet Entry & Timetable Scheduling</div>
+        </div>
+        <div class="header-pill" style="background: #DCFCE7; color: #15803D;">Operations</div>
+      </div>
+
+      <div class="grid-split">
+        <div class="card" style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="font-size: 11px; font-weight: 800; color: #059669;">OPERATIONAL WORKFLOWS</div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">📋 Daily Attendance Roster:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Quick Class & Section filtering, single-click Present/Absent toggles, date-indexed records with live stats.</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">📊 Marks Upload & Grading Bands:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Direct marks upload with automated percentile calculation, letter grading (A+ to F), and MongoDB persistence.</p>
+          </div>
+
+          <div>
+            <strong style="font-size: 13px; color: #0F172A;">🕒 Weekly Timetable Matrix:</strong>
+            <p style="font-size: 11px; color: #64748B; margin-top: 2px;">Dynamic 6-period weekly timetable mapping teachers, subjects, and classroom slots with zero scheduling clashes.</p>
+          </div>
+        </div>
+
+        <div class="img-preview-box">
+          <div class="img-preview-header">
+            <span style="color: #059669;">LIVE ATTENDANCE ROSTER MODULE</span>
+            <span style="color: #64748B;">Teacher Portal · Std 1 Div A</span>
+          </div>
+          <img src="presentation_assets/media_1791651191349.png" alt="Attendance Screenshot">
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 10: SECURITY & FAULT RESILIENCE (Dark Midnight #0B132B) -->
+    <!-- ========================================== -->
+    <div class="slide dark-slide" id="slide-10" style="background: #0B132B;">
+      <div class="slide-header">
+        <div>
+          <div class="header-category" style="color: #38BDF8;">09 | Security & System Reliability</div>
+          <div class="header-title">Enterprise Security & Fault-Tolerant Architecture</div>
+        </div>
+        <div class="header-pill" style="background: rgba(56,189,248,0.15); color: #38BDF8;">Resilience</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="dark-card" style="border-top: 3px solid #38BDF8;">
+          <div style="font-size: 11px; font-weight: 800; color: #38BDF8;">SHIELD 01</div>
+          <div style="font-size: 16px; font-weight: 800; color: #FFFFFF; margin: 6px 0 10px;">Stateless JWT Authentication</div>
+          <p style="font-size: 12px; color: #94A3B8; line-height: 1.6;">
+            Cryptographically signed tokens issued upon login with userId, role, and expiration claims. Intercepted and verified on every sensitive API request.
+          </p>
+        </div>
+
+        <div class="dark-card" style="border-top: 3px solid #10B981;">
+          <div style="font-size: 11px; font-weight: 800; color: #34D399;">SHIELD 02</div>
+          <div style="font-size: 16px; font-weight: 800; color: #FFFFFF; margin: 6px 0 10px;">Bcrypt Password Salting</div>
+          <p style="font-size: 12px; color: #94A3B8; line-height: 1.6;">
+            Passwords across all 5 roles are salted and hashed using Bcrypt with 10 rounds before storage in MongoDB. Zero plain-text credentials are ever stored.
+          </p>
+        </div>
+
+        <div class="dark-card" style="border-top: 3px solid #F59E0B;">
+          <div style="font-size: 11px; font-weight: 800; color: #FBBF24;">SHIELD 03</div>
+          <div style="font-size: 16px; font-weight: 800; color: #FFFFFF; margin: 6px 0 10px;">Role-Based Route Guards</div>
+          <p style="font-size: 12px; color: #94A3B8; line-height: 1.6;">
+            Client-side React routes and Express controller endpoints verify the caller's role before processing mutations or returning confidential records.
+          </p>
+        </div>
+
+        <div class="dark-card" style="border-top: 3px solid #8B5CF6;">
+          <div style="font-size: 11px; font-weight: 800; color: #A78BFA;">SHIELD 04</div>
+          <div style="font-size: 16px; font-weight: 800; color: #FFFFFF; margin: 6px 0 10px;">Circuit Breaker & Fallback</div>
+          <p style="font-size: 12px; color: #94A3B8; line-height: 1.6;">
+            Groq AI calls are bounded by a 2.5s circuit breaker with local question generation fallback, ensuring the platform never hangs during connectivity drops.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 11: TECH STACK (Light Slate Multi-Color Cards) -->
+    <!-- ========================================== -->
+    <div class="slide" id="slide-11" style="background: #F1F5F9;">
+      <div class="slide-header">
+        <div>
+          <div class="header-category" style="color: #2563EB;">10 | Implementation Specifications</div>
+          <div class="header-title">Full-Stack Technology Stack & Developer Tooling</div>
+        </div>
+        <div class="header-pill" style="background: #DBEAFE; color: #1D4ED8;">Tech Matrix</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; flex: 1;">
+        <div class="card" style="border-top: 4px solid #2563EB;">
+          <div style="font-size: 11px; font-weight: 800; color: #2563EB;">FRONTEND SPA</div>
+          <div style="font-size: 16px; font-weight: 800; color: #0F172A; margin: 4px 0 8px;">React 18 & Vite 5</div>
+          <p style="font-size: 11px; color: #64748B; line-height: 1.5;">Modular components, custom hooks, React Router v6, sub-second Hot Module Replacement.</p>
+        </div>
+
+        <div class="card" style="border-top: 4px solid #06B6D4;">
+          <div style="font-size: 11px; font-weight: 800; color: #0891B2;">UI & STYLING</div>
+          <div style="font-size: 16px; font-weight: 800; color: #0F172A; margin: 4px 0 8px;">Tailwind CSS & Lucide</div>
+          <p style="font-size: 11px; color: #64748B; line-height: 1.5;">Utility-first responsive layouts, executive government theme palette, interactive icons.</p>
+        </div>
+
+        <div class="card" style="border-top: 4px solid #10B981;">
+          <div style="font-size: 11px; font-weight: 800; color: #059669;">BACKEND RUNTIME</div>
+          <div style="font-size: 16px; font-weight: 800; color: #0F172A; margin: 4px 0 8px;">Node.js & Express.js</div>
+          <p style="font-size: 11px; color: #64748B; line-height: 1.5;">Asynchronous event-driven RESTful architecture with custom middleware controllers.</p>
+        </div>
+
+        <div class="card" style="border-top: 4px solid #16A34A;">
+          <div style="font-size: 11px; font-weight: 800; color: #16A34A;">DATABASE LAYER</div>
+          <div style="font-size: 16px; font-weight: 800; color: #0F172A; margin: 4px 0 8px;">MongoDB Atlas & Mongoose</div>
+          <p style="font-size: 11px; color: #64748B; line-height: 1.5;">18 collections, normalized document schemas, indexed relational queries via ObjectId.</p>
+        </div>
+
+        <div class="card" style="border-top: 4px solid #8B5CF6;">
+          <div style="font-size: 11px; font-weight: 800; color: #7C3AED;">AI INFERENCE</div>
+          <div style="font-size: 16px; font-weight: 800; color: #0F172A; margin: 4px 0 8px;">Groq Cloud LPU API</div>
+          <p style="font-size: 11px; color: #64748B; line-height: 1.5;">Llama-3.3-70b/8b engine with prompt steering and strict JSON schema enforcement.</p>
+        </div>
+
+        <div class="card" style="border-top: 4px solid #F59E0B;">
+          <div style="font-size: 11px; font-weight: 800; color: #D97706;">SECURITY & DEVOPS</div>
+          <div style="font-size: 16px; font-weight: 800; color: #0F172A; margin: 4px 0 8px;">JWT, Bcrypt & Git</div>
+          <p style="font-size: 11px; color: #64748B; line-height: 1.5;">Stateless Bearer token validation, 10-salt hashing, and Git version control.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 12: MILESTONES & ROADMAP (Midnight #0F172A) -->
+    <!-- ========================================== -->
+    <div class="slide dark-slide" id="slide-12" style="background: #0F172A;">
+      <div class="slide-header">
+        <div>
+          <div class="header-category" style="color: #10B981;">11 | Project Milestones & Progress</div>
+          <div class="header-title">SGP Review 2 Deliverables & Review 3 Roadmap</div>
+        </div>
+        <div class="header-pill" style="background: rgba(16,185,129,0.15); color: #34D399;">Milestones</div>
+      </div>
+
+      <div class="grid-3" style="margin-bottom: 20px;">
+        <div class="dark-card" style="border-top: 4px solid #2563EB;">
+          <div style="font-size: 11px; font-weight: 800; color: #38BDF8;">PHASE 1 (COMPLETED)</div>
+          <div style="font-size: 16px; font-weight: 800; color: #FFFFFF; margin: 4px 0 10px;">Review 1 Foundation</div>
+          <div style="font-size: 12px; color: #CBD5E1; line-height: 1.6;">
+            ✅ Problem definition & literature review<br>
+            ✅ UI wireframing for all 5 roles<br>
+            ✅ Baseline MongoDB schema architecture<br>
+            ✅ REST API endpoint specifications
+          </div>
+        </div>
+
+        <div class="dark-card" style="border-top: 4px solid #10B981; background: #13273D;">
+          <div style="font-size: 11px; font-weight: 800; color: #34D399;">PHASE 2 (CURRENT DEMO)</div>
+          <div style="font-size: 16px; font-weight: 800; color: #FFFFFF; margin: 4px 0 10px;">Review 2 (100% Implemented)</div>
+          <div style="font-size: 12px; color: #CBD5E1; line-height: 1.6;">
+            ✅ 5 Role-Based Portals fully functional<br>
+            ✅ Multilingual AI Generator (Eng/Guj/Hin)<br>
+            ✅ 18 MongoDB collections live in Compass<br>
+            ✅ Online exam taking & 0s auto-grading<br>
+            ✅ Attendance, marks & timetable modules
+          </div>
+        </div>
+
+        <div class="dark-card" style="border-top: 4px solid #F59E0B;">
+          <div style="font-size: 11px; font-weight: 800; color: #FBBF24;">PHASE 3 (NEXT MILESTONE)</div>
+          <div style="font-size: 16px; font-weight: 800; color: #FFFFFF; margin: 4px 0 10px;">Review 3 Roadmap</div>
+          <div style="font-size: 12px; color: #CBD5E1; line-height: 1.6;">
+            🚀 Automated Parent SMS / WhatsApp alerts<br>
+            🚀 AI Student Weak-Topic Diagnostic Tutor<br>
+            🚀 PWA offline sync for rural connectivity<br>
+            🚀 Final system benchmarking & viva
+          </div>
+        </div>
+      </div>
+
+      <div class="dark-card" style="background: #172A45; border: 1px solid #2563EB; display: flex; align-items: center; justify-content: space-between; padding: 16px 24px;">
+        <div>
+          <div style="font-size: 11px; font-weight: 800; color: #38BDF8;">CHARUSAT UNIVERSITY · CSE DEPARTMENT</div>
+          <div style="font-size: 15px; font-weight: 800; color: #FFFFFF; margin-top: 2px;">Thank You! Questions & Live System Demonstration Open for Faculty Reviewers.</div>
+        </div>
+        <div style="font-size: 12px; font-weight: 700; color: #93C5FD; background: rgba(37,99,235,0.2); padding: 8px 16px; border-radius: 8px;">
+          Candidate: 24CS073 (Prince Patel)
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <div class="controls">
+    <button class="nav-btn" onclick="prevSlide()">← Previous</button>
+    <div class="slide-counter">Slide <span id="current-slide">1</span> of <span id="total-slides">12</span></div>
+    <button class="nav-btn" onclick="nextSlide()">Next →</button>
+  </div>
+
+  <script>
+    let current = 1;
+    const total = 12;
+
+    function showSlide(n) {
+      if (n < 1) n = 1;
+      if (n > total) n = total;
+      current = n;
+
+      for (let i = 1; i <= total; i++) {
+        const slide = document.getElementById(`slide-${i}`);
+        if (!slide) continue;
+        slide.classList.remove('active', 'prev');
+        if (i === current) {
+          slide.classList.add('active');
+        } else if (i < current) {
+          slide.classList.add('prev');
+        }
+      }
+
+      document.getElementById('current-slide').innerText = current;
+    }
+
+    function nextSlide() {
+      if (current < total) showSlide(current + 1);
+    }
+
+    function prevSlide() {
+      if (current > 1) showSlide(current - 1);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') nextSlide();
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') prevSlide();
+      if (e.key === 'f' || e.key === 'F') {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen();
+        } else {
+          document.exitFullscreen();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
