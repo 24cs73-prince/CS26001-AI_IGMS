@@ -390,7 +390,7 @@ Official Portal: Directorate of School Education, Gandhinagar, Gujarat.
                 className={`text-sm font-semibold transition pb-1 ${
                   isPathActive("/login")
                     ? "text-blue-700 font-bold border-b-2 border-blue-600"
-                    : "text-[#17395f] hover:text-blue-600"
+                    : "text-blue-700 hover:text-blue-900"
                 }`}
               >
                 {t.home}
@@ -401,7 +401,7 @@ Official Portal: Directorate of School Education, Gandhinagar, Gujarat.
                 className={`text-sm font-semibold transition pb-1 ${
                   isPathActive("/about-department")
                     ? "text-blue-700 font-bold border-b-2 border-blue-600"
-                    : "text-[#17395f] hover:text-blue-600"
+                    : "text-blue-700 hover:text-blue-900"
                 }`}
               >
                 {t.about}
@@ -412,7 +412,7 @@ Official Portal: Directorate of School Education, Gandhinagar, Gujarat.
                 className={`text-sm font-semibold transition pb-1 ${
                   isPathActive("/services")
                     ? "text-blue-700 font-bold border-b-2 border-blue-600"
-                    : "text-[#17395f] hover:text-blue-600"
+                    : "text-blue-700 hover:text-blue-900"
                 }`}
               >
                 {t.services}
@@ -423,7 +423,7 @@ Official Portal: Directorate of School Education, Gandhinagar, Gujarat.
                 className={`text-sm font-semibold transition pb-1 ${
                   isPathActive("/schools-directory")
                     ? "text-blue-700 font-bold border-b-2 border-blue-600"
-                    : "text-[#17395f] hover:text-blue-600"
+                    : "text-blue-700 hover:text-blue-900"
                 }`}
               >
                 {t.schools}
@@ -434,7 +434,7 @@ Official Portal: Directorate of School Education, Gandhinagar, Gujarat.
                 className={`text-sm font-semibold transition pb-1 ${
                   isPathActive("/contact-us")
                     ? "text-blue-700 font-bold border-b-2 border-blue-600"
-                    : "text-[#17395f] hover:text-blue-600"
+                    : "text-blue-700 hover:text-blue-900"
                 }`}
               >
                 {t.contact}
