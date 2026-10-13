@@ -383,6 +383,11 @@ export default function Dashboard() {
                 State Audit Logs & Activity
               </h3>
             </div>
+            {!activities.length && (
+              <span className="text-[10px] font-semibold text-slate-400">
+                Sample data
+              </span>
+            )}
           </div>
           <ActivityFeed activities={displayedActivities} />
         </Card>
@@ -397,6 +402,11 @@ export default function Dashboard() {
               <FiCalendar className="h-4 w-4 text-blue-600" />
               <h3 className="text-xs font-bold text-[#17395f]">Scheduled State Exams</h3>
             </div>
+            {!upcomingExams.length && (
+              <span className="text-[10px] font-semibold text-slate-400">
+                Sample data
+              </span>
+            )}
           </div>
           <ul className="space-y-3">
             {displayedExams.map((e) => (
@@ -430,13 +440,22 @@ export default function Dashboard() {
         {/* Recent Notices */}
         <Card>
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-xs font-bold text-[#17395f]">Official State Directives</h3>
-            <Link
-              to="/notices"
-              className="text-xs font-bold text-blue-600 hover:underline"
-            >
-              View all
-            </Link>
+            <h3 className="text-xs font-bold text-[#17395f]">
+              Official State Directives
+            </h3>
+            <div className="flex items-center gap-2">
+              {!recentNotices.length && (
+                <span className="text-[10px] font-semibold text-slate-400">
+                  Sample data
+                </span>
+              )}
+              <Link
+                to="/notices"
+                className="text-xs font-bold text-blue-600 hover:underline"
+              >
+                View all
+              </Link>
+            </div>
           </div>
           <ul className="space-y-3">
             {displayedNotices.map((n) => (
