@@ -80,7 +80,7 @@ export default function AboutDepartment() {
           Government of Gujarat Official Department Profile
         </div>
 
-        <h1 className="mt-4 text-3xl font-extrabold sm:text-4xl xl:text-5xl">
+        <h1 className="mt-4 text-3xl font-extrabold text-white sm:text-4xl xl:text-5xl">
           School Education Department
         </h1>
         <p className="mt-1 text-base font-semibold text-blue-200">
