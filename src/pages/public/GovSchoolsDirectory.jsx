@@ -109,7 +109,7 @@ export default function GovSchoolsDirectory() {
           Government Schools Network Directory
         </div>
 
-        <h1 className="mt-4 text-3xl font-extrabold sm:text-4xl">
+        <h1 className="mt-4 text-3xl font-extrabold text-white sm:text-4xl">
           Gujarat Government Schools Directory
         </h1>
         <p className="mt-2 text-sm text-blue-200">
