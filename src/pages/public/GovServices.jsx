@@ -80,7 +80,7 @@ export default function GovServices() {
           Government Digital Education Services Directory
         </div>
 
-        <h1 className="mt-4 text-3xl font-extrabold sm:text-4xl">
+        <h1 className="mt-4 text-3xl font-extrabold text-white sm:text-4xl">
           School Digital Services & Welfare Schemes
         </h1>
         <p className="mt-2 text-sm text-blue-200">
