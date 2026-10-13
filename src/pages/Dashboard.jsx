@@ -16,7 +16,13 @@ import {
 
 import { useFetch } from "../hooks/useFetch";
 import { api } from "../services/api";
-import { enrollmentByClass, attendanceSplit } from "../data/dashboard";
+import {
+  enrollmentByClass,
+  attendanceSplit,
+  recentActivities,
+} from "../data/dashboard";
+import { exams as sampleExams } from "../data/exams";
+import { notices as sampleNotices } from "../data/notices";
 
 import PageHeader from "../components/common/PageHeader";
 import StatCard from "../components/common/StatCard";
@@ -55,6 +61,21 @@ export default function Dashboard() {
     .filter((e) => ["Upcoming", "Scheduled", "Active", "Published"].includes(e.status))
     .slice(0, 4);
   const recentNotices = (notices || []).slice(0, 4);
+  const displayedActivities = activities.length
+    ? activities.slice(0, 5)
+    : recentActivities.slice(0, 5);
+  const displayedExams = upcomingExams.length
+    ? upcomingExams
+    : sampleExams
+        .filter((exam) =>
+          ["Upcoming", "Scheduled", "Active", "Published"].includes(
+            exam.status,
+          ),
+        )
+        .slice(0, 4);
+  const displayedNotices = recentNotices.length
+    ? recentNotices
+    : sampleNotices.slice(0, 4);
   const trendData = (trend || []).map((t) => ({
     month: t.month,
     value: t.performance,
@@ -363,7 +384,7 @@ export default function Dashboard() {
               </h3>
             </div>
           </div>
-          <ActivityFeed activities={activities.slice(0, 5)} />
+          <ActivityFeed activities={displayedActivities} />
         </Card>
       </div>
 
@@ -378,7 +399,7 @@ export default function Dashboard() {
             </div>
           </div>
           <ul className="space-y-3">
-            {upcomingExams.map((e) => (
+            {displayedExams.map((e) => (
               <li key={e.id} className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-xl bg-blue-50 text-blue-800 font-bold border border-blue-100">
                   <span className="text-[10px] font-bold uppercase">
@@ -418,7 +439,7 @@ export default function Dashboard() {
             </Link>
           </div>
           <ul className="space-y-3">
-            {recentNotices.map((n) => (
+            {displayedNotices.map((n) => (
               <li key={n.id} className="group">
                 <Link
                   to="/notices"
