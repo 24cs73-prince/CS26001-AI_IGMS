@@ -67,7 +67,7 @@ export default function ContactUs() {
           Official Contact & Support Portal
         </div>
 
-        <h1 className="mt-4 text-3xl font-extrabold sm:text-4xl">
+        <h1 className="mt-4 text-3xl font-extrabold text-white sm:text-4xl">
           Department Contact & Public Redressal Desk
         </h1>
         <p className="mt-2 text-sm text-blue-200">
