@@ -115,6 +115,14 @@ app.use(errorHandler);
 // --------------------
 const startServer = async () => {
   try {
+    if (
+      !process.env.JWT_SECRET ||
+      process.env.JWT_SECRET.length < 32 ||
+      process.env.JWT_SECRET.includes("change_in_production")
+    ) {
+      throw new Error("A strong JWT_SECRET must be configured before starting the server.");
+    }
+
     await connectDB();
 
     app.listen(PORT, "0.0.0.0", () => {

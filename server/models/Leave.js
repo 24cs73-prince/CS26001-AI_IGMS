@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const leaveSchema = new mongoose.Schema(
   {
-    school_id: { type: String, default: "school-001" },
+    school_id: { type: String, default: "SCH-001" },
     teacherId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     teacherName: { type: String, required: true },
     leaveType: {

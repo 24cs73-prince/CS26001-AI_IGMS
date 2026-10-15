@@ -4,7 +4,7 @@ const studentSchema = new mongoose.Schema(
   {
     studentId: { type: String, required: true, unique: true, trim: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-    schoolId: { type: String, default: "school-001" },
+    schoolId: { type: String, default: "SCH-001" },
     classId: { type: mongoose.Schema.Types.ObjectId, ref: "Class", default: null },
     rollNumber: { type: Number },
     roll: { type: Number }, // legacy alias
@@ -28,4 +28,3 @@ const studentSchema = new mongoose.Schema(
 );
 
 export const Student = mongoose.model("Student", studentSchema);
-

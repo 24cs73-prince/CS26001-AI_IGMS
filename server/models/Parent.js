@@ -9,7 +9,7 @@ const parentSchema = new mongoose.Schema(
     },
     schoolId: {
       type: String,
-      default: "school-001",
+      default: "SCH-001",
     },
     parentId: {
       type: String,

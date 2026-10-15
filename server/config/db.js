@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { seedAllData } from "./seedAllData.js";
 
 /**
  * MongoDB Connection Handler
@@ -7,14 +6,22 @@ import { seedAllData } from "./seedAllData.js";
  * based on process.env.MONGODB_URI or process.env.MONGO_URI.
  */
 export const connectDB = async () => {
-  const mongoUri =
+  const configuredMongoUri =
     process.env.MONGODB_URI ||
     process.env.MONGO_URI ||
-    process.env.MONGODB_ATLAS_URI ||
-    "mongodb://127.0.0.1:27017/ai_igms";
+    process.env.MONGODB_ATLAS_URI;
 
-  if (!mongoUri || mongoUri.includes("<db_password>")) {
-    console.warn("⚠️ Warning: MONGODB_URI contains placeholder or is empty. Falling back to local MongoDB.");
+  if (process.env.NODE_ENV === "production" && !configuredMongoUri) {
+    throw new Error("MONGODB_URI must be configured in production.");
+  }
+
+  let mongoUri = configuredMongoUri || "mongodb://127.0.0.1:27017/ai_igms";
+  if (mongoUri.includes("<db_password>")) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("MONGODB_URI contains an unresolved password placeholder.");
+    }
+    console.warn("⚠️ MongoDB URI contains a placeholder. Using local development MongoDB.");
+    mongoUri = "mongodb://127.0.0.1:27017/ai_igms";
   }
 
   try {
@@ -22,11 +29,6 @@ export const connectDB = async () => {
       serverSelectionTimeoutMS: 15000,
     });
     console.log(`✅ MongoDB Connected [Database: ${conn.connection.name}]: ${conn.connection.host}`);
-    try {
-      await seedAllData();
-    } catch (seedErr) {
-      console.warn("⚠️ Auto-seed notice:", seedErr.message);
-    }
     return conn;
   } catch (error) {
     console.error(`❌ MongoDB Connection Error: ${error.message}`);

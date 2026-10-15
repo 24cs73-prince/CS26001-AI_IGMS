@@ -4,7 +4,7 @@ const timetableSchema = new mongoose.Schema(
   {
     schoolId: {
       type: String,
-      default: "school-001",
+      default: "SCH-001",
       required: true,
     },
     classId: {

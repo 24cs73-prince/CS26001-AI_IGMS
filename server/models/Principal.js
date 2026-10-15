@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const principalSchema = new mongoose.Schema(
   {
     principalId: { type: String, required: true, unique: true },
+    school_id: { type: String, default: "SCH-001" },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     name: { type: String, required: true },
     schoolName: { type: String, required: true },

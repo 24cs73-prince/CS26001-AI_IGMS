@@ -9,7 +9,7 @@ const attendanceRecordSchema = new mongoose.Schema({
 
 const attendanceSchema = new mongoose.Schema(
   {
-    school_id: { type: String, required: true, default: "school-001" },
+    school_id: { type: String, required: true, default: "SCH-001" },
     classVal: { type: String, required: true },
     division: { type: String, required: true, default: "A" },
     date: { type: String, required: true },

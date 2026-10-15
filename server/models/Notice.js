@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const noticeSchema = new mongoose.Schema(
   {
-    school_id: { type: String, default: "school-001" },
+    school_id: { type: String, default: "SCH-001" },
     title: { type: String, required: true, trim: true },
     category: {
       type: String,

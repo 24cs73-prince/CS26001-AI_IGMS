@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const teacherSchema = new mongoose.Schema(
   {
     teacherId: { type: String, required: true, unique: true },
+    schoolId: { type: String, default: "SCH-001" },
     name: { type: String, required: true },
     department: { type: String },
     subject: { type: String },

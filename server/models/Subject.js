@@ -4,7 +4,7 @@ const subjectSchema = new mongoose.Schema(
   {
     schoolId: {
       type: String,
-      default: "school-001",
+      default: "SCH-001",
     },
     name: {
       type: String,
