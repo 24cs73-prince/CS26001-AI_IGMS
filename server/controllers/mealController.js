@@ -1,12 +1,15 @@
 import { MealMenu } from "../models/MealMenu.js";
 import { Holiday } from "../models/Holiday.js";
+import { schoolScope } from "../middleware/authMiddleware.js";
 
 /**
  * Get entire weekly mid-day meal menu (Monday to Saturday)
  */
 export const getWeeklyMenu = async (req, res) => {
   try {
-    const menu = await MealMenu.find({ isActive: true }).sort({ dayOfWeek: 1 });
+    const requestedSchoolId = typeof req.query.schoolId === "string" ? req.query.schoolId : undefined;
+    const schoolId = req.user?.school_id || requestedSchoolId || "SCH-001";
+    const menu = await MealMenu.find({ schoolId, isActive: true }).sort({ dayOfWeek: 1 });
     res.json(menu);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch meal menu", error: error.message });
@@ -19,6 +22,8 @@ export const getWeeklyMenu = async (req, res) => {
 export const getTodayMeal = async (req, res) => {
   try {
     const today = new Date();
+    const requestedSchoolId = typeof req.query.schoolId === "string" ? req.query.schoolId : undefined;
+    const schoolId = req.user?.school_id || requestedSchoolId || "SCH-001";
     const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
     const dateStr = today.toISOString().split("T")[0];
 
@@ -38,7 +43,7 @@ export const getTodayMeal = async (req, res) => {
     }
 
     // Check if holiday in DB
-    const holiday = await Holiday.findOne({ date: dateStr, isActive: true });
+    const holiday = await Holiday.findOne({ schoolId, date: dateStr, isActive: true });
     if (holiday) {
       return res.json({
         isSunday: false,
@@ -57,7 +62,7 @@ export const getTodayMeal = async (req, res) => {
     }
 
     // Fetch day meal from DB
-    const meal = await MealMenu.findOne({ dayOfWeek, isActive: true });
+    const meal = await MealMenu.findOne({ schoolId, dayOfWeek, isActive: true });
     if (!meal) {
       return res.status(404).json({ message: "Meal menu for today is not configured" });
     }
@@ -77,7 +82,12 @@ export const getTodayMeal = async (req, res) => {
  */
 export const createMealSlot = async (req, res) => {
   try {
-    const slot = new MealMenu(req.body);
+    const schoolId = req.user.roleKey === "super_admin" ? req.body.schoolId : req.user.school_id;
+    if (!schoolId) return res.status(400).json({ message: "A school must be assigned before creating a meal slot." });
+    const slot = new MealMenu({
+      ...req.body,
+      schoolId,
+    });
     await slot.save();
     res.status(201).json(slot);
   } catch (error) {
@@ -90,7 +100,13 @@ export const createMealSlot = async (req, res) => {
  */
 export const updateMealSlot = async (req, res) => {
   try {
-    const updated = await MealMenu.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updates = { ...req.body };
+    if (req.user.roleKey !== "super_admin") delete updates.schoolId;
+    const updated = await MealMenu.findOneAndUpdate(
+      { _id: req.params.id, ...schoolScope(req, "schoolId") },
+      updates,
+      { new: true, runValidators: true }
+    );
     if (!updated) return res.status(404).json({ message: "Meal slot not found" });
     res.json(updated);
   } catch (error) {
@@ -103,7 +119,7 @@ export const updateMealSlot = async (req, res) => {
  */
 export const deleteMealSlot = async (req, res) => {
   try {
-    const deleted = await MealMenu.findByIdAndDelete(req.params.id);
+    const deleted = await MealMenu.findOneAndDelete({ _id: req.params.id, ...schoolScope(req, "schoolId") });
     if (!deleted) return res.status(404).json({ message: "Meal slot not found" });
     res.json({ message: "Meal slot deleted successfully" });
   } catch (error) {

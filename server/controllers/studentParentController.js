@@ -4,7 +4,9 @@ import { Parent } from "../models/Parent.js";
 
 export const getStudentParents = async (req, res) => {
   try {
-    const list = await StudentParent.find()
+    const schoolId = req.user.roleKey === "super_admin" ? req.query.schoolId : req.user.school_id;
+    const students = await Student.find({ schoolId }).select("studentId");
+    const list = await StudentParent.find({ studentId: { $in: students.map(({ studentId }) => studentId) } })
       .populate("parentId")
       .populate("parentUserId", "name email");
     res.json(list);
@@ -16,9 +18,12 @@ export const getStudentParents = async (req, res) => {
 export const linkStudentParent = async (req, res) => {
   try {
     const { studentId, parentId, relationship, isPrimary } = req.body;
+    const schoolId = req.user.roleKey === "super_admin" ? req.body.schoolId : req.user.school_id;
+    const student = await Student.findOne({ studentId, schoolId });
+    if (!student) return res.status(404).json({ message: "Student not found in this school." });
     
     // Check if parent exists
-    const parent = await Parent.findById(parentId);
+    const parent = await Parent.findOne({ _id: parentId, schoolId });
     if (!parent) return res.status(404).json({ message: "Parent not found" });
 
     // Link
@@ -43,7 +48,12 @@ export const linkStudentParent = async (req, res) => {
 export const unlinkStudentParent = async (req, res) => {
   try {
     const { id } = req.params;
-    await StudentParent.findByIdAndDelete(id);
+    const link = await StudentParent.findById(id);
+    if (!link) return res.status(404).json({ message: "Relationship not found." });
+    const schoolId = req.user.roleKey === "super_admin" ? req.query.schoolId : req.user.school_id;
+    const student = await Student.findOne({ studentId: link.studentId, schoolId });
+    if (!student) return res.status(404).json({ message: "Relationship not found." });
+    await link.deleteOne();
     res.json({ message: "Relationship unlinked successfully" });
   } catch (error) {
     res.status(500).json({ message: "Failed to unlink", error: error.message });

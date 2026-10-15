@@ -2,16 +2,19 @@
  * Reusable Query Filtering, Searching & Pagination Helper
  * Applies search regex filters, field sorting, and pagination metadata to Mongoose queries.
  */
-export async function applyQueryFeatures(model, queryParams = {}, searchFields = []) {
-  const page = parseInt(queryParams.page, 10) || 1;
-  const limit = parseInt(queryParams.limit, 10) || 20;
+export async function applyQueryFeatures(model, queryParams = {}, searchFields = [], baseFilter = {}) {
+  const page = Math.max(parseInt(queryParams.page, 10) || 1, 1);
+  const limit = Math.max(1, Math.min(parseInt(queryParams.limit, 10) || 20, 100));
   const skip = (page - 1) * limit;
 
-  const filter = {};
+  const filter = { ...baseFilter };
 
   // Apply search query across specified fields
   if (queryParams.search && searchFields.length > 0) {
-    const searchRegex = new RegExp(queryParams.search, "i");
+    const escapedSearch = String(queryParams.search)
+      .slice(0, 100)
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const searchRegex = new RegExp(escapedSearch, "i");
     filter.$or = searchFields.map((field) => ({ [field]: searchRegex }));
   }
 

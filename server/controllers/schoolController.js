@@ -2,6 +2,8 @@ import { School } from "../models/School.js";
 import { User } from "../models/User.js";
 import { applyQueryFeatures } from "../utils/queryHelper.js";
 import bcrypt from "bcryptjs";
+import { schoolScope } from "../middleware/authMiddleware.js";
+import { isStrongPassword } from "../middleware/validateMiddleware.js";
 
 /**
  * @desc    Get All Schools with Search & Pagination
@@ -11,7 +13,15 @@ export const getSchools = async (req, res) => {
   try {
     const searchFields = ["name", "udiseCode", "school_id", "category"];
     const result = await applyQueryFeatures(School, req.query, searchFields);
-    res.json(result.data);
+    res.json(result.data.map((school) => ({
+      _id: school._id,
+      school_id: school.school_id,
+      name: school.name,
+      udiseCode: school.udiseCode,
+      category: school.category,
+      address: school.address,
+      status: school.status,
+    })));
   } catch (error) {
     console.error("Get Schools Error:", error);
     res.status(500).json({ message: "Server error fetching schools." });
@@ -24,7 +34,9 @@ export const getSchools = async (req, res) => {
  */
 export const getSchoolById = async (req, res) => {
   try {
-    const school = await School.findById(req.params.id).populate("principalId", "name email role");
+    const school = await School.findById(req.params.id).select(
+      "school_id name udiseCode category address status"
+    );
     if (!school) {
       return res.status(404).json({ message: "School not found." });
     }
@@ -57,9 +69,12 @@ export const createSchool = async (req, res) => {
     if (!name) {
       return res.status(400).json({ message: "School name is required." });
     }
+    if (principalEmail && !isStrongPassword(principalPassword)) {
+      return res.status(400).json({ message: "A strong password is required for the principal account." });
+    }
 
     const generatedUdise = udiseCode || ("24" + Math.floor(100000000 + Math.random() * 900000000));
-    const school_id = `school-${Date.now().toString().slice(-4)}`;
+    const school_id = `school-${Date.now()}`;
 
     let createdPrincipalUser = null;
     let assignedPrincipalId = principalId || null;
@@ -70,10 +85,9 @@ export const createSchool = async (req, res) => {
       let existingUser = await User.findOne({ email: cleanEmail });
 
       if (existingUser) {
-        assignedPrincipalId = existingUser._id;
-        createdPrincipalUser = existingUser;
+        return res.status(409).json({ message: "This email is already assigned to an account." });
       } else {
-        const rawPass = principalPassword && principalPassword.trim() ? principalPassword.trim() : "Principal@123";
+        const rawPass = principalPassword;
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(rawPass, salt);
 
@@ -139,12 +153,17 @@ export const createSchool = async (req, res) => {
  */
 export const updateSchool = async (req, res) => {
   try {
-    const school = await School.findById(req.params.id);
+    const school = await School.findOne({ _id: req.params.id, ...schoolScope(req) });
     if (!school) {
       return res.status(404).json({ message: "School not found." });
     }
 
-    Object.assign(school, req.body);
+    const allowedFields = ["name", "category", "address", "status", "principalId"];
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        school[field] = req.body[field];
+      }
+    }
     await school.save();
 
     res.json(school);
@@ -159,7 +178,7 @@ export const updateSchool = async (req, res) => {
  */
 export const getSchoolRoster = async (req, res) => {
   try {
-    const school = await School.findById(req.params.id);
+    const school = await School.findOne({ _id: req.params.id, ...schoolScope(req) });
     if (!school) {
       return res.status(404).json({ message: "School not found." });
     }

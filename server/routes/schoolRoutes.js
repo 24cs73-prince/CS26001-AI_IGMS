@@ -6,7 +6,7 @@ import {
   updateSchool,
   getSchoolRoster,
 } from "../controllers/schoolController.js";
-import { protect, protectRoles } from "../middleware/authMiddleware.js";
+import { protect, protectRoles, requireSchool } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -16,8 +16,8 @@ router.route("/")
 
 router.route("/:id")
   .get(getSchoolById)
-  .patch(protect, protectRoles(["super_admin", "principal"]), updateSchool);
+  .patch(protect, requireSchool, protectRoles(["super_admin", "principal"]), updateSchool);
 
-router.get("/:id/roster", protect, getSchoolRoster);
+router.get("/:id/roster", protect, requireSchool, protectRoles(["super_admin", "principal", "admin"]), getSchoolRoster);
 
 export default router;

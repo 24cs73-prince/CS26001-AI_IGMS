@@ -2,13 +2,18 @@ import { Parent } from "../models/Parent.js";
 import { Student } from "../models/Student.js";
 import { StudentParent } from "../models/StudentParent.js";
 import { User } from "../models/User.js";
+import { schoolScope } from "../middleware/authMiddleware.js";
+import { isStrongPassword } from "../middleware/validateMiddleware.js";
+import bcrypt from "bcryptjs";
 
 /**
  * Get all parents (Admin / Principal)
  */
 export const getParents = async (req, res) => {
   try {
-    const parents = await Parent.find().populate("userId", "name email roleKey").sort({ createdAt: -1 });
+    const parents = await Parent.find(schoolScope(req, "schoolId"))
+      .populate("userId", "name email roleKey")
+      .sort({ createdAt: -1 });
     res.json(parents);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch parents", error: error.message });
@@ -20,7 +25,8 @@ export const getParents = async (req, res) => {
  */
 export const getParentById = async (req, res) => {
   try {
-    const parent = await Parent.findById(req.params.id).populate("userId", "name email");
+    const parent = await Parent.findOne({ _id: req.params.id, ...schoolScope(req, "schoolId") })
+      .populate("userId", "name email");
     if (!parent) return res.status(404).json({ message: "Parent record not found" });
     res.json(parent);
   } catch (error) {
@@ -38,7 +44,7 @@ export const getMyChildren = async (req, res) => {
     if (!userId) return res.status(401).json({ message: "Authentication required" });
 
     // 1. Find Parent record by userId
-    let parent = await Parent.findOne({ userId });
+    let parent = await Parent.findOne({ userId, ...schoolScope(req, "schoolId") });
     
     // 2. Find StudentParent links
     let links = [];
@@ -55,14 +61,9 @@ export const getMyChildren = async (req, res) => {
     let students = [];
     if (studentIds.length > 0) {
       students = await Student.find({
+        ...schoolScope(req, "schoolId"),
         $or: [{ studentId: { $in: studentIds } }, { id: { $in: studentIds } }],
       });
-    }
-
-    // If still no students, return standard demo child for demo parents
-    if (students.length === 0) {
-      const defaultStudent = await Student.findOne();
-      if (defaultStudent) students = [defaultStudent];
     }
 
     res.json({
@@ -73,8 +74,6 @@ export const getMyChildren = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch children", error: error.message });
   }
 };
-
-import bcrypt from "bcryptjs";
 
 /**
  * Create a new parent profile & Register User Login Account
@@ -100,34 +99,52 @@ export const createParent = async (req, res) => {
     const cleanEmail = (email && email.trim())
       ? email.trim().toLowerCase()
       : `${parentName.toLowerCase().replace(/[^a-z0-9]/g, "")}@igms.edu`;
-    const userPassword = (password && password.trim()) ? password.trim() : "Parent@123";
+    const userPassword = password;
+    const schoolId = req.user.roleKey === "super_admin" ? req.body.schoolId : req.user.school_id;
+    if (!schoolId) {
+      return res.status(400).json({ message: "A school must be assigned before creating a parent." });
+    }
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ message: "A strong password is required for the parent account." });
+    }
+    const existingUser = await User.findOne({ email: cleanEmail }).select("_id");
+    if (existingUser) {
+      return res.status(409).json({ message: "This email is already assigned to an account." });
+    }
+    const allStudentIds = studentIds || (studentId ? [studentId] : []);
+    if (Array.isArray(allStudentIds) && allStudentIds.length > 0) {
+      const students = await Student.find({
+        schoolId,
+        studentId: { $in: allStudentIds },
+      }).select("studentId");
+      if (students.length !== new Set(allStudentIds).size) {
+        return res.status(403).json({ message: "One or more students are not in your school." });
+      }
+    }
 
     // 1. Create or update User account in MongoDB for Parent Login
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(userPassword, salt);
 
-    const userDoc = await User.findOneAndUpdate(
-      { email: cleanEmail },
-      {
-        name: parentName,
-        email: cleanEmail,
-        passwordHash,
-        roleKey: "parent",
-        role: "Parent",
-        org: "Govt. Higher Secondary School · School A",
-        school_id: "SCH-001",
-        schoolName: "PM Shri Government Higher Secondary School - Gandhinagar",
-        childStudentId: studentId || (Array.isArray(studentIds) ? studentIds[0] : "STU-1001"),
-        home: "/parent/dashboard",
-        permissions: ["parent.profile", "student.results", "student.attendance"],
-        mustChangePassword: false,
-      },
-      { upsert: true, new: true }
-    );
+    const userDoc = await User.create({
+      name: parentName,
+      email: cleanEmail,
+      passwordHash,
+      roleKey: "parent",
+      role: "Parent",
+      org: "Govt. Higher Secondary School · School A",
+      school_id: schoolId,
+      schoolName: "PM Shri Government Higher Secondary School - Gandhinagar",
+      childStudentId: studentId || (Array.isArray(studentIds) ? studentIds[0] : undefined),
+      home: "/parent/dashboard",
+      permissions: ["parent.profile", "student.results", "student.attendance"],
+      mustChangePassword: false,
+    });
 
     // 2. Create Parent profile document in MongoDB
     const parent = new Parent({
       userId: userDoc._id,
+      schoolId,
       firstName: firstName || parentName.split(" ")[0] || "Guardian",
       middleName: middleName || "",
       lastName: lastName || parentName.split(" ")[1] || "",
@@ -140,7 +157,6 @@ export const createParent = async (req, res) => {
     await parent.save();
 
     // 3. Link students if studentId or studentIds provided
-    const allStudentIds = studentIds || (studentId ? [studentId] : []);
     if (Array.isArray(allStudentIds) && allStudentIds.length > 0) {
       for (const sId of allStudentIds) {
         await StudentParent.create({
@@ -155,9 +171,11 @@ export const createParent = async (req, res) => {
     res.status(201).json({
       ...parent.toObject(),
       loginEmail: cleanEmail,
-      loginPassword: userPassword,
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "A parent or account with those identifiers already exists." });
+    }
     console.error("Create Parent Error:", error);
     res.status(500).json({ message: "Failed to create parent", error: error.message });
   }
@@ -168,7 +186,26 @@ export const createParent = async (req, res) => {
  */
 export const updateParent = async (req, res) => {
   try {
-    const parent = await Parent.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const allowedFields = [
+      "firstName",
+      "middleName",
+      "lastName",
+      "phone",
+      "email",
+      "address",
+      "occupation",
+      "status",
+    ];
+    const updates = Object.fromEntries(
+      allowedFields
+        .filter((field) => req.body[field] !== undefined)
+        .map((field) => [field, req.body[field]])
+    );
+    const parent = await Parent.findOneAndUpdate(
+      { _id: req.params.id, ...schoolScope(req, "schoolId") },
+      updates,
+      { new: true, runValidators: true }
+    );
     if (!parent) return res.status(404).json({ message: "Parent not found" });
     res.json(parent);
   } catch (error) {
@@ -181,8 +218,16 @@ export const updateParent = async (req, res) => {
  */
 export const deleteParent = async (req, res) => {
   try {
-    const parent = await Parent.findByIdAndDelete(req.params.id);
+    const parent = await Parent.findOne({ _id: req.params.id, ...schoolScope(req, "schoolId") });
     if (!parent) return res.status(404).json({ message: "Parent not found" });
+    const account = await User.findOneAndUpdate(
+      { _id: parent.userId, roleKey: "parent", school_id: parent.schoolId },
+      { $set: { isActive: false, childStudentId: null } }
+    );
+    if (!account) {
+      return res.status(409).json({ message: "Parent account is missing; profile was not deleted." });
+    }
+    await parent.deleteOne();
     await StudentParent.deleteMany({ parentId: parent._id });
     res.json({ message: "Parent deleted successfully" });
   } catch (error) {
