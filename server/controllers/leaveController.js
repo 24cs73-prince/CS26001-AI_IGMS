@@ -1,4 +1,5 @@
 import { Leave } from "../models/Leave.js";
+import { schoolScope } from "../middleware/authMiddleware.js";
 
 /**
  * @desc    Apply for Teacher Leave
@@ -15,6 +16,7 @@ export const applyLeave = async (req, res) => {
     const leave = await Leave.create({
       teacherId: req.user?._id,
       teacherName: req.user?.name || "Dr. Meenakshi Iyer",
+      school_id: req.user?.school_id,
       leaveType: leaveType || "Casual Leave",
       startDate,
       endDate,
@@ -36,7 +38,7 @@ export const applyLeave = async (req, res) => {
  */
 export const getLeaves = async (req, res) => {
   try {
-    const filter = {};
+    const filter = schoolScope(req);
     if (req.user?.roleKey === "teacher") {
       filter.teacherId = req.user._id;
     }
@@ -57,7 +59,7 @@ export const updateLeaveStatus = async (req, res) => {
   try {
     const { status, remarks } = req.body;
 
-    const leave = await Leave.findById(req.params.id);
+    const leave = await Leave.findOne({ _id: req.params.id, ...schoolScope(req) });
     if (!leave) {
       return res.status(404).json({ message: "Leave application not found." });
     }

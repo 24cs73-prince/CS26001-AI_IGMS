@@ -149,7 +149,7 @@ export default function ApplyLeave() {
 
     try {
       const payload = {
-        school_id: "school-001",
+        school_id: "SCH-001",
         teacherName: user?.name || "Dr. Meenakshi Iyer",
         leaveType: type.value,
         startDate: from,

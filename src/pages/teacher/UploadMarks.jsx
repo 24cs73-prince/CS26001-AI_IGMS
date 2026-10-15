@@ -142,7 +142,7 @@ export default function UploadMarks() {
       const records = roster
         .filter((s) => scores[s.id] !== undefined && scores[s.id] !== "")
         .map((s) => ({
-          studentId: s.id,
+          studentId: s.studentId || s.id,
           studentName: s.name,
           marksObtained: Number(scores[s.id]),
           maxMarks: MAX_MARKS,

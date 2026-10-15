@@ -135,14 +135,14 @@ export default function MarkAttendance() {
 
     try {
       const records = roster.map((s) => ({
-        studentId: s.id || "ST-" + s.roll,
+        studentId: s.studentId || s.id || "ST-" + s.roll,
         studentName: s.name,
         status: marks[s.id] || "Present",
         remarks: "Recorded via portal",
       }));
 
       const payload = {
-        school_id: "school-001",
+        school_id: "SCH-001",
         classVal: classFilter.value.replace("Class ", ""),
         division: sectionFilter.value,
         date: new Date().toISOString().split("T")[0],
