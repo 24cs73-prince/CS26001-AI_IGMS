@@ -10,6 +10,12 @@ if (fs.existsSync(serverEnvPath)) {
 dotenv.config();
 
 const GROK_API_URL = "https://api.x.ai/v1/chat/completions";
+const getApiKey = () =>
+  [process.env.GROK_API_KEY, process.env.GROQ_API_KEY]
+    .map((key) => key?.trim())
+    .find((key) => key && key !== "your_xai_grok_api_key_here");
+
+export const isAiProviderConfigured = () => Boolean(getApiKey());
 
 /**
  * Generate Curriculum-Aligned MCQ Questions using AI Engine (Groq / Grok)
@@ -23,7 +29,7 @@ export async function generateMCQPaperWithGrok({
   count = 10,
   language = "English",
 }) {
-  const apiKey = process.env.GROK_API_KEY || process.env.GROQ_API_KEY;
+  const apiKey = getApiKey();
   const numQuestions = Math.max(1, parseInt(count, 10) || 10);
   const diff = (difficulty || "Medium").trim();
   const std = (classVal || "5").trim();
@@ -126,30 +132,40 @@ SCHEMA FORMAT:
           ? parsedData
           : (parsedData?.questions || parsedData?.data || parsedData?.mcqs || []);
 
-        if (Array.isArray(rawList) && rawList.length > 0) {
+        if (Array.isArray(rawList) && rawList.length >= numQuestions) {
           console.log(`✅ Live Groq AI Engine generated ${rawList.length} unique MCQs for Class ${std} ${sub} (${diff})`);
           return rawList.slice(0, numQuestions).map((item, idx) => {
-            const opts = Array.isArray(item.options) && item.options.length >= 2
-              ? item.options
-              : ["Option A", "Option B", "Option C", "Option D"];
+            const question = item.question || item.questionText || item.q;
+            const opts = item.options;
+            if (
+              typeof question !== "string" ||
+              !question.trim() ||
+              !Array.isArray(opts) ||
+              opts.length !== 4 ||
+              opts.some((option) => typeof option !== "string" || !option.trim())
+            ) {
+              throw new Error("AI provider returned an invalid question or option set.");
+            }
 
-            let cIdx = 0;
-            if (typeof item.correctAnswer === "number" && item.correctAnswer >= 0 && item.correctAnswer < opts.length) {
-              cIdx = item.correctAnswer;
-            } else if (typeof item.answer === "number" && item.answer >= 0 && item.answer < opts.length) {
-              cIdx = item.answer;
+            let answerIndex;
+            if (Number.isInteger(item.correctAnswer) && item.correctAnswer >= 0 && item.correctAnswer < opts.length) {
+              answerIndex = item.correctAnswer;
+            } else if (Number.isInteger(item.answer) && item.answer >= 0 && item.answer < opts.length) {
+              answerIndex = item.answer;
             } else if (typeof item.answer === "string") {
-              const matched = opts.findIndex(o => String(o).trim().toLowerCase() === item.answer.trim().toLowerCase());
-              cIdx = matched >= 0 ? matched : 0;
-            } else {
-              cIdx = idx % opts.length;
+              answerIndex = opts.findIndex((option) =>
+                option.trim().toLowerCase() === item.answer.trim().toLowerCase()
+              );
+            }
+            if (!Number.isInteger(answerIndex) || answerIndex < 0) {
+              throw new Error("AI provider returned an invalid correct answer.");
             }
 
             return {
               id: idx + 1,
-              question: item.question || item.questionText || item.q || `Question ${idx + 1}`,
+              question: question.trim(),
               options: opts,
-              correctAnswer: cIdx,
+              correctAnswer: answerIndex,
               marks: Number(item.marks) || 1,
               difficulty: item.difficulty || diff,
             };
@@ -230,8 +246,11 @@ SCHEMA FORMAT:
     }
   }
 
-  console.log(`ℹ️ Using intelligent fallback MCQ generator for Class ${std} ${sub} (${diff})`);
-  return fallbackMCQGenerator({ classVal: std, subject: sub, syllabus: topicText, difficulty: diff, count: numQuestions });
+  throw new Error(
+    apiKey
+      ? "AI provider did not return valid exam questions."
+      : "AI question generation is not configured."
+  );
 }
 
 /**
@@ -239,7 +258,6 @@ SCHEMA FORMAT:
  * @param {Object} params - { studentName, score, totalMarks, percentage, correctCount, wrongCount, subject }
  */
 export async function analyzePerformanceWithGrok({
-  studentName = "Student",
   score = 0,
   totalMarks = 10,
   percentage = 0,
@@ -247,7 +265,7 @@ export async function analyzePerformanceWithGrok({
   wrongCount = 0,
   subject = "General",
 }) {
-  const apiKey = process.env.GROK_API_KEY || process.env.GROQ_API_KEY;
+  const apiKey = getApiKey();
 
   if (apiKey && apiKey !== "your_xai_grok_api_key_here") {
     try {
@@ -255,7 +273,7 @@ export async function analyzePerformanceWithGrok({
       const apiUrl = isGroq ? "https://api.groq.com/openai/v1/chat/completions" : GROK_API_URL;
       const model = isGroq ? "openai/gpt-oss-120b" : "grok-2-latest";
 
-      const prompt = `Analyze exam performance for student '${studentName}' in ${subject}.
+      const prompt = `Analyze exam performance for a student in ${subject}.
 Score: ${score}/${totalMarks} (${percentage}%). Correct: ${correctCount}, Wrong: ${wrongCount}.
 
 Return ONLY a raw JSON object with keys:
@@ -288,84 +306,13 @@ Return ONLY a raw JSON object with keys:
         }
       }
     } catch (e) {
-      console.warn("⚠️ AI Performance Analysis skipped, using fallback analysis.");
+      console.warn("⚠️ AI Performance Analysis provider request failed:", e.message);
     }
   }
 
-  let badge = "Needs Improvement";
-  if (percentage >= 85) badge = "Excellent";
-  else if (percentage >= 70) badge = "Good";
-  else if (percentage >= 50) badge = "Satisfactory";
-
-  return {
-    overallPerformance: badge,
-    strengths: percentage >= 75
-      ? "Demonstrated strong grasp of fundamental concepts."
-      : "Good effort in attempting all questions.",
-    areasForImprovement: percentage < 85
-      ? "Focus on revising key syllabus topics and practicing mock MCQs."
-      : "Maintain consistency with advanced practice.",
-    recommendation: percentage >= 75
-      ? "Encourage continued practice and periodic revision."
-      : "Re-read chapter summaries and consult subject teachers.",
-  };
-}
-
-/** Intelligent Fallback MCQ Generator tailored by Standard, Subject, Topic & Difficulty */
-function fallbackMCQGenerator({ classVal, subject, syllabus, difficulty, count }) {
-  const std = String(classVal || "5");
-  const sub = String(subject || "Science");
-  const diff = String(difficulty || "Medium");
-  const topicSnippet = (syllabus || "General Topics").trim();
-
-  // Subject-specific intelligent question banks
-  const questionPools = {
-    Mathematics: [
-      { q: `What is the value of 15 × 8 in Class ${std} Mathematics?`, opt: ["120", "110", "130", "140"], ans: 0 },
-      { q: `Regarding ${topicSnippet}: What is the perimeter of a rectangle with length 8 cm and width 5 cm?`, opt: ["26 cm", "40 cm", "13 cm", "30 cm"], ans: 0 },
-      { q: `In Class ${std} ${sub}, which fraction is equivalent to 3/4?`, opt: ["6/8", "5/8", "3/8", "9/16"], ans: 0 },
-      { q: `If x + 7 = 15, what is the value of x?`, opt: ["8", "7", "9", "22"], ans: 0 },
-      { q: `What is the smallest prime number taught in Class ${std}?`, opt: ["2", "1", "3", "0"], ans: 0 },
-    ],
-    Science: [
-      { q: `Regarding ${topicSnippet}: Which organelle in plant cells carries out photosynthesis?`, opt: ["Chloroplast", "Mitochondria", "Nucleus", "Ribosome"], ans: 0 },
-      { q: `What gas do plants release during photosynthesis in Class ${std} Science?`, opt: ["Oxygen", "Carbon Dioxide", "Nitrogen", "Hydrogen"], ans: 0 },
-      { q: `Which of the following is a non-renewable source of energy?`, opt: ["Coal", "Solar Energy", "Wind Energy", "Hydroelectric Energy"], ans: 0 },
-      { q: `What state of matter has a fixed volume but no fixed shape?`, opt: ["Liquid", "Solid", "Gas", "Plasma"], ans: 0 },
-      { q: `In Class ${std} ${sub}, which system transports blood through the human body?`, opt: ["Circulatory System", "Digestive System", "Respiratory System", "Nervous System"], ans: 0 },
-    ],
-    English: [
-      { q: `In Class ${std} English (${topicSnippet}): Identify the noun in "The swift cat ran quickly."`, opt: ["cat", "swift", "ran", "quickly"], ans: 0 },
-      { q: `What is the correct antonym of the word "Ancient"?`, opt: ["Modern", "Old", "Historic", "Traditional"], ans: 0 },
-      { q: `Which punctuation mark is used at the end of an interrogative sentence?`, opt: ["Question Mark (?)", "Full Stop (.)", "Comma (,)", "Exclamation Mark (!)"], ans: 0 },
-      { q: `Choose the correct past tense of the verb "Go":`, opt: ["Went", "Gone", "Going", "Goes"], ans: 0 },
-      { q: `Identify the conjunction in "She studied hard, so she passed the exam."`, opt: ["so", "studied", "hard", "she"], ans: 0 },
-    ],
-    "Social Science": [
-      { q: `Regarding ${topicSnippet}: What is the capital of India?`, opt: ["New Delhi", "Mumbai", "Kolkata", "Chennai"], ans: 0 },
-      { q: `In Class ${std} Social Science, which planet is known as the Red Planet?`, opt: ["Mars", "Venus", "Jupiter", "Saturn"], ans: 0 },
-      { q: `What is the fundamental law-making body of India?`, opt: ["Parliament", "Supreme Court", "Election Commission", "Cabinet"], ans: 0 },
-      { q: `Which ocean is located to the south of India?`, opt: ["Indian Ocean", "Pacific Ocean", "Atlantic Ocean", "Arctic Ocean"], ans: 0 },
-    ],
-  };
-
-  const selectedPool = questionPools[sub] || [
-    { q: `Regarding ${topicSnippet} in Class ${std} ${sub}: Which concept represents a core principle?`, opt: ["Foundational Rule", "Secondary Option", "Unrelated Theory", "Static Variant"], ans: 0 },
-    { q: `What is a key objective covered under Class ${std} ${sub}?`, opt: ["Conceptual Mastery", "Memorization Only", "Random Estimation", "None of these"], ans: 0 },
-    { q: `Which tool or method is standard in Class ${std} ${sub}?`, opt: ["Systematic Analysis", "Unverified Guessing", "Manual Skipping", "Arbitrary Testing"], ans: 0 },
-  ];
-
-  const generated = [];
-  for (let i = 0; i < count; i++) {
-    const item = selectedPool[i % selectedPool.length];
-    generated.push({
-      id: i + 1,
-      question: `Q${i + 1}. [Class ${std} · ${diff}] ${item.q}`,
-      options: item.opt,
-      correctAnswer: item.ans,
-      marks: 1,
-      difficulty: diff,
-    });
-  }
-  return generated;
+  throw new Error(
+    apiKey
+      ? "AI provider did not return valid performance analysis."
+      : "AI performance analysis is not configured."
+  );
 }
