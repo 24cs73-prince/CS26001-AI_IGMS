@@ -5,7 +5,11 @@ import { User } from "../models/User.js";
 
 // Helper to generate JWT Token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || "ai_igms_super_secret_jwt_key_2026_secure", {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret || jwtSecret.length < 32 || jwtSecret.includes("change_in_production")) {
+    throw new Error("A strong JWT_SECRET must be configured before issuing tokens.");
+  }
+  return jwt.sign({ id }, jwtSecret, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 };
@@ -32,7 +36,7 @@ const DEMO_USERS_SEED = [
     roleKey: "principal",
     role: "Principal",
     org: "Govt. Higher Secondary School · School A",
-    school_id: "school-001",
+    school_id: "SCH-001",
     schoolName: "Govt. Higher Secondary School · School A",
     home: "/dashboard",
     permissions: ["school.view", "student.manage", "teacher.manage", "parent.manage", "dashboard.view"],
@@ -45,7 +49,7 @@ const DEMO_USERS_SEED = [
     roleKey: "teacher",
     role: "Teacher",
     org: "Govt. Higher Secondary School · School A",
-    school_id: "school-001",
+    school_id: "SCH-001",
     schoolName: "Govt. Higher Secondary School · School A",
     home: "/teacher/dashboard",
     permissions: ["attendance.manage", "marks.manage", "leave.apply", "teacher.dashboard"],
@@ -58,7 +62,7 @@ const DEMO_USERS_SEED = [
     roleKey: "teacher",
     role: "Teacher",
     org: "Govt. Higher Secondary School · School A",
-    school_id: "school-001",
+    school_id: "SCH-001",
     schoolName: "Govt. Higher Secondary School · School A",
     home: "/teacher/dashboard",
     permissions: ["attendance.manage", "marks.manage", "leave.apply", "teacher.dashboard"],
@@ -71,9 +75,9 @@ const DEMO_USERS_SEED = [
     roleKey: "student",
     role: "Student",
     org: "Class 6 · Section A",
-    school_id: "school-001",
+    school_id: "SCH-001",
     schoolName: "Govt. Higher Secondary School · School A",
-    classVal: "10",
+    classVal: "6",
     division: "A",
     studentId: "ST001",
     home: "/student/home",
@@ -87,7 +91,7 @@ const DEMO_USERS_SEED = [
     roleKey: "parent",
     role: "Parent",
     org: "Govt. Higher Secondary School · School A",
-    school_id: "school-001",
+    school_id: "SCH-001",
     schoolName: "Govt. Higher Secondary School · School A",
     childStudentId: "ST001",
     home: "/parent/dashboard",
@@ -126,14 +130,16 @@ export const loginUser = async (req, res) => {
       }
     }
 
-    // Check seed list fallback if DB not connected or user not found in DB
-    const seedMatch = DEMO_USERS_SEED.find(
-      (u) => u.email.toLowerCase() === cleanEmail && u.passwordRaw === password
-    );
+    // Demo accounts are available only for local development.
+    const seedMatch = process.env.NODE_ENV === "development"
+      ? DEMO_USERS_SEED.find(
+          (u) => u.email.toLowerCase() === cleanEmail && u.passwordRaw === password
+        )
+      : null;
 
     if (user) {
       const isMatch = await user.matchPassword(password);
-      if (!isMatch) {
+      if (!isMatch || !user.isActive) {
         return res.status(401).json({ message: "Invalid email or password." });
       }
       const token = generateToken(user._id);
@@ -211,20 +217,39 @@ export const getMe = async (req, res) => {
 export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    if (isDbConnected()) {
-      const user = await User.findById(req.user._id);
-      if (user) {
-        const isMatch = await user.matchPassword(currentPassword);
-        if (!isMatch) {
-          return res.status(400).json({ message: "Current password is incorrect." });
-        }
-        const salt = await bcrypt.genSalt(10);
-        user.passwordHash = await bcrypt.hash(newPassword, salt);
-        user.mustChangePassword = false;
-        await user.save();
-        return res.json({ message: "Password updated successfully in MongoDB Atlas." });
-      }
+    if (typeof currentPassword !== "string" || !currentPassword) {
+      return res.status(400).json({ message: "Current password is required." });
     }
+    if (
+      typeof newPassword !== "string" ||
+      newPassword.length < 8 ||
+      !/[A-Z]/.test(newPassword) ||
+      !/[a-z]/.test(newPassword) ||
+      !/[0-9]/.test(newPassword) ||
+      !/[^A-Za-z0-9]/.test(newPassword)
+    ) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.",
+      });
+    }
+    if (!isDbConnected()) {
+      return res.status(503).json({ message: "Password service is unavailable." });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User account not found." });
+    }
+
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect." });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.passwordHash = await bcrypt.hash(newPassword, salt);
+    user.mustChangePassword = false;
+    await user.save();
     res.json({ message: "Password updated successfully." });
   } catch (error) {
     res.status(500).json({ message: "Server error changing password." });
@@ -244,7 +269,7 @@ export const addSampleTeacher = async (req, res) => {
       roleKey: "teacher",
       role: "Teacher",
       org: "Govt. Higher Secondary School · School A",
-      school_id: "school-001",
+      school_id: "SCH-001",
       schoolName: "Govt. Higher Secondary School · School A",
       home: "/teacher/dashboard",
       permissions: ["attendance.manage", "marks.manage", "leave.apply", "teacher.dashboard"],
@@ -280,7 +305,6 @@ export const addSampleTeacher = async (req, res) => {
       teacher: {
         name: sampleTeacherData.name,
         email: sampleTeacherData.email,
-        password: sampleTeacherData.passwordRaw,
         role: "Teacher",
       },
     });

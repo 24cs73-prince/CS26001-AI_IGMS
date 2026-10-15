@@ -29,20 +29,7 @@ const userSchema = new mongoose.Schema(
 
 // Method to verify password hash
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  // Check bcrypt hash
-  try {
-    const match = await bcrypt.compare(enteredPassword, this.passwordHash);
-    if (match) return true;
-  } catch (err) {
-    // Fallback base64 check for legacy seed
-  }
-  
-  try {
-    const base64Hash = btoa(String(enteredPassword));
-    return base64Hash === this.passwordHash;
-  } catch (err) {
-    return false;
-  }
+  return bcrypt.compare(enteredPassword, this.passwordHash);
 };
 
 export const User = mongoose.model("User", userSchema);

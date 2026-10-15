@@ -5,7 +5,6 @@ import {
   FiMail,
   FiLock,
   FiArrowRight,
-  FiInfo,
   FiUserCheck,
   FiShield,
   FiUser,
@@ -83,7 +82,7 @@ export default function Login() {
 
   const [form, setForm] = useState({
     email: role.credentials.email,
-    password: "Super@123",
+    password: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -91,21 +90,10 @@ export default function Login() {
 
   const selectRole = (key) => {
     const selectedRole = ROLES[key] || ROLES.super_admin;
-    const placeholderPassword =
-      selectedRole.key === "super_admin"
-        ? "Super@123"
-        : selectedRole.key === "principal"
-        ? "Principal@123"
-        : selectedRole.key === "teacher"
-        ? "Teacher@123"
-        : selectedRole.key === "parent"
-        ? "Parent@123"
-        : "Student@123";
-
     setRoleKey(key);
     setForm({
       email: selectedRole.credentials.email,
-      password: placeholderPassword,
+      password: "",
     });
     setError("");
   };
@@ -156,24 +144,6 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillDemo = () => {
-    setForm({
-      email: role.credentials.email,
-      password:
-        roleKey === "super_admin"
-          ? "Super@123"
-          : roleKey === "principal"
-          ? "Principal@123"
-          : roleKey === "teacher"
-          ? "Teacher@123"
-          : roleKey === "parent"
-          ? "Parent@123"
-          : "Student@123",
-    });
-    setError("");
-    toast.info(language === "gu" ? `${localizedRoleLabel} ડેમો ઓળખપત્રો ભરાઈ ગયા!` : `Filled demo credentials for ${role.label}!`);
   };
 
   return (
@@ -354,28 +324,6 @@ export default function Login() {
           {t("auth.signInBtn")} ({localizedRoleLabel})
         </Button>
       </form>
-
-      {/* Demo Credentials Quick Fill Trigger */}
-      <button
-        type="button"
-        onClick={fillDemo}
-        className="mt-3.5 flex w-full items-center gap-2.5 rounded-xl border border-dashed border-blue-200 bg-blue-50/70 p-2.5 text-left transition hover:bg-blue-50"
-      >
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-700 text-white shadow-sm">
-          <FiInfo className="h-3.5 w-3.5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold text-blue-900 leading-tight">
-            {localizedRoleLabel} - {t("auth.demoLogins")}
-          </p>
-          <p className="truncate text-[10px] text-slate-500">
-            {role.credentials.email}
-          </p>
-        </div>
-        <span className="rounded bg-blue-700 px-2 py-0.5 text-[9px] font-bold text-white uppercase">
-          Auto-fill
-        </span>
-      </button>
 
       {/* Footer Security Note */}
       <div className="mt-3 flex items-center justify-center gap-1.5 border-t border-slate-100 pt-2 text-[10px] text-slate-400">

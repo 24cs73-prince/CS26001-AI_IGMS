@@ -31,6 +31,38 @@ async function fetchFromBackend(endpoint, fallback = null) {
   return fallback;
 }
 
+async function postToBackend(endpoint, payload) {
+  const headers = getAuthHeaders();
+  const options = {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  };
+  let response;
+  try {
+    response = await fetch(buildApiUrl(endpoint), options);
+  } catch (error) {
+    if (
+      typeof window === "undefined" ||
+      window.location.hostname !== "localhost" ||
+      import.meta.env.VITE_API_URL
+    ) {
+      throw new Error(`Unable to reach the service: ${error.message}`);
+    }
+    try {
+      response = await fetch(`http://localhost:5000${endpoint}`, options);
+    } catch (fallbackError) {
+      throw new Error(`Unable to reach the service: ${fallbackError.message}`);
+    }
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.message || `Request failed (${response.status}).`);
+  }
+  return response.json();
+}
+
 const DEFAULT_STUDENTS = [
   { studentId: "STU-1001", name: "Aarav Sharma", roll: 1, rollNumber: 1, className: "Class 6", section: "A", gender: "Male", guardian: "Rajesh Sharma", phone: "+91 98110 22331", email: "aarav.s@igms.edu", attendance: 96, average: 88, status: "Active", admissionDate: "2021-04-12" },
   { studentId: "STU-1002", name: "Diya Patel", roll: 2, rollNumber: 2, className: "Class 6", section: "A", gender: "Female", guardian: "Nikhil Patel", phone: "+91 98220 11445", email: "diya.p@igms.edu", attendance: 92, average: 91, status: "Active", admissionDate: "2021-04-12" },
@@ -56,7 +88,7 @@ export const api = {
   // Students
   getStudents: async () => {
     const list = await fetchFromBackend("/api/students", []);
-    const sourceList = (Array.isArray(list) && list.length > 0) ? list : DEFAULT_STUDENTS;
+    const sourceList = Array.isArray(list) ? list : [];
     return sourceList.map((s) => ({
       id: s.studentId || s.id || (s._id ? String(s._id) : `STU-${s.roll || 1001}`),
       studentId: s.studentId || s.id || (s._id ? String(s._id) : `STU-${s.roll || 1001}`),
@@ -76,39 +108,12 @@ export const api = {
     }));
   },
 
-  createStudent: async (payload) => {
-    try {
-      const headers = getAuthHeaders();
-      const url = buildApiUrl("/api/students");
-      let res = await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      }).catch(() => null);
-
-      if (!res || !res.ok) {
-        if (typeof window !== "undefined" && window.location.hostname === "localhost") {
-          res = await fetch("http://localhost:5000/api/students", {
-            method: "POST",
-            headers,
-            body: JSON.stringify(payload),
-          }).catch(() => null);
-        }
-      }
-
-      if (res && res.ok) {
-        return await res.json();
-      }
-    } catch (e) {
-      console.warn("[API] createStudent failed:", e);
-    }
-    return null;
-  },
+  createStudent: (payload) => postToBackend("/api/students", payload),
 
   // Teachers
   getTeachers: async () => {
     const list = await fetchFromBackend("/api/teachers", []);
-    const sourceList = (Array.isArray(list) && list.length > 0) ? list : DEFAULT_TEACHERS;
+    const sourceList = Array.isArray(list) ? list : [];
     return sourceList.map((t) => ({
       id: t.teacherId || t.id || (t._id ? String(t._id) : "TCH-201"),
       teacherId: t.teacherId || t.id || (t._id ? String(t._id) : "TCH-201"),
@@ -124,39 +129,14 @@ export const api = {
     }));
   },
 
-  createTeacher: async (payload) => {
-    try {
-      const headers = getAuthHeaders();
-      const url = buildApiUrl("/api/teachers");
-      let res = await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      }).catch(() => null);
-
-      if (!res || !res.ok) {
-        if (typeof window !== "undefined" && window.location.hostname === "localhost") {
-          res = await fetch("http://localhost:5000/api/teachers", {
-            method: "POST",
-            headers,
-            body: JSON.stringify(payload),
-          }).catch(() => null);
-        }
-      }
-
-      if (res && res.ok) {
-        return await res.json();
-      }
-    } catch (e) {
-      console.warn("[API] createTeacher failed:", e);
-    }
-    return null;
-  },
+  createTeacher: (payload) => postToBackend("/api/teachers", payload),
 
   // Schools & Principals
   getSchools: async () => {
     return await fetchFromBackend("/api/schools", []);
   },
+
+  createSchool: (payload) => postToBackend("/api/schools", payload),
 
   getPrincipals: async () => {
     const list = await fetchFromBackend("/api/principals", []);
@@ -165,6 +145,7 @@ export const api = {
       id: p.principalId || p.id || (p._id ? String(p._id) : "PRN-101"),
       principalId: p.principalId || p.id || (p._id ? String(p._id) : "PRN-101"),
       name: p.name,
+      school_id: p.school_id,
       schoolName: p.schoolName || "Government Higher Secondary School",
       district: p.district || "Gandhinagar",
       email: p.email,
@@ -178,68 +159,14 @@ export const api = {
     }));
   },
 
-  createPrincipal: async (payload) => {
-    try {
-      const headers = getAuthHeaders();
-      const url = buildApiUrl("/api/principals");
-      let res = await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      }).catch(() => null);
-
-      if (!res || !res.ok) {
-        if (typeof window !== "undefined" && window.location.hostname === "localhost") {
-          res = await fetch("http://localhost:5000/api/principals", {
-            method: "POST",
-            headers,
-            body: JSON.stringify(payload),
-          }).catch(() => null);
-        }
-      }
-
-      if (res && res.ok) {
-        return await res.json();
-      }
-    } catch (e) {
-      console.warn("[API] createPrincipal failed:", e);
-    }
-    return null;
-  },
+  createPrincipal: (payload) => postToBackend("/api/principals", payload),
 
   // Parents & Linked Children
   getParents: async () => {
     return await fetchFromBackend("/api/parents", []);
   },
 
-  createParent: async (payload) => {
-    try {
-      const headers = getAuthHeaders();
-      const url = buildApiUrl("/api/parents");
-      let res = await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      }).catch(() => null);
-
-      if (!res || !res.ok) {
-        if (typeof window !== "undefined" && window.location.hostname === "localhost") {
-          res = await fetch("http://localhost:5000/api/parents", {
-            method: "POST",
-            headers,
-            body: JSON.stringify(payload),
-          }).catch(() => null);
-        }
-      }
-
-      if (res && res.ok) {
-        return await res.json();
-      }
-    } catch (e) {
-      console.warn("[API] createParent failed:", e);
-    }
-    return null;
-  },
+  createParent: (payload) => postToBackend("/api/parents", payload),
 
   getMyChildren: async () => {
     const res = await fetchFromBackend("/api/parents/my-children", { children: [] });

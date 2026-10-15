@@ -5,11 +5,10 @@ import {
   useCallback,
   useMemo,
 } from "react";
-import { ROLES } from "../constants/app";
 import { buildApiUrl } from "../utils/apiConfig";
 
 /**
- * AuthContext supporting both Backend API JWT Auth and local demo auth fallback.
+ * AuthContext for backend JWT authentication.
  */
 const AuthContext = createContext(null);
 
@@ -17,6 +16,10 @@ const STORAGE_KEY = "igms.auth.user";
 
 function normalizeUser(userData) {
   if (!userData) return null;
+  const safeUserData = { ...userData };
+  delete safeUserData.password;
+  delete safeUserData.passwordHash;
+  delete safeUserData.token;
   const roleKey = userData.roleKey || userData.role || "principal";
   const defaultHome = 
     roleKey === "teacher" ? "/teacher/dashboard" :
@@ -24,7 +27,7 @@ function normalizeUser(userData) {
     roleKey === "parent" ? "/parent/dashboard" : "/dashboard";
 
   return {
-    ...userData,
+    ...safeUserData,
     roleKey,
     role: userData.role || roleKey,
     home: userData.home || defaultHome,
@@ -34,9 +37,19 @@ function normalizeUser(userData) {
 
 function readStoredUser() {
   try {
+    [
+      "igms.created_principals",
+      "igms.created_students",
+      "igms.created_teachers",
+      "igms.created_parents",
+      "igms.schools",
+    ].forEach((key) => localStorage.removeItem(key));
+
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return normalizeUser(JSON.parse(raw));
+      const user = normalizeUser(JSON.parse(raw));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+      return user;
     }
   } catch (err) {
     console.error("Error restoring auth session:", err);
@@ -57,14 +70,6 @@ function passwordIsValid(password) {
   return true;
 }
 
-function hashPassword(value) {
-  try {
-    return btoa(String(value));
-  } catch {
-    return String(value);
-  }
-}
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readStoredUser);
 
@@ -83,108 +88,30 @@ export function AuthProvider({ children }) {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // Try real backend Express API first
+    let response;
     try {
-      const loginUrl = buildApiUrl("/api/auth/login");
-
-      const response = await fetch(loginUrl, {
+      response = await fetch(buildApiUrl("/api/auth/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: cleanEmail, password, role }),
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.token) {
-          localStorage.setItem("igms.auth.token", data.token);
-        }
-        const normalized = normalizeUser(data);
-        setUser(normalized);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-        return normalized;
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        if (errData.message) {
-          throw new Error(errData.message);
-        }
-      }
-    } catch (err) {
-      if (err.message && !err.message.includes("Failed to fetch")) {
-        throw err;
-      }
-      console.warn("Backend server unreachable. Using fallback local authentication.");
+    } catch (error) {
+      throw new Error(`Unable to reach the authentication service: ${error.message}`);
     }
 
-    // Guard development fallback authentication strictly behind DEV mode
-    if (import.meta.env.DEV) {
-      // Check dynamically created accounts in localStorage (fallback test)
-      try {
-        const createdPrincipals = JSON.parse(localStorage.getItem("igms.created_principals") || "[]");
-        const createdStudents = JSON.parse(localStorage.getItem("igms.created_students") || "[]");
-        const createdTeachers = JSON.parse(localStorage.getItem("igms.created_teachers") || "[]");
-        const createdParents = JSON.parse(localStorage.getItem("igms.created_parents") || "[]");
-        const allCreated = [...createdPrincipals, ...createdStudents, ...createdTeachers, ...createdParents];
-        
-        const matched = allCreated.find(
-          (u) => u.email?.toLowerCase() === cleanEmail && u.password === password
-        );
-
-        if (matched) {
-          const nextUser = normalizeUser({
-            roleKey: matched.roleKey || role,
-            role: matched.role || role,
-            ...matched,
-          });
-          setUser(nextUser);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
-          return nextUser;
-        }
-      } catch (e) {}
-
-      // Fallback to local mock auth config in development only
-      const config = ROLES[role];
-      if (!config) {
-        throw new Error("Please select a valid role.");
-      }
-
-      const expectedEmail = config.credentials?.email?.toLowerCase();
-      const expectedHash = config.credentials?.passwordHash;
-      const suppliedHash = hashPassword(password);
-
-      const ok =
-        expectedEmail && expectedHash && cleanEmail === expectedEmail && suppliedHash === expectedHash;
-
-      if (!ok) {
-        throw new Error(
-          `Invalid ${config.label} credentials. Please verify your email and password.`,
-        );
-      }
-
-      const profile = config.profile || {};
-      if (profile.isActive === false) {
-        throw new Error(
-          "Your account is inactive or suspended. Please contact support.",
-        );
-      }
-
-      const nextUser = normalizeUser({
-        ...profile,
-        email: config.credentials.email,
-        roleKey: config.key,
-        role: profile.role,
-        school_id: profile.school_id ?? null,
-        mustChangePassword: profile.mustChangePassword ?? false,
-        home: config.home,
-        permissions: profile.permissions ?? [],
-      });
-
-      setUser(nextUser);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
-      return nextUser;
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(data?.message || "Invalid email or password.");
+    }
+    if (!data?.token) {
+      throw new Error("Authentication service returned no session token.");
     }
 
-    // In production, backend JWT authentication is strictly required
-    throw new Error("Authentication failed. Please verify your credentials or ensure the server is running.");
+    localStorage.setItem("igms.auth.token", data.token);
+    const normalized = normalizeUser(data);
+    setUser(normalized);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    return normalized;
   }, []);
 
   const logout = useCallback(() => {
@@ -217,26 +144,39 @@ export function AuthProvider({ children }) {
         throw new Error("Confirm password must match the new password.");
       }
 
-      if (hashPassword(currentPassword) === user.passwordHash) {
-        throw new Error("Current password is invalid.");
-      }
-
       if (hashPassword(newPassword) === hashPassword(currentPassword)) {
         throw new Error(
           "New password should not be the same as the current password.",
         );
       }
 
+      const token = localStorage.getItem("igms.auth.token");
+      if (!token) {
+        throw new Error("Password changes require an authenticated backend session.");
+      }
+
+      const response = await fetch(buildApiUrl("/api/auth/change-password"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.message || "Unable to update password.");
+      }
+
       const updatedUser = normalizeUser({
         ...user,
         mustChangePassword: false,
-        passwordHash: hashPassword(newPassword),
       });
 
       setUser(updatedUser);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
 
-      return { message: "Password changed successfully." };
+      return result;
     },
     [user],
   );

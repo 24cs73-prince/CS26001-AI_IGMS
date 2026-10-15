@@ -2,7 +2,16 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { User } from "../models/User.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || "ai_igms_super_secret_jwt_key_2026_secure";
+const getJwtSecret = () => {
+  if (
+    !process.env.JWT_SECRET ||
+    process.env.JWT_SECRET.length < 32 ||
+    process.env.JWT_SECRET.includes("change_in_production")
+  ) {
+    throw new Error("A strong JWT_SECRET is not configured.");
+  }
+  return process.env.JWT_SECRET;
+};
 
 // Demo users seed matching authController for fallback identification
 const DEMO_USERS_SEED = [
@@ -24,7 +33,7 @@ const DEMO_USERS_SEED = [
     roleKey: "principal",
     role: "Principal",
     org: "Govt. Higher Secondary School · School A",
-    school_id: "school-001",
+    school_id: "SCH-001",
     schoolName: "Govt. Higher Secondary School · School A",
     home: "/dashboard",
     permissions: ["school.view", "student.manage", "teacher.manage", "parent.manage", "dashboard.view"],
@@ -36,7 +45,7 @@ const DEMO_USERS_SEED = [
     roleKey: "teacher",
     role: "Teacher",
     org: "Govt. Higher Secondary School · School A",
-    school_id: "school-001",
+    school_id: "SCH-001",
     schoolName: "Govt. Higher Secondary School · School A",
     home: "/teacher/dashboard",
     permissions: ["attendance.manage", "marks.manage", "leave.apply", "teacher.dashboard"],
@@ -48,7 +57,7 @@ const DEMO_USERS_SEED = [
     roleKey: "teacher",
     role: "Teacher",
     org: "Govt. Higher Secondary School · School A",
-    school_id: "school-001",
+    school_id: "SCH-001",
     schoolName: "Govt. Higher Secondary School · School A",
     home: "/teacher/dashboard",
     permissions: ["attendance.manage", "marks.manage", "leave.apply", "teacher.dashboard"],
@@ -60,9 +69,9 @@ const DEMO_USERS_SEED = [
     roleKey: "student",
     role: "Student",
     org: "Class 6 · Section A",
-    school_id: "school-001",
+    school_id: "SCH-001",
     schoolName: "Govt. Higher Secondary School · School A",
-    classVal: "10",
+    classVal: "6",
     division: "A",
     studentId: "ST001",
     home: "/student/home",
@@ -75,7 +84,7 @@ const DEMO_USERS_SEED = [
     roleKey: "parent",
     role: "Parent",
     org: "Govt. Higher Secondary School · School A",
-    school_id: "school-001",
+    school_id: "SCH-001",
     schoolName: "Govt. Higher Secondary School · School A",
     childStudentId: "ST001",
     home: "/parent/dashboard",
@@ -97,7 +106,7 @@ export const protect = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(" ")[1];
       if (token && token !== "undefined" && token !== "null") {
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, getJwtSecret());
 
         let user = null;
         if (mongoose.connection.readyState === 1 && decoded?.id) {
@@ -109,7 +118,7 @@ export const protect = async (req, res, next) => {
         }
 
         // Check demo seed accounts if user not found in DB
-        if (!user && decoded?.id) {
+        if (process.env.NODE_ENV === "development" && !user && decoded?.id) {
           const seedMatch = DEMO_USERS_SEED.find((u) => String(u._id) === String(decoded.id));
           if (seedMatch) {
             user = {
@@ -129,6 +138,10 @@ export const protect = async (req, res, next) => {
               permissions: seedMatch.permissions,
             };
           }
+        }
+
+        if (user && user.isActive === false) {
+          return res.status(401).json({ message: "User account is inactive." });
         }
 
         if (user) {
@@ -160,3 +173,13 @@ export const protectRoles = (allowedRoles = []) => {
     next();
   };
 };
+
+export const requireSchool = (req, res, next) => {
+  if (req.user?.roleKey !== "super_admin" && !req.user?.school_id) {
+    return res.status(403).json({ message: "Your account is not assigned to a school." });
+  }
+  next();
+};
+
+export const schoolScope = (req, field = "school_id") =>
+  req.user?.roleKey === "super_admin" ? {} : { [field]: req.user?.school_id };

@@ -8,16 +8,8 @@ export const APP = {
   version: "v1.0.0",
 };
 
-function hashPassword(value) {
-  try {
-    return btoa(String(value));
-  } catch {
-    return String(value);
-  }
-}
-
 /**
- * Role-based demo accounts (frontend-only auth simulation).
+ * Role metadata used by the login and navigation UI.
  * The hierarchy is intentionally restricted so the Super Admin creates a
  * school and assigns Principal credentials, while a Principal creates
  * Teacher / Student / Parent credentials within their school.
@@ -29,7 +21,6 @@ export const ROLES = {
     tagline: "System seed & school provisioning",
     credentials: {
       email: "superadmin@igms.gov.in",
-      passwordHash: hashPassword("Super@123"),
     },
     profile: {
       name: "System Administrator",
@@ -54,13 +45,12 @@ export const ROLES = {
     tagline: "Administration & oversight",
     credentials: {
       email: "principal@school-a.igms.gov.in",
-      passwordHash: hashPassword("Principal@123"),
     },
     profile: {
       name: "Rohan Administrator",
       role: "Principal",
       org: "Govt. Higher Secondary School · School A",
-      school_id: "school-001",
+      school_id: "SCH-001",
       schoolName: "Govt. Higher Secondary School · School A",
       isActive: true,
       mustChangePassword: false,
@@ -80,13 +70,12 @@ export const ROLES = {
     tagline: "Attendance, marks & leave",
     credentials: {
       email: "teacher@school-a.igms.gov.in",
-      passwordHash: hashPassword("Teacher@123"),
     },
     profile: {
       name: "Dr. Meenakshi Iyer",
       role: "Teacher",
       org: "Govt. Higher Secondary School · School A",
-      school_id: "school-001",
+      school_id: "SCH-001",
       schoolName: "Govt. Higher Secondary School · School A",
       isActive: true,
       mustChangePassword: false,
@@ -105,13 +94,12 @@ export const ROLES = {
     tagline: "Your class portal",
     credentials: {
       email: "student@school-a.igms.gov.in",
-      passwordHash: hashPassword("Student@123"),
     },
     profile: {
       name: "Aarav Sharma",
       role: "Student",
       org: "Class 6 · Section A",
-      school_id: "school-001",
+      school_id: "SCH-001",
       schoolName: "Govt. Higher Secondary School · School A",
       isActive: true,
       mustChangePassword: false,
@@ -125,13 +113,12 @@ export const ROLES = {
     tagline: "Your child's progress portal",
     credentials: {
       email: "parent@school-a.igms.gov.in",
-      passwordHash: hashPassword("Parent@123"),
     },
     profile: {
       name: "Rajesh Sharma",
       role: "Parent",
       org: "Govt. Higher Secondary School · School A",
-      school_id: "school-001",
+      school_id: "SCH-001",
       schoolName: "Govt. Higher Secondary School · School A",
       childStudentId: "STU-1001",
       isActive: true,
@@ -146,7 +133,6 @@ export const ROLES = {
 export const ROLE_ORDER = ["super_admin", "principal", "teacher", "student", "parent"];
 
 // Backwards-compatible alias (principal = the original admin account)
-export const DEMO_CREDENTIALS = ROLES.principal.credentials;
 
 export const STANDARDS = [
   "Std 1",
