@@ -14,14 +14,11 @@ import {
 import Card from "../../components/ui/Card";
 import { Button, Modal } from "../../components/ui";
 import { PageLoader } from "../../components/ui/Loader";
-import { useAuth } from "../../context/AuthContext";
 import { onlineExamService } from "../../services/onlineExamService";
 
 export default function StudentExamAttemptPage() {
   const { examId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-
   const [exam, setExam] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -90,13 +87,8 @@ export default function StudentExamAttemptPage() {
   const handleSubmitExam = async () => {
     setSubmitting(true);
     try {
-      const studentId = user?.studentId || user?.id || (user?._id ? String(user._id) : "STU-1001");
-      const studentName = user?.name || "Student";
-
       await onlineExamService.submitExam({
         examId,
-        studentId,
-        studentName,
         answers,
       });
       setIsSubmitted(true);

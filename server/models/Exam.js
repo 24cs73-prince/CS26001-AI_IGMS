@@ -10,6 +10,7 @@ const questionSchema = new mongoose.Schema({
 
 const examSchema = new mongoose.Schema(
   {
+    school_id: { type: String, required: true, default: "SCH-001" },
     title: { type: String, required: true, trim: true },
     classVal: { type: String, required: true }, // Class "1" to "8"
     subject: { type: String, required: true, trim: true },

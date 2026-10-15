@@ -1,7 +1,20 @@
 import mongoose from "mongoose";
 import { Exam } from "../models/Exam.js";
+import { Submission } from "../models/Submission.js";
 import { applyQueryFeatures } from "../utils/queryHelper.js";
-import { writeDocToBothDatabases, deleteDocFromBothDatabases } from "../config/dualDbWriter.js";
+import { schoolScope } from "../middleware/authMiddleware.js";
+
+const examForUser = (exam, user) => {
+  const result = exam.toObject();
+  if (user?.roleKey === "student") {
+    result.questions = result.questions.map(({ correctAnswer, ...question }) => question);
+  }
+  return result;
+};
+
+export const canManageExam = (exam, user) =>
+  user?.roleKey !== "teacher" ||
+  (exam.createdBy && String(exam.createdBy) === String(user._id));
 
 /**
  * @desc    Create & Save New Exam (Instant Dual-Write to Atlas Cloud & Local Compass)
@@ -32,7 +45,13 @@ export const createExam = async (req, res) => {
       marks: Number(q.marks) || 1,
     }));
 
+    const schoolId = req.user.roleKey === "super_admin" ? req.body.school_id : req.user.school_id;
+    if (!schoolId) {
+      return res.status(400).json({ message: "A school must be assigned before creating an exam." });
+    }
+
     const examPayload = {
+      school_id: schoolId,
       title: title || `${subject} Exam (Class ${classVal})`,
       classVal: String(classVal || "5"),
       subject: subject || "General",
@@ -51,13 +70,10 @@ export const createExam = async (req, res) => {
 
     const exam = await Exam.create(examPayload);
 
-    // Instant parallel write to MongoDB Atlas Cloud & Local Compass
-    await writeDocToBothDatabases("exams", exam.toObject());
-
     res.status(201).json(exam);
   } catch (error) {
     console.error("Create Exam Error:", error);
-    res.status(500).json({ message: "Server error creating exam.", details: error.message });
+    res.status(500).json({ message: "Server error creating exam." });
   }
 };
 
@@ -68,8 +84,39 @@ export const createExam = async (req, res) => {
 export const getExams = async (req, res) => {
   try {
     const searchFields = ["title", "subject", "classVal"];
-    const result = await applyQueryFeatures(Exam, req.query, searchFields);
-    res.json(result.data);
+    if (req.user?.roleKey === "student" && !req.user.classVal) {
+      return res.status(403).json({ message: "Student class is not configured." });
+    }
+
+    const isStudent = req.user?.roleKey === "student";
+    const queryParams = {
+      ...req.query,
+      ...(isStudent
+        ? { classVal: req.user.classVal, status: "Published" }
+        : {}),
+    };
+    const baseFilter = {
+      ...schoolScope(req),
+      ...(isStudent
+        ? {
+            classVal: req.user.classVal,
+            status: "Published",
+            startDate: { $lte: new Date() },
+            $and: [
+              {
+                $or: [
+                  { endDate: { $exists: false } },
+                  { endDate: null },
+                  { endDate: { $gte: new Date() } },
+                ],
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const result = await applyQueryFeatures(Exam, queryParams, searchFields, baseFilter);
+    res.json(result.data.map((exam) => examForUser(exam, req.user)));
   } catch (error) {
     console.error("Get Exams Error:", error);
     res.status(500).json({ message: "Server error fetching exams." });
@@ -82,11 +129,24 @@ export const getExams = async (req, res) => {
  */
 export const getExamById = async (req, res) => {
   try {
-    const exam = await Exam.findById(req.params.id);
+    const exam = await Exam.findOne({ _id: req.params.id, ...schoolScope(req) });
     if (!exam) {
       return res.status(404).json({ message: "Exam not found." });
     }
-    res.json(exam);
+
+    if (req.user?.roleKey === "student") {
+      const now = new Date();
+      if (
+        exam.status !== "Published" ||
+        String(exam.classVal) !== String(req.user.classVal) ||
+        (exam.startDate && now < exam.startDate) ||
+        (exam.endDate && now > exam.endDate)
+      ) {
+        return res.status(404).json({ message: "Exam not found." });
+      }
+    }
+
+    res.json(examForUser(exam, req.user));
   } catch (error) {
     res.status(500).json({ message: "Server error fetching exam details." });
   }
@@ -98,16 +158,16 @@ export const getExamById = async (req, res) => {
  */
 export const publishExam = async (req, res) => {
   try {
-    const exam = await Exam.findById(req.params.id);
+    const exam = await Exam.findOne({ _id: req.params.id, ...schoolScope(req) });
     if (!exam) {
+      return res.status(404).json({ message: "Exam not found." });
+    }
+    if (!canManageExam(exam, req.user)) {
       return res.status(404).json({ message: "Exam not found." });
     }
 
     exam.status = "Published";
     await exam.save();
-
-    // Instant dual write to Atlas & Local
-    await writeDocToBothDatabases("exams", exam.toObject());
 
     res.json(exam);
   } catch (error) {
@@ -121,16 +181,37 @@ export const publishExam = async (req, res) => {
  */
 export const updateExam = async (req, res) => {
   try {
-    const exam = await Exam.findById(req.params.id);
+    const exam = await Exam.findOne({ _id: req.params.id, ...schoolScope(req) });
     if (!exam) {
       return res.status(404).json({ message: "Exam not found." });
     }
+    if (!canManageExam(exam, req.user)) {
+      return res.status(404).json({ message: "Exam not found." });
+    }
+    if (await Submission.exists({ examId: exam._id })) {
+      return res.status(409).json({ message: "An exam with submissions cannot be modified." });
+    }
 
-    Object.assign(exam, req.body);
+    const allowedFields = [
+      "title",
+      "classVal",
+      "subject",
+      "syllabus",
+      "duration",
+      "durationMinutes",
+      "totalQuestions",
+      "totalMarks",
+      "startDate",
+      "endDate",
+      "questions",
+      "status",
+    ];
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        exam[field] = req.body[field];
+      }
+    }
     await exam.save();
-
-    // Instant dual write to Atlas & Local
-    await writeDocToBothDatabases("exams", exam.toObject());
 
     res.json(exam);
   } catch (error) {
@@ -144,15 +225,21 @@ export const updateExam = async (req, res) => {
  */
 export const deleteExam = async (req, res) => {
   try {
-    const exam = await Exam.findById(req.params.id);
+    const exam = await Exam.findOne({ _id: req.params.id, ...schoolScope(req) });
     if (!exam) {
       return res.status(404).json({ message: "Exam not found." });
     }
+    if (!canManageExam(exam, req.user)) {
+      return res.status(404).json({ message: "Exam not found." });
+    }
+
+    if (await Submission.exists({ examId: exam._id })) {
+      return res.status(409).json({ message: "An exam with submissions cannot be deleted." });
+    }
 
     await exam.deleteOne();
-    await deleteDocFromBothDatabases("exams", req.params.id);
 
-    res.json({ message: "Exam deleted successfully from all databases." });
+    res.json({ message: "Exam deleted successfully." });
   } catch (error) {
     res.status(500).json({ message: "Server error deleting exam." });
   }

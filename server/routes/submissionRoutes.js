@@ -7,23 +7,35 @@ import {
   exportResultsCSV,
 } from "../controllers/submissionController.js";
 import { validateSubmitExam } from "../middleware/validateMiddleware.js";
-import { protect, protectRoles } from "../middleware/authMiddleware.js";
+import { protect, protectRoles, requireSchool } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // Student Quiz Submit
-router.post("/:id/submit", validateSubmitExam, submitQuiz);
+router.post("/:id/submit", protect, requireSchool, protectRoles(["student"]), validateSubmitExam, submitQuiz);
 
 // Teacher Submissions Log
-router.get("/:id/submissions", getSubmissions);
+router.get(
+  "/:id/submissions",
+  protect,
+  requireSchool,
+  protectRoles(["teacher", "principal", "super_admin", "admin", "student"]),
+  getSubmissions
+);
 
 // Teacher Auto-Grade All Submissions
-router.post("/:id/evaluate", protect, protectRoles(["teacher", "principal"]), evaluateAllSubmissions);
+router.post("/:id/evaluate", protect, requireSchool, protectRoles(["teacher", "principal", "super_admin"]), evaluateAllSubmissions);
 
 // Teacher Publish Results Toggle
-router.patch("/:id/publish-results", protect, protectRoles(["teacher", "principal"]), publishResults);
+router.patch("/:id/publish-results", protect, requireSchool, protectRoles(["teacher", "principal", "super_admin"]), publishResults);
 
 // Export CSV Endpoint
-router.get("/:id/export-csv", exportResultsCSV);
+router.get(
+  "/:id/export-csv",
+  protect,
+  requireSchool,
+  protectRoles(["teacher", "principal", "super_admin", "admin"]),
+  exportResultsCSV
+);
 
 export default router;

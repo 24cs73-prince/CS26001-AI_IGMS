@@ -36,4 +36,6 @@ const submissionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+submissionSchema.index({ examId: 1, studentId: 1 }, { unique: true });
+
 export const Submission = mongoose.model("Submission", submissionSchema);

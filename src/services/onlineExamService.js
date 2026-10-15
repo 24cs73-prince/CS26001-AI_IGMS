@@ -3,29 +3,29 @@ import { buildApiUrl, getAuthHeaders } from "../utils/apiConfig";
 /**
  * Online Examination & AI Assessment Service.
  * Fully backed by Express + MongoDB (/api/exams, /api/exams/:id/submit, /api/exams/:id/submissions, etc.).
- * LocalStorage is used only as a secondary offline cache for temporary UI state.
+ * Examination data is read from and written to the backend only.
  */
 
 async function apiFetch(endpoint, options = {}) {
   const headers = { ...getAuthHeaders(), ...(options.headers || {}) };
+  let response;
   try {
-    const url = buildApiUrl(endpoint);
-    let res = await fetch(url, { ...options, headers }).catch(() => null);
-
-    // Development fallback to localhost:5000
-    if (!res || !res.ok) {
-      if (typeof window !== "undefined" && window.location.hostname === "localhost" && !import.meta.env.VITE_API_URL) {
-        res = await fetch(`http://localhost:5000${endpoint}`, { ...options, headers }).catch(() => null);
-      }
+    response = await fetch(buildApiUrl(endpoint), { ...options, headers });
+  } catch (error) {
+    if (typeof window === "undefined" || window.location.hostname !== "localhost" || import.meta.env.VITE_API_URL) {
+      throw new Error(`Unable to reach the examination service: ${error.message}`);
     }
-
-    if (res && res.ok) {
-      return await res.json();
+    try {
+      response = await fetch(`http://localhost:5000${endpoint}`, { ...options, headers });
+    } catch (fallbackError) {
+      throw new Error(`Unable to reach the examination service: ${fallbackError.message}`);
     }
-  } catch (err) {
-    console.warn(`[OnlineExamService] API error on ${endpoint}:`, err.message);
   }
-  return null;
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.message || `Examination request failed (${response.status}).`);
+  }
+  return response.json();
 }
 
 export const onlineExamService = {
@@ -56,24 +56,16 @@ export const onlineExamService = {
   /** Fetch single exam by ID */
   async getExamById(examId) {
     const e = await apiFetch(`/api/exams/${examId}`);
-    if (e) {
-      return {
-        ...e,
-        id: String(e._id || e.id || examId),
-        class: String(e.classVal || e.class || "6"),
-        classVal: String(e.classVal || e.class || "6"),
-        questions: Array.isArray(e.questions) ? e.questions : [],
-      };
+    if (!e) {
+      throw new Error("The examination service returned no exam.");
     }
-
-    // Check local cache
-    try {
-      const localList = JSON.parse(localStorage.getItem("igms.online_exams") || "[]");
-      const match = localList.find((x) => String(x._id || x.id) === String(examId));
-      if (match) return match;
-    } catch (err) {}
-
-    return null;
+    return {
+      ...e,
+      id: String(e._id || e.id || examId),
+      class: String(e.classVal || e.class || "6"),
+      classVal: String(e.classVal || e.class || "6"),
+      questions: Array.isArray(e.questions) ? e.questions : [],
+    };
   },
 
   /** Create a new online exam using AI and persist to MongoDB + Cache */
@@ -106,6 +98,9 @@ export const onlineExamService = {
         }));
       }
     }
+    if (!Array.isArray(aiQuestions) || aiQuestions.length === 0) {
+      throw new Error("No exam questions were generated; the exam was not saved.");
+    }
 
     const examPayload = {
       title: payload.title || `Class ${classVal} ${subject} - AI Exam`,
@@ -131,17 +126,7 @@ export const onlineExamService = {
       body: JSON.stringify(examPayload),
     });
 
-    const finalExam = created || { id: `exam_${Date.now()}`, ...examPayload };
-
-    // Instantly save to local storage cache so it appears immediately in UI
-    try {
-      const existing = JSON.parse(localStorage.getItem("igms.online_exams") || "[]");
-      const updatedList = [
-        finalExam,
-        ...existing.filter((x) => String(x._id || x.id) !== String(finalExam._id || finalExam.id)),
-      ];
-      localStorage.setItem("igms.online_exams", JSON.stringify(updatedList));
-    } catch (e) {}
+    const finalExam = created;
 
     return finalExam;
   },
@@ -151,7 +136,7 @@ export const onlineExamService = {
     const updated = await apiFetch(`/api/exams/${examId}/publish`, {
       method: "PATCH",
     });
-    return updated || { id: examId, status: "Published" };
+    return updated;
   },
 
   /** Fetch student submissions for an exam */
@@ -162,29 +147,14 @@ export const onlineExamService = {
   },
 
   /** Submit student attempt */
-  async submitExam({ examId, studentId, studentName, answers = {} }) {
+  async submitExam({ examId, answers = {} }) {
     const submission = await apiFetch(`/api/exams/${examId}/submit`, {
       method: "POST",
       body: JSON.stringify({
-        studentId,
-        studentName,
         answers,
       }),
     });
-
-    if (submission) {
-      return submission;
-    }
-
-    // Fallback UI response if backend returned non-JSON
-    return {
-      examId,
-      studentId,
-      studentName,
-      status: "Submitted",
-      answers,
-      submittedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
+    return submission;
   },
 
   /** Auto-evaluate all submissions for an exam */
@@ -192,7 +162,7 @@ export const onlineExamService = {
     const res = await apiFetch(`/api/exams/${examId}/evaluate`, {
       method: "POST",
     });
-    return res || { evaluatedCount: 0, submissions: [] };
+    return res;
   },
 
   /** Publish Results so students can view them */
@@ -200,7 +170,7 @@ export const onlineExamService = {
     const updated = await apiFetch(`/api/exams/${examId}/publish-results`, {
       method: "PATCH",
     });
-    return updated || { id: examId, resultsStatus: "PUBLISHED" };
+    return updated;
   },
 
   /** Download results as CSV file */
