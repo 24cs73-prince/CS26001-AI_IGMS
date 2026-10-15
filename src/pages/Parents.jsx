@@ -77,7 +77,7 @@ export default function Parents() {
     guardian: "",
     phone: "",
     email: "",
-    password: "Parent@123",
+    password: "",
     studentName: "",
     studentId: "",
     className: "Std 5",
@@ -89,13 +89,11 @@ export default function Parents() {
 
   useEffect(() => {
     if (addOpen) {
-      const nextId = 500 + (rawStudents?.length || 0) + addedParents.length + 1;
       setNewParent({
         ...initialFormState,
-        studentId: `STU-${1000 + nextId}`,
       });
     }
-  }, [addOpen, rawStudents, addedParents.length]);
+  }, [addOpen]);
 
   /*
    * Derive Parent records from Student relationships + added parents
@@ -218,16 +216,16 @@ export default function Parents() {
       toast.warning("Please enter Parent / Guardian Name.");
       return;
     }
-    if (!newParent.studentName.trim()) {
-      toast.warning("Please enter Linked Student Name.");
+    if (!newParent.studentName.trim() || !newParent.studentId.trim()) {
+      toast.warning("Please enter the linked student's name and ID.");
       return;
     }
 
     const parentEmail =
       newParent.email.trim() ||
       `${newParent.guardian.toLowerCase().replace(/[^a-z0-9]/g, "")}@igms.edu`;
-    const parentPassword = newParent.password.trim() || "Parent@123";
-    const linkedStudentId = newParent.studentId.trim() || `STU-${1000 + parentsList.length + 1}`;
+    const parentPassword = newParent.password.trim();
+    const linkedStudentId = newParent.studentId.trim();
 
     const payload = {
       guardian: newParent.guardian.trim(),
@@ -241,42 +239,27 @@ export default function Parents() {
       status: newParent.status || "Active",
     };
 
-    // 1. Call Backend API
-    const created = await api.createParent(payload);
-
-    // 2. Also save to local fallback array in localStorage for offline DEV auth
     try {
-      const existing = JSON.parse(localStorage.getItem("igms.created_parents") || "[]");
-      const fallbackUser = {
-        name: payload.guardian,
-        email: parentEmail,
-        password: parentPassword,
-        roleKey: "parent",
-        role: "Parent",
-        org: "Govt. Higher Secondary School · School A",
-        school_id: "SCH-001",
-        schoolName: "PM Shri Government Higher Secondary School - Gandhinagar",
-        childStudentId: linkedStudentId,
-        home: "/parent/dashboard",
-        permissions: ["parent.profile", "student.results", "student.attendance"],
-      };
-      localStorage.setItem("igms.created_parents", JSON.stringify([fallbackUser, ...existing]));
-    } catch (e) {}
-
-    // 3. Refresh data from Database
-    if (created) {
+      await api.createParent(payload);
+      setAddedParents((previous) => [
+        {
+          guardian: payload.guardian,
+          phone: payload.phone,
+          email: payload.email,
+          studentName: payload.studentName,
+          studentId: payload.studentId,
+          className: payload.className,
+          section: payload.section,
+          status: payload.status,
+        },
+        ...previous,
+      ]);
       await refetch();
-      toast.success(
-        `Parent record for ${payload.guardian} created! Can log in as Parent with Email: ${parentEmail} and Password: ${parentPassword}`
-      );
-    } else {
-      setAddedParents((prev) => [payload, ...prev]);
-      toast.success(
-        `Parent record for ${payload.guardian} added! Login Email: ${parentEmail}, Password: ${parentPassword}`
-      );
+      toast.success(`Parent record for ${payload.guardian} created. Login email: ${parentEmail}.`);
+      setAddOpen(false);
+    } catch (error) {
+      toast.error(error.message || "Unable to create parent.");
     }
-
-    setAddOpen(false);
   };
 
   /*
@@ -642,7 +625,7 @@ export default function Parents() {
           <Input
             label="Parent Login Password *"
             type="text"
-            placeholder="e.g. Parent@123"
+            placeholder="Enter a strong password"
             value={newParent.password}
             onChange={(e) =>
               setNewParent({ ...newParent, password: e.target.value })

@@ -65,7 +65,7 @@ const DISTRICTS = [
 export default function Principals() {
   const toast = useToast();
   const { data: dbPrincipals, loading, refetch } = useFetch(() => api.getPrincipals(), []);
-  const [addedPrincipals, setAddedPrincipals] = useState([]);
+  const { data: dbSchools = [] } = useFetch(() => api.getSchools(), []);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("All Districts");
@@ -75,31 +75,34 @@ export default function Principals() {
   const [form, setForm] = useState({
     name: "",
     schoolName: "",
+    school_id: "",
     district: "Gandhinagar",
     email: "",
     phone: "",
-    password: "Principal@123",
+    password: "",
     udise: "",
   });
 
-  const principals = (dbPrincipals && dbPrincipals.length > 0)
-    ? [...addedPrincipals, ...dbPrincipals]
-    : [...addedPrincipals, ...INITIAL_PRINCIPALS];
+  const principals = dbPrincipals && dbPrincipals.length > 0
+    ? dbPrincipals
+    : INITIAL_PRINCIPALS;
 
   const handleSavePrincipal = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.schoolName.trim() || !form.email.trim()) {
-      toast.error("Please fill in Principal Name, School, and Official Email.");
+    const selectedSchool = dbSchools.find((school) => school.school_id === form.school_id);
+    if (!form.name.trim() || !selectedSchool || !form.email.trim()) {
+      toast.error("Please fill in Principal Name, select a school, and enter an official email.");
       return;
     }
 
     const principalEmail = form.email.trim().toLowerCase();
-    const principalPassword = form.password.trim() || "Principal@123";
+    const principalPassword = form.password.trim();
 
     const payload = {
       principalId: `PRN-${Math.floor(100 + Math.random() * 900)}`,
       name: form.name.trim(),
-      schoolName: form.schoolName.trim(),
+      school_id: selectedSchool.school_id,
+      schoolName: selectedSchool.name,
       district: form.district,
       email: principalEmail,
       phone: form.phone.trim() || "+91 98765 00000",
@@ -107,38 +110,13 @@ export default function Principals() {
       udise: form.udise.trim() || "24070100101",
     };
 
-    // 1. Save to MongoDB via backend API
-    const created = await api.createPrincipal(payload);
-
-    // 2. Also save to local fallback array in localStorage
     try {
-      const existing = JSON.parse(localStorage.getItem("igms.created_principals") || "[]");
-      const fallbackUser = {
-        name: payload.name,
-        email: principalEmail,
-        password: principalPassword,
-        roleKey: "principal",
-        role: "Principal",
-        org: `${payload.schoolName} · ${payload.district}`,
-        school_id: "SCH-001",
-        schoolName: payload.schoolName,
-        home: "/dashboard",
-        permissions: ["school.view", "student.manage", "teacher.manage", "parent.manage", "dashboard.view"],
-      };
-      localStorage.setItem("igms.created_principals", JSON.stringify([fallbackUser, ...existing]));
-    } catch (err) {}
-
-    // 3. Refresh from DB
-    if (created) {
+      await api.createPrincipal(payload);
       await refetch();
-      toast.success(
-        `Principal '${payload.name}' created in DB! Login Email: ${principalEmail}, Password: ${principalPassword}`
-      );
-    } else {
-      setAddedPrincipals((prev) => [payload, ...prev]);
-      toast.success(
-        `Principal '${payload.name}' added! Login Email: ${principalEmail}, Password: ${principalPassword}`
-      );
+      toast.success(`Principal '${payload.name}' created. Login email: ${principalEmail}.`);
+    } catch (error) {
+      toast.error(error.message || "Unable to create principal.");
+      return;
     }
 
     setIsModalOpen(false);
@@ -146,10 +124,11 @@ export default function Principals() {
     setForm({
       name: "",
       schoolName: "",
+      school_id: "",
       district: "Gandhinagar",
       email: "",
       phone: "",
-      password: "Principal@123",
+      password: "",
       udise: "",
     });
   };
@@ -159,6 +138,7 @@ export default function Principals() {
     setForm({
       name: p.name,
       schoolName: p.schoolName,
+      school_id: p.school_id || "",
       district: p.district || "Gandhinagar",
       email: p.email,
       phone: p.phone,
@@ -214,10 +194,11 @@ export default function Principals() {
                 setForm({
                   name: "",
                   schoolName: "",
+                  school_id: "",
                   district: "Gandhinagar",
                   email: "",
                   phone: "",
-                  password: "Principal@123",
+                  password: "",
                   udise: "",
                 });
                 setIsModalOpen(true);
@@ -480,18 +461,28 @@ export default function Principals() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Assigned School Name *
+                      Assigned School *
                     </label>
-                    <input
-                      type="text"
+                    <select
                       required
-                      placeholder="e.g. Govt High School"
-                      value={form.schoolName}
-                      onChange={(e) =>
-                        setForm({ ...form, schoolName: e.target.value })
-                      }
+                      value={form.school_id}
+                      onChange={(e) => {
+                        const school = dbSchools.find((item) => item.school_id === e.target.value);
+                        setForm({
+                          ...form,
+                          school_id: e.target.value,
+                          schoolName: school?.name || "",
+                        });
+                      }}
                       className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-ink outline-none focus:border-primary"
-                    />
+                    >
+                      <option value="">Select a school</option>
+                      {dbSchools.map((school) => (
+                        <option key={school.school_id} value={school.school_id}>
+                          {school.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">

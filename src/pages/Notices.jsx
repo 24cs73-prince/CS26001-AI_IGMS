@@ -94,7 +94,7 @@ export default function Notices() {
 
     try {
       const payload = {
-        school_id: 'school-001',
+        school_id: 'SCH-001',
         title: form.title.trim(),
         category: form.category,
         audience: 'All',

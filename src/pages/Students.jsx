@@ -55,9 +55,6 @@ export default function Students() {
 
   const toast = useToast();
 
-  // Local additions to update state dynamically without forcing hard page reloads
-  const [addedStudents, setAddedStudents] = useState([]);
-
   // Search & Filter state
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);
@@ -98,7 +95,7 @@ export default function Students() {
     guardian: "",
     phone: "",
     email: "",
-    password: "Student@123",
+    password: "",
     dob: "2015-05-15",
     admissionDate: new Date().toISOString().split("T")[0],
     status: "Active",
@@ -108,7 +105,7 @@ export default function Students() {
 
   // Reset form helper
   const resetForm = () => {
-    const nextIdNum = 1000 + (rawStudents?.length || 0) + addedStudents.length + 1;
+    const nextIdNum = 1000 + (rawStudents?.length || 0) + 1;
     setNewStudent({
       ...initialFormState,
       studentId: `STU-${nextIdNum}`,
@@ -119,15 +116,15 @@ export default function Students() {
     if (addOpen) {
       resetForm();
     }
-  }, [addOpen, rawStudents, addedStudents.length]);
+  }, [addOpen, rawStudents]);
 
   /*
    * ============================================================
-   * NORMALIZE STUDENT DATA (Combine API data + locally added data)
+   * NORMALIZE STUDENT DATA
    * ============================================================
    */
   const students = useMemo(() => {
-    const combined = [...addedStudents, ...(rawStudents || [])];
+    const combined = rawStudents || [];
     if (combined.length === 0) return [];
 
     return combined.map((s, idx) => {
@@ -152,7 +149,7 @@ export default function Students() {
         admissionDate: String(s?.admissionDate || "2022-04-10"),
       };
     });
-  }, [rawStudents, addedStudents]);
+  }, [rawStudents]);
 
   /*
    * ============================================================
@@ -379,7 +376,7 @@ export default function Students() {
     const studentEmail =
       newStudent.email.trim() ||
       `${newStudent.name.toLowerCase().replace(/[^a-z0-9]/g, "")}@igms.edu`;
-    const studentPassword = newStudent.password.trim() || "Student@123";
+    const studentPassword = newStudent.password.trim();
 
     const payload = {
       studentId: studentIdInput,
@@ -399,45 +396,14 @@ export default function Students() {
       average: 84,
     };
 
-    // 1. Call Backend API
-    const created = await api.createStudent(payload);
-
-    // 2. Also save to local fallback array in localStorage for offline DEV auth
     try {
-      const existing = JSON.parse(localStorage.getItem("igms.created_students") || "[]");
-      const fallbackUser = {
-        name: payload.name,
-        email: studentEmail,
-        password: studentPassword,
-        roleKey: "student",
-        role: "Student",
-        org: `${payload.className} · Section ${payload.section}`,
-        school_id: "SCH-001",
-        schoolName: "PM Shri Government Higher Secondary School - Gandhinagar",
-        classVal: String(payload.className).replace(/[^0-9]/g, "") || "5",
-        division: payload.section,
-        studentId: studentIdInput,
-        home: "/student/home",
-        permissions: ["student.profile", "student.results", "student.attendance"],
-      };
-      localStorage.setItem("igms.created_students", JSON.stringify([fallbackUser, ...existing]));
-    } catch (e) {}
-
-    // 3. Refresh data from Database
-    if (created) {
+      await api.createStudent(payload);
       await refetch();
-      toast.success(
-        `Student ${payload.name} created! Can log in as Student with Email: ${studentEmail} and Password: ${studentPassword}`
-      );
-    } else {
-      // Add to local state dynamically if offline
-      setAddedStudents((prev) => [payload, ...prev]);
-      toast.success(
-        `Student ${payload.name} added! Login Email: ${studentEmail}, Password: ${studentPassword}`
-      );
+      toast.success(`Student ${payload.name} created. Login email: ${studentEmail}.`);
+      setAddOpen(false);
+    } catch (error) {
+      toast.error(error.message || "Unable to create student.");
     }
-
-    setAddOpen(false);
   };
 
   /*
@@ -812,7 +778,7 @@ export default function Students() {
           <Input
             label="Student Login Password *"
             type="text"
-            placeholder="e.g. Student@123"
+            placeholder="Enter a strong password"
             value={newStudent.password}
             onChange={(e) =>
               setNewStudent({ ...newStudent, password: e.target.value })

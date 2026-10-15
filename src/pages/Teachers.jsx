@@ -37,9 +37,6 @@ export default function Teachers() {
   const { data: rawTeachers, loading, refetch } = useFetch(() => api.getTeachers(), []);
   const toast = useToast();
 
-  // Local state for additions so UI updates live without hard page reload
-  const [addedTeachers, setAddedTeachers] = useState([]);
-
   // Search & Filters
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);
@@ -72,14 +69,14 @@ export default function Teachers() {
     assignedDivision: "A",
     phone: "",
     email: "",
-    password: "Teacher@123",
+    password: "",
     status: "Active",
   };
 
   const [newTeacher, setNewTeacher] = useState(initialFormState);
 
   const resetForm = () => {
-    const nextIdNum = 200 + (rawTeachers?.length || 0) + addedTeachers.length + 1;
+    const nextIdNum = 200 + (rawTeachers?.length || 0) + 1;
     setNewTeacher({
       ...initialFormState,
       teacherId: `TCH-${nextIdNum}`,
@@ -90,13 +87,13 @@ export default function Teachers() {
     if (addOpen) {
       resetForm();
     }
-  }, [addOpen, rawTeachers, addedTeachers.length]);
+  }, [addOpen, rawTeachers]);
 
   /*
-   * Normalize teachers data (combine fetched + added)
+   * Normalize teachers data
    */
   const teachers = useMemo(() => {
-    const combined = [...addedTeachers, ...(rawTeachers || [])];
+    const combined = rawTeachers || [];
     if (combined.length === 0) return [];
 
     return combined.map((t, idx) => {
@@ -117,7 +114,7 @@ export default function Teachers() {
         status: String(t.status || "Active"),
       };
     });
-  }, [rawTeachers, addedTeachers]);
+  }, [rawTeachers]);
 
   /*
    * Filter options
@@ -217,7 +214,7 @@ export default function Teachers() {
     const teacherEmail =
       newTeacher.email.trim() ||
       `${newTeacher.name.toLowerCase().replace(/[^a-z0-9]/g, "")}@igms.edu`;
-    const teacherPassword = newTeacher.password.trim() || "Teacher@123";
+    const teacherPassword = newTeacher.password.trim();
 
     const payload = {
       teacherId: teacherIdInput,
@@ -233,41 +230,14 @@ export default function Teachers() {
       rating: 4.8,
     };
 
-    // 1. Call Backend API
-    const created = await api.createTeacher(payload);
-
-    // 2. Also save to local fallback array in localStorage for offline DEV auth
     try {
-      const existing = JSON.parse(localStorage.getItem("igms.created_teachers") || "[]");
-      const fallbackUser = {
-        name: payload.name,
-        email: teacherEmail,
-        password: teacherPassword,
-        roleKey: "teacher",
-        role: "Teacher",
-        org: "Govt. Higher Secondary School · School A",
-        school_id: "SCH-001",
-        schoolName: "PM Shri Government Higher Secondary School - Gandhinagar",
-        home: "/teacher/dashboard",
-        permissions: ["attendance.manage", "marks.manage", "leave.apply", "teacher.dashboard"],
-      };
-      localStorage.setItem("igms.created_teachers", JSON.stringify([fallbackUser, ...existing]));
-    } catch (e) {}
-
-    // 3. Refresh data from Database
-    if (created) {
+      await api.createTeacher(payload);
       await refetch();
-      toast.success(
-        `Teacher ${payload.name} created! Can log in as Teacher with Email: ${teacherEmail} and Password: ${teacherPassword}`
-      );
-    } else {
-      setAddedTeachers((prev) => [payload, ...prev]);
-      toast.success(
-        `Teacher ${payload.name} added! Login Email: ${teacherEmail}, Password: ${teacherPassword}`
-      );
+      toast.success(`Teacher ${payload.name} created. Login email: ${teacherEmail}.`);
+      setAddOpen(false);
+    } catch (error) {
+      toast.error(error.message || "Unable to create teacher.");
     }
-
-    setAddOpen(false);
   };
 
   /*
@@ -583,7 +553,7 @@ export default function Teachers() {
           <Input
             label="Teacher Login Password *"
             type="text"
-            placeholder="e.g. Teacher@123"
+            placeholder="Enter a strong password"
             value={newTeacher.password}
             onChange={(e) =>
               setNewTeacher({ ...newTeacher, password: e.target.value })

@@ -6,19 +6,12 @@ import Modal from "../components/ui/Modal";
 import Input from "../components/ui/Input";
 import { useToast } from "../context/ToastContext";
 import { buildApiUrl, getAuthHeaders } from "../utils/apiConfig";
+import { api } from "../services/api";
 
 export default function Schools() {
   const toast = useToast();
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const getAuthToken = () => {
-    try {
-      const rawUser = localStorage.getItem("igms.auth.user");
-      if (rawUser) return JSON.parse(rawUser)?.token || "";
-    } catch (e) {}
-    return localStorage.getItem("igms.auth.token") || "";
-  };
 
   const fetchSchools = async () => {
     try {
@@ -26,49 +19,23 @@ export default function Schools() {
       const headers = getAuthHeaders();
       const url = buildApiUrl("/api/schools");
 
-      let res = await fetch(url, { headers }).catch(() => null);
-
-      let formatted = [];
-      if (res && res.ok) {
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : (data.value || data.data || []);
-        formatted = list.map((s) => ({
-          id: s._id || s.school_id,
-          schoolName: s.name,
-          district: s.address?.district || "General District",
-          principal: s.principalId?.name || "Rohan Administrator",
-          principalEmail: s.principalId?.email || ("principal@" + (s.name ? s.name.toLowerCase().replace(/[^a-z]/g, "") : "school") + ".igms.gov.in"),
-          status: s.status || "Active",
-        }));
+      const res = await fetch(url, { headers });
+      if (!res.ok) {
+        throw new Error(`School request failed (${res.status}).`);
       }
-
-      const stored = JSON.parse(localStorage.getItem("igms.schools") || "[]");
-      const DEFAULT_SCHOOLS = [
-        {
-          id: "SCH-101",
-          schoolName: "Government Higher Secondary School",
-          district: "Gandhinagar",
-          principal: "Rohan Administrator",
-          principalEmail: "principal@ghss.gandhinagar.igms.gov.in",
-          status: "Active",
-        },
-        {
-          id: "SCH-102",
-          schoolName: "Shri Sardar Patel Vidyalaya",
-          district: "Ahmedabad",
-          principal: "Dr. Arvind Bhatt",
-          principalEmail: "principal@sardarpatel.ahmedabad.igms.gov.in",
-          status: "Active",
-        },
-      ];
-
-      const combined = formatted.length > 0
-        ? [...formatted, ...stored]
-        : (stored.length > 0 ? stored : DEFAULT_SCHOOLS);
-
-      setSchools(combined);
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (data.value || data.data || []);
+      setSchools(list.map((school) => ({
+        id: school._id || school.school_id,
+        schoolName: school.name,
+        district: school.address?.district || "General District",
+        principal: school.principalId?.name || "Unassigned",
+        principalEmail: school.principalId?.email || "",
+        status: school.status || "Active",
+      })));
     } catch (err) {
       console.error("Failed to fetch schools:", err);
+      toast.error(err.message || "Unable to fetch schools.");
     } finally {
       setLoading(false);
     }
@@ -111,56 +78,24 @@ export default function Schools() {
         principalName: form.principalName.trim() || `Principal ${form.schoolName.trim()}`,
         principalEmail: form.principalEmail.trim() || `principal@${form.schoolName.trim().toLowerCase().replace(/[^a-z]/g, "")}.igms.gov.in`,
         principalPhone: form.principalPhone || "+91 9876543210",
-        principalPassword: form.principalPassword || "Principal@123",
+        principalPassword: form.principalPassword,
       };
 
-      const headers = getAuthHeaders();
-      const url = buildApiUrl("/api/schools");
-
-      await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      }).catch(() => null);
-
-      // Save Principal user account locally to enable immediate offline login
-      const createdPrincipalAccount = {
-        email: payload.principalEmail.toLowerCase(),
-        password: payload.principalPassword,
-        name: payload.principalName,
-        roleKey: "principal",
-        role: "Principal",
-        schoolName: payload.name,
-        school_id: `school-${Date.now().toString().slice(-4)}`,
-        org: `${payload.name} · ${payload.district}`,
-        home: "/dashboard",
-        permissions: ["school.view", "student.manage", "teacher.manage", "parent.manage", "dashboard.view"],
-      };
-
-      try {
-        const storedPrincipals = JSON.parse(localStorage.getItem("igms.created_principals") || "[]");
-        localStorage.setItem("igms.created_principals", JSON.stringify([createdPrincipalAccount, ...storedPrincipals]));
-      } catch (e) {}
-
+      const result = await api.createSchool(payload);
+      const record = result.school;
       const newSchool = {
-        id: `SCH-${Date.now()}`,
-        schoolName: payload.name,
-        district: payload.district,
-        principal: payload.principalName,
-        principalEmail: payload.principalEmail,
-        status: "Active",
+        id: record._id || record.school_id,
+        schoolName: record.name,
+        district: record.address?.district || payload.district,
+        principal: result.principal?.name || payload.principalName,
+        principalEmail: result.principal?.email || payload.principalEmail,
+        status: record.status || "Active",
       };
-
-      try {
-        const stored = JSON.parse(localStorage.getItem("igms.schools") || "[]");
-        localStorage.setItem("igms.schools", JSON.stringify([newSchool, ...stored]));
-      } catch (e) {}
-
       setSchools((prev) => [newSchool, ...prev]);
-      toast.success(`School '${payload.name}' & Principal account created! Email: ${payload.principalEmail}`);
+      toast.success(`School '${payload.name}' and principal account created. Login email: ${payload.principalEmail}.`);
     } catch (err) {
-      console.warn("Error creating school:", err);
-      toast.success("School & Principal saved successfully!");
+      toast.error(err.message || "Unable to create school.");
+      return;
     }
 
     setForm({
@@ -329,7 +264,7 @@ export default function Schools() {
             type="password"
             value={form.principalPassword}
             onChange={handleChange}
-            placeholder="e.g. Principal@123"
+            placeholder="Enter a strong password"
           />
         </div>
       </Modal>
