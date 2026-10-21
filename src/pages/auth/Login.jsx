@@ -325,10 +325,36 @@ export default function Login() {
         </Button>
       </form>
 
+      {/* Demo Credentials Quick Fill Trigger */}
+      <button
+        type="button"
+        onClick={fillDemo}
+        className="mt-3.5 flex w-full items-center gap-2.5 rounded-xl border border-dashed border-blue-200 bg-blue-50/70 p-2.5 text-left transition hover:bg-blue-50"
+      >
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-700 text-white shadow-sm">
+          <FiInfo className="h-3.5 w-3.5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold text-blue-900 leading-tight">
+            {localizedRoleLabel} - {t("auth.demoLogins")}
+          </p>
+          <p className="truncate text-[10px] text-slate-500">
+            {role.credentials.email}
+          </p>
+        </div>
+        <span className="rounded bg-blue-700 px-2 py-0.5 text-[9px] font-bold text-white uppercase">
+          Auto-fill
+        </span>
+      </button>
+
+      {/* Academic Project Demo Notice */}
+      <div className="mt-3 rounded-lg border border-amber-200/90 bg-amber-50/80 px-2.5 py-2 text-center text-[10.5px] leading-relaxed text-amber-900 shadow-2xs">
+        <span className="font-bold">Academic Project Demo.</span> AI-IGMS is a student-developed prototype and is not an official government portal.
+      </div>
       {/* Footer Security Note */}
       <div className="mt-3 flex items-center justify-center gap-1.5 border-t border-slate-100 pt-2 text-[10px] text-slate-400">
-        <FiShield className="h-3 w-3 text-emerald-600" />
-        <span>{t("govName")} • {t("deptName")}</span>
+        <FiShield className="h-3 w-3 text-blue-600" />
+        <span>AI-IGMS • Academic Project Demo</span>
       </div>
     </motion.div>
   );

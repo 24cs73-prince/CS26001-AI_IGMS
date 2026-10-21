@@ -23,6 +23,7 @@ import {
   FiGlobe,
   FiPrinter,
   FiMail,
+  FiAward,
 } from "react-icons/fi";
 import { APP } from "../constants/app";
 
@@ -362,27 +363,59 @@ Official Portal: Directorate of School Education, Gandhinagar, Gujarat.
         ======================================================= */}
         <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-md">
           <div className="mx-auto flex min-h-[88px] max-w-[1500px] items-center justify-between px-5 lg:px-10">
-            <div className="flex items-center gap-4">
-              <div className="flex h-[84px] w-[88px] items-center justify-center border-r border-slate-200 pr-5">
-                <img
-                  src={ashokStambh}
-                  alt="State Emblem of India"
-                  className="h-[78px] w-auto object-contain"
-                />
-              </div>
+            {isPathActive("/login") ? (
+              <div className="flex items-center gap-4">
+                <div className="flex h-[84px] min-w-[88px] items-center justify-center border-r border-slate-200 pr-5">
+                  <img
+                    src="/images/ai-igms-logo.png"
+                    alt="AI-IGMS Logo"
+                    className="h-[74px] w-auto max-w-[120px] object-contain transition-all"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      const fallback = e.currentTarget.parentElement?.querySelector(".logo-fallback");
+                      if (fallback) fallback.classList.remove("hidden");
+                    }}
+                  />
+                  <div className="logo-fallback hidden flex h-[68px] w-[68px] items-center justify-center rounded-2xl bg-gradient-to-br from-[#17395f] to-blue-700 text-white font-extrabold text-sm shadow-sm">
+                    AI-IGMS
+                  </div>
+                </div>
 
-              <div>
-                <p className="text-[10px] font-bold tracking-[0.25em] text-slate-500">
-                  {t.govName.toUpperCase()}
-                </p>
-                <h1 className="mt-1 text-xl font-extrabold text-[#17395f] sm:text-2xl">
-                  {t.deptTitle}
-                </h1>
-                <p className="text-xs text-slate-500 sm:text-sm font-semibold">
-                  {t.deptSub}
-                </p>
+                <div>
+                  <p className="text-[11px] font-extrabold tracking-[0.2em] text-blue-600 uppercase">
+                    AI-IGMS
+                  </p>
+                  <h1 className="mt-0.5 text-lg font-extrabold text-[#17395f] sm:text-xl md:text-2xl leading-tight">
+                    Integrated Government School Management System
+                  </h1>
+                  <p className="text-xs text-slate-500 sm:text-sm font-semibold">
+                    Academic Project Demo
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <div className="flex h-[84px] w-[88px] items-center justify-center border-r border-slate-200 pr-5">
+                  <img
+                    src={ashokStambh}
+                    alt="State Emblem of India"
+                    className="h-[78px] w-auto object-contain"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-bold tracking-[0.25em] text-slate-500">
+                    {t.govName.toUpperCase()}
+                  </p>
+                  <h1 className="mt-1 text-xl font-extrabold text-[#17395f] sm:text-2xl">
+                    {t.deptTitle}
+                  </h1>
+                  <p className="text-xs text-slate-500 sm:text-sm font-semibold">
+                    {t.deptSub}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <nav className="hidden items-center gap-7 lg:flex">
               <Link
@@ -442,7 +475,7 @@ Official Portal: Directorate of School Education, Gandhinagar, Gujarat.
 
               <div className="flex items-center gap-2 rounded-full border border-emerald-400 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-700">
                 <FiLock className="h-4 w-4 text-emerald-600" />
-                {t.securePortal}
+                {isPathActive("/login") ? "Demo Portal" : t.securePortal}
               </div>
             </nav>
           </div>
@@ -517,27 +550,74 @@ Official Portal: Directorate of School Education, Gandhinagar, Gujarat.
                     <div className="mt-6">
                       <div className="mb-2.5 flex items-center gap-3">
                         <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">
-                          Government Leadership
+                          School Ecosystem
                         </p>
                         <div className="h-px flex-1 bg-slate-200" />
                       </div>
 
                       <div className="grid max-w-[850px] grid-cols-1 gap-3 sm:grid-cols-3">
-                        <LeaderCard
-                          image={modiImg}
-                          name="Shri Narendra Modi"
-                          position="Hon'ble Prime Minister of India"
-                        />
-                        <LeaderCard
-                          image={bhupendraImg}
-                          name="Shri Bhupendra Patel"
-                          position="Hon'ble Chief Minister of Gujarat"
-                        />
-                        <LeaderCard
-                          image={kuberImg}
-                          name="Dr. Kuberbhai Dindor"
-                          position="Education Leadership, Gujarat"
-                        />
+                        <div className="group flex h-[105px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+                          <div className="flex w-[95px] shrink-0 items-center justify-center bg-gradient-to-b from-blue-50 to-indigo-50/50">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100/80 text-blue-700 shadow-xs transition-transform duration-300 group-hover:scale-110">
+                              <FiShield className="h-6 w-6" />
+                            </div>
+                          </div>
+                          <div className="flex min-w-0 flex-1 flex-col justify-center px-3">
+                            <div className="flex items-start justify-between gap-1.5">
+                              <div className="min-w-0">
+                                <h3 className="truncate text-xs font-extrabold text-[#17395f]">
+                                  School Administration
+                                </h3>
+                                <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-slate-500">
+                                  Institutional governance, student & staff management
+                                </p>
+                              </div>
+                              <FiArrowUpRight className="h-4 w-4 shrink-0 text-slate-300 group-hover:text-blue-600 transition" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="group flex h-[105px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+                          <div className="flex w-[95px] shrink-0 items-center justify-center bg-gradient-to-b from-emerald-50 to-teal-50/50">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100/80 text-emerald-700 shadow-xs transition-transform duration-300 group-hover:scale-110">
+                              <FiBookOpen className="h-6 w-6" />
+                            </div>
+                          </div>
+                          <div className="flex min-w-0 flex-1 flex-col justify-center px-3">
+                            <div className="flex items-start justify-between gap-1.5">
+                              <div className="min-w-0">
+                                <h3 className="truncate text-xs font-extrabold text-[#17395f]">
+                                  Teaching & Learning
+                                </h3>
+                                <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-slate-500">
+                                  Classroom scheduling, attendance & lesson workflows
+                                </p>
+                              </div>
+                              <FiArrowUpRight className="h-4 w-4 shrink-0 text-slate-300 group-hover:text-emerald-600 transition" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="group flex h-[105px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+                          <div className="flex w-[95px] shrink-0 items-center justify-center bg-gradient-to-b from-purple-50 to-blue-50/50">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100/80 text-purple-700 shadow-xs transition-transform duration-300 group-hover:scale-110">
+                              <FiAward className="h-6 w-6" />
+                            </div>
+                          </div>
+                          <div className="flex min-w-0 flex-1 flex-col justify-center px-3">
+                            <div className="flex items-start justify-between gap-1.5">
+                              <div className="min-w-0">
+                                <h3 className="truncate text-xs font-extrabold text-[#17395f]">
+                                  Academic Excellence
+                                </h3>
+                                <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-slate-500">
+                                  Exam evaluations, results & performance analytics
+                                </p>
+                              </div>
+                              <FiArrowUpRight className="h-4 w-4 shrink-0 text-slate-300 group-hover:text-purple-600 transition" />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -561,16 +641,16 @@ Official Portal: Directorate of School Education, Gandhinagar, Gujarat.
                       <Outlet />
                     </div>
 
-                    <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-emerald-100 bg-emerald-50/70 px-3.5 py-2">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#12385f] text-emerald-600 shadow-sm">
-                        <FiShield className="h-3.5 w-3.5 text-emerald-400" />
+                    <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-blue-100 bg-blue-50/70 px-3.5 py-2">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#12385f] text-blue-400 shadow-sm">
+                        <FiShield className="h-3.5 w-3.5 text-blue-300" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-emerald-800 leading-tight">
-                          Government Portal Access
+                        <p className="text-xs font-bold text-[#17395f] leading-tight">
+                          AI-IGMS Academic Demo Portal
                         </p>
-                        <p className="text-[10px] text-emerald-700">
-                          Secure role-based authentication for school users.
+                        <p className="text-[10px] text-slate-600">
+                          Role-based authentication demonstration for academic evaluation.
                         </p>
                       </div>
                     </div>

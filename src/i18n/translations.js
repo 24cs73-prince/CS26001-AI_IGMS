@@ -279,7 +279,7 @@ export const TRANSLATIONS = {
 
     // Auth / Login Page
     auth: {
-      headerBadge: "Official Government of Gujarat Authentication Portal",
+      headerBadge: "AI-IGMS Academic Demo Portal",
       title: "School Education Management Portal",
       subtitle: "Sign in with your official role credentials to access your designated command center.",
       selectRole: "Select Your Portal Role",
@@ -573,7 +573,7 @@ export const TRANSLATIONS = {
 
     // Auth / Login Page
     auth: {
-      headerBadge: "સત્તાવાર ગુજરાત સરકાર પ્રમાણીકરણ પોર્ટલ",
+      headerBadge: "AI-IGMS એકેડેમિક ડેમો પોર્ટલ",
       title: "શાળા શિક્ષણ સંચાલન પોર્ટલ",
       subtitle: "તમારા નિયુક્ત કમાન્ડ સેન્ટરમાં પ્રવેશવા માટે તમારા સત્તાવાર ઓળખપત્રો વડે લૉગિન કરો.",
       selectRole: "તમારી પોર્ટલ ભૂમિકા પસંદ કરો",

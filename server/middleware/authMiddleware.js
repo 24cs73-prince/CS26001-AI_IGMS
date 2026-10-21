@@ -13,8 +13,8 @@ const getJwtSecret = () => {
   return process.env.JWT_SECRET;
 };
 
-// Demo users seed matching authController for fallback identification
-const DEMO_USERS_SEED = [
+// Demo users seed for local development mode fallback only
+const DEV_DEMO_USERS_SEED = [
   {
     _id: "66b1a201c100000000000001",
     name: "System Administrator",
@@ -98,6 +98,7 @@ const DEMO_USERS_SEED = [
  */
 export const protect = async (req, res, next) => {
   let token;
+  const isProduction = process.env.NODE_ENV === "production";
 
   if (
     req.headers.authorization &&
@@ -108,20 +109,48 @@ export const protect = async (req, res, next) => {
       if (token && token !== "undefined" && token !== "null") {
         const decoded = jwt.verify(token, getJwtSecret());
 
-        let user = null;
-        if (mongoose.connection.readyState === 1 && decoded?.id) {
+        if (!decoded || !decoded.id) {
+          return res.status(401).json({ message: "Not authorized, invalid token payload." });
+        }
+
+        // Production Mode: Strict MongoDB resolution
+        if (isProduction) {
+          if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({
+              message: "Authentication service temporarily unavailable. Database connection offline.",
+            });
+          }
+
+          let user = null;
           try {
             user = await User.findById(decoded.id).select("-passwordHash");
           } catch (dbErr) {
-            console.warn("protect middleware User lookup warning:", dbErr.message);
+            console.error("User lookup database error in production:", dbErr.message);
+            return res.status(401).json({ message: "Not authorized, user lookup failed." });
+          }
+
+          if (user) {
+            req.user = user;
+            return next();
+          }
+
+          return res.status(401).json({ message: "Not authorized, user not found." });
+        }
+
+        // Development Mode: Attempt MongoDB lookup first, fallback to demo seed only if offline / dev seed
+        let devUser = null;
+        if (mongoose.connection.readyState === 1) {
+          try {
+            devUser = await User.findById(decoded.id).select("-passwordHash");
+          } catch (dbErr) {
+            console.warn("Dev User lookup warning:", dbErr.message);
           }
         }
 
-        // Check demo seed accounts if user not found in DB
-        if (process.env.NODE_ENV === "development" && !user && decoded?.id) {
+        if (!devUser && process.env.NODE_ENV === "development" && decoded?.id) {
           const seedMatch = DEMO_USERS_SEED.find((u) => String(u._id) === String(decoded.id));
           if (seedMatch) {
-            user = {
+            devUser = {
               _id: seedMatch._id,
               name: seedMatch.name,
               email: seedMatch.email,
@@ -140,16 +169,16 @@ export const protect = async (req, res, next) => {
           }
         }
 
-        if (user && user.isActive === false) {
+        if (devUser && devUser.isActive === false) {
           return res.status(401).json({ message: "User account is inactive." });
         }
 
-        if (user) {
-          req.user = user;
+        if (devUser) {
+          req.user = devUser;
           return next();
-        } else {
-          return res.status(401).json({ message: "Not authorized, user not found." });
         }
+
+        return res.status(401).json({ message: "Not authorized, user not found." });
       }
     } catch (error) {
       return res.status(401).json({ message: "Not authorized, token failed or expired." });
