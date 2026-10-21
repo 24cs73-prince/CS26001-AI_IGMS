@@ -25,8 +25,10 @@ export default function StudentExamsPage() {
   const [exams, setExams] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedClass, setSelectedClass] = useState("all");
 
   const studentId = user?.studentId || user?.id || (user?._id ? String(user._id) : "STU-1001");
+  const studentClass = String(user?.classVal || "6");
 
   useEffect(() => {
     async function loadData() {
@@ -64,11 +66,24 @@ export default function StudentExamsPage() {
   const availableExams = exams.filter(
     (e) =>
       e.status === "Published" &&
-      !submissions.some((s) => s.examId === e.id)
+      !submissions.some((s) => s.examId === e.id) &&
+      (selectedClass === "all" || String(e.class || e.classVal) === String(selectedClass))
   );
 
   // Completed Exams = Exams where student has submitted an attempt
   const completedExams = submissions;
+
+  const classFilters = [
+    { id: "all", label: `All Exams (${exams.filter(e => e.status === "Published" && !submissions.some(s => s.examId === e.id)).length})` },
+    { id: studentClass, label: `Class ${studentClass} (My Class)` },
+    { id: "1", label: "Class 1" },
+    { id: "2", label: "Class 2" },
+    { id: "3", label: "Class 3" },
+    { id: "4", label: "Class 4" },
+    { id: "5", label: "Class 5" },
+    { id: "7", label: "Class 7" },
+    { id: "8", label: "Class 8" },
+  ];
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
@@ -77,6 +92,23 @@ export default function StudentExamsPage() {
         description="View available tests, attempt online MCQ exams, and check your performance results."
         breadcrumbs={[{ label: "Online Exams" }]}
       />
+
+      {/* Grade Selector Tabs */}
+      <div className="flex flex-wrap items-center gap-2">
+        {classFilters.map((cf) => (
+          <button
+            key={cf.id}
+            onClick={() => setSelectedClass(cf.id)}
+            className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all duration-150 ${
+              selectedClass === cf.id
+                ? "bg-primary text-white shadow-soft"
+                : "bg-white text-slate-600 border border-hairline hover:bg-slate-50"
+            }`}
+          >
+            {cf.label}
+          </button>
+        ))}
+      </div>
 
       {/* Available Exams Section */}
       <div className="space-y-4">
@@ -92,7 +124,7 @@ export default function StudentExamsPage() {
 
         {availableExams.length === 0 ? (
           <Card className="text-center py-8">
-            <p className="text-sm text-slate-500">No active examinations available right now.</p>
+            <p className="text-sm text-slate-500">No active examinations available right now for this filter.</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -107,7 +139,7 @@ export default function StudentExamsPage() {
                   <div>
                     <div className="flex items-center justify-between border-b border-hairline pb-3">
                       <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
-                        {exam.subject}
+                        {exam.subject} • Class {exam.class || exam.classVal}
                       </span>
                       <Badge tone="success">Available</Badge>
                     </div>

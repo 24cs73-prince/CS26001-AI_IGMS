@@ -8,9 +8,24 @@ import { schoolScope } from "../middleware/authMiddleware.js";
 export const getWeeklyMenu = async (req, res) => {
   try {
     const requestedSchoolId = typeof req.query.schoolId === "string" ? req.query.schoolId : undefined;
-    const schoolId = req.user?.school_id || requestedSchoolId || "SCH-001";
-    const menu = await MealMenu.find({ schoolId, isActive: true }).sort({ dayOfWeek: 1 });
-    res.json(menu);
+    const userSchoolId = req.user?.school_id || requestedSchoolId || "SCH-001";
+    const variations = [userSchoolId, userSchoolId.toLowerCase(), userSchoolId.toUpperCase(), "SCH-001", "school-001"];
+
+    const menuDocs = await MealMenu.find({
+      schoolId: { $in: variations },
+      isActive: true,
+    }).sort({ dayOfWeek: 1, updatedAt: -1 });
+
+    // Deduplicate so each dayOfWeek (1 to 6) only appears once
+    const uniqueByDay = new Map();
+    for (const doc of menuDocs) {
+      if (!uniqueByDay.has(doc.dayOfWeek)) {
+        uniqueByDay.set(doc.dayOfWeek, doc);
+      }
+    }
+
+    const cleanMenu = Array.from(uniqueByDay.values()).sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+    res.json(cleanMenu);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch meal menu", error: error.message });
   }

@@ -15,7 +15,14 @@ export async function applyQueryFeatures(model, queryParams = {}, searchFields =
       .slice(0, 100)
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const searchRegex = new RegExp(escapedSearch, "i");
-    filter.$or = searchFields.map((field) => ({ [field]: searchRegex }));
+    const searchOrClause = { $or: searchFields.map((field) => ({ [field]: searchRegex })) };
+
+    if (filter.$or) {
+      filter.$and = [{ $or: filter.$or }, searchOrClause];
+      delete filter.$or;
+    } else {
+      filter.$or = searchOrClause.$or;
+    }
   }
 
   // Apply exact match filters (e.g. status, classVal, subject)

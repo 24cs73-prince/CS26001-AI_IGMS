@@ -41,7 +41,16 @@ export default function ParentMidDayMeal() {
         api.getMeals(language),
         api.getTodayMeal(language),
       ]);
-      setWeeklyMenu(Array.isArray(meals) ? meals : []);
+      const rawMeals = Array.isArray(meals) ? meals : [];
+      const seenDays = new Set();
+      const dedupedMeals = [];
+      for (const m of rawMeals) {
+        if (!seenDays.has(m.dayIndex)) {
+          seenDays.add(m.dayIndex);
+          dedupedMeals.push(m);
+        }
+      }
+      setWeeklyMenu(dedupedMeals);
       setTodayInfo(today || null);
     } catch (err) {
       console.error("Meal API fetch error:", err);

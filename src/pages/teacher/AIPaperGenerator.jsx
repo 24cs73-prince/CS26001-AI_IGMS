@@ -307,6 +307,7 @@ export default function AIPaperGenerator() {
       }));
 
       const examPayload = {
+        school_id: user?.school_id || "school-001",
         title: `Class ${config.cls.value} ${config.sub.label} (${config.lang.value}) - ${config.topic ? config.topic.substring(0, 30) : 'Term Exam'}`,
         subject: config.sub.label,
         classVal: String(config.cls.value),
@@ -318,6 +319,7 @@ export default function AIPaperGenerator() {
         totalQuestions: formattedQuestions.length,
         status: "Published",
         questions: formattedQuestions,
+        ...(user?._id || user?.id ? { createdBy: user._id || user.id } : {}),
       };
 
       const headers = getAuthHeaders();

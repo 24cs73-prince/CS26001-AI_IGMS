@@ -28,9 +28,6 @@ import {
 import { APP } from "../constants/app";
 
 import ashokStambh from "../assets/images/ashok_stambh.avif";
-import modiImg from "../assets/images/PM-modi.png";
-import bhupendraImg from "../assets/images/Cm-bhupendra.jpg";
-import kuberImg from "../assets/images/kuber-dindor.jpg";
 import govtSchoolImg from "../assets/images/government-school.png";
 
 /**

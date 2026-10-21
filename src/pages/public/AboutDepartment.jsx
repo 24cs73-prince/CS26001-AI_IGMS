@@ -11,38 +11,10 @@ import {
   FiFeather,
 } from "react-icons/fi";
 
-import modiImg from "../../assets/images/PM-modi.png";
-import bhupendraImg from "../../assets/images/Cm-bhupendra.jpg";
-import kuberImg from "../../assets/images/kuber-dindor.jpg";
-
 /**
  * About Department Public Page - School Education Department, Government of Gujarat
  */
 export default function AboutDepartment() {
-  const leadership = [
-    {
-      name: "Shri Narendra Modi",
-      title: "Hon'ble Prime Minister of India",
-      role: "National Educational Visionary",
-      image: modiImg,
-      quote: "Transforming education into a foundation for nation-building through technology and inclusive learning.",
-    },
-    {
-      name: "Shri Bhupendra Patel",
-      title: "Hon'ble Chief Minister of Gujarat",
-      role: "State Executive Leadership",
-      image: bhupendraImg,
-      quote: "Ensuring high-quality primary and secondary education for every child in every village of Gujarat.",
-    },
-    {
-      name: "Dr. Kuberbhai Dindor",
-      title: "Hon'ble Minister of Primary, Secondary & Adult Education",
-      role: "Department Ministerial Leadership",
-      image: kuberImg,
-      quote: "Empowering teachers and modernizing school infrastructure through AI-driven governance.",
-    },
-  ];
-
   const pillars = [
     {
       icon: FiBookOpen,
@@ -90,59 +62,6 @@ export default function AboutDepartment() {
         <p className="mt-4 max-w-3xl text-sm leading-relaxed text-blue-100/90 sm:text-base">
           The School Education Department, Government of Gujarat, oversees primary, secondary, and higher secondary education across 33 districts. Through digital innovation, Mission Schools of Excellence, and AI-IGMS, we strive to provide equitable, tech-enabled, and high-quality learning environments.
         </p>
-      </div>
-
-      {/* Department Leadership Section */}
-      <div>
-        <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-blue-600">
-              Department Executive Council
-            </p>
-            <h2 className="text-2xl font-extrabold text-[#17395f]">
-              Government Leadership & Vision
-            </h2>
-          </div>
-          <span className="hidden sm:inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 border border-blue-200">
-            State Executive Desk
-          </span>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          {leadership.map((item, idx) => (
-            <div
-              key={idx}
-              className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-            >
-              <div>
-                <div className="flex items-center gap-4">
-                  <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-blue-50 shadow-xs">
-                    <img
-                      src={item.image}
-                      alt={name}
-                      className="h-full w-full object-cover object-top transition group-hover:scale-105"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-[#17395f] text-base">
-                      {item.name}
-                    </h3>
-                    <p className="text-xs font-semibold text-blue-600 mt-0.5">
-                      {item.role}
-                    </p>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-tight">
-                      {item.title}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 rounded-xl bg-slate-50 p-3 text-xs italic text-slate-600 border border-slate-100">
-                  "{item.quote}"
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Strategic Vision & Mission Pillars */}

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import dns from "dns";
 
 /**
  * MongoDB Connection Handler
@@ -22,6 +23,14 @@ export const connectDB = async () => {
     }
     console.warn("⚠️ MongoDB URI contains a placeholder. Using local development MongoDB.");
     mongoUri = "mongodb://127.0.0.1:27017/ai_igms";
+  }
+
+  if (mongoUri.startsWith("mongodb+srv://")) {
+    try {
+      dns.setServers(["8.8.8.8", "1.1.1.1"]);
+    } catch (dnsErr) {
+      // ignore
+    }
   }
 
   try {
